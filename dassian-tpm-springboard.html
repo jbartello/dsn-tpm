@@ -342,6 +342,11 @@
   .rc-legend .lg.toggle { cursor: pointer; user-select: none; }
   .rc-legend .lg.toggle:hover { color: var(--text); }
   .rc-legend .lg.off { opacity: .35; text-decoration: line-through; }
+
+  /* ---------- Risk Information: embedded register ---------- */
+  .risk-embed-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .risk-embed-bar .ch-title { font-size: 16px; }
+  .risk-frame { width: 100%; height: calc(100vh - 185px); border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; display: block; }
 </style>
 </head>
 <body>
@@ -1076,33 +1081,19 @@
   }
 
   function renderRisk(p) {
+    // Embed the Program Risk Register prototype, passing the selected Program's
+    // projects so its left-side list reflects the current TPM Program.
+    const projects = [...new Map(pvProgramRows().map(r => [r[0], r[1]])).entries()]
+      .map(([id, name]) => ({ id, name }));
+    const src = 'program-risk-register-prototype.html'
+      + `?program=${encodeURIComponent(p.name)}`
+      + `&projects=${encodeURIComponent(JSON.stringify(projects))}`;
     return `
-      <p class="module-intro">Risk &amp; opportunity summary for <strong>${p.name}</strong>.</p>
-      <div class="tile-grid" style="margin-bottom:18px">
-        <div class="tile"><div class="t-label">Open Risks</div>
-          <div class="t-value bad">3</div><div class="t-sub">2 high · 1 medium</div></div>
-        <div class="tile"><div class="t-label">Open Opportunities</div>
-          <div class="t-value good">1</div><div class="t-sub">1 in process</div></div>
-        <div class="tile"><div class="t-label">Highest Risk Score</div>
-          <div class="t-value bad">0.90</div><div class="t-sub">Near Certain × Unacceptable</div></div>
+      <div class="risk-embed-bar">
+        <span class="ch-title">Program Risk Register — ${p.name}</span>
+        <a class="btn" href="${src}" target="_blank">Open full screen ↗</a>
       </div>
-      <div class="card">
-        <div class="card-head">
-          <span class="ch-title">Risk Register</span>
-          <a class="btn primary" href="program-risk-register-prototype.html">Open Risk Register ›</a>
-        </div>
-        <div class="card-body">
-          <table class="grid">
-            <thead><tr><th>Item</th><th>Type</th><th>Owner</th><th>Status</th><th class="num">Current Score</th></tr></thead>
-            <tbody>
-              <tr><td>Risk 1</td><td>Risk</td><td>Jason Bartello</td><td><span class="pill warn">In Process</span></td><td class="num">0.64</td></tr>
-              <tr><td>Risk 2</td><td>Risk</td><td>Jason Bartello</td><td><span class="pill bad">New</span></td><td class="num">0.90</td></tr>
-              <tr><td>Risk 3</td><td>Risk</td><td>Jason Bartello</td><td><span class="pill bad">New</span></td><td class="num">0.90</td></tr>
-              <tr><td>Opportunity 1</td><td>Opportunity</td><td>Allen Ytzen</td><td><span class="pill good">New</span></td><td class="num">0.24</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+      <iframe class="risk-frame" src="${src}" title="Program Risk Register"></iframe>`;
   }
 
   function renderAnalysis(p) {
