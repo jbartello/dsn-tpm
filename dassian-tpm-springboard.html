@@ -420,6 +420,11 @@
   table.cap-tp td.tot { font-weight: 700; }
   table.cap-tp tr.wp-top td { border-top: 2px solid #d2dae3; }
   table.wbs td.neg { color: var(--bad); }
+  /* Tripwire */
+  table.wbs.tw th.tw-chk, table.wbs.tw td.tw-chk { text-align: center; width: 40px; min-width: 40px; }
+  table.wbs.tw td.tw-issue { background: #fbe5e5; color: var(--bad); font-weight: 700; }
+  table.wbs.tw td.tw-ok { color: var(--good); }
+  table.wbs.tw td.tw-na { color: #b0b0b0; }
 </style>
 </head>
 <body>
@@ -476,6 +481,7 @@
 <script src="ram-report-data.js"></script>
 <script src="cap-timephased-data.js"></script>
 <script src="cap-summary-data.js"></script>
+<script src="tripwire-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -1324,6 +1330,7 @@
       if (x[0] === 'WBS Dictionary') open = '<a class="link" onclick="openWbsDict()">Open ›</a>';
       else if (x[0] === 'Responsibility Assignment Matrix (RAM)') open = '<a class="link" onclick="openRamReport()">Open ›</a>';
       else if (x[0] === 'Control Account Plans (CAP)') open = '<a class="link" onclick="openCapPlan()">Open ›</a>';
+      else if (x[0] === 'Tripwire Report') open = '<a class="link" onclick="openTripwire()">Open ›</a>';
       return `<tr>
         <td>${x[0]}</td><td>${x[3]}</td>
         <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
@@ -1461,7 +1468,12 @@
     + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
     + '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
     + '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
-    + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+    + '<dxfs count="3">'
+    + '<dxf><font><color rgb="FF9C0006"/></font><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill></dxf>'   // 0 = ISSUE (red)
+    + '<dxf><font><color rgb="FF006100"/></font><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf>'   // 1 = OK (green)
+    + '<dxf><font><color rgb="FF7F7F7F"/></font><fill><patternFill><bgColor rgb="FFEDEDED"/></patternFill></fill></dxf>'   // 2 = NA (grey)
+    + '</dxfs></styleSheet>';
   const _CT = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
   const _RELS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
   const _WB = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="WBS Dictionary" sheetId="1" r:id="rId1"/></sheets></workbook>';
@@ -1852,6 +1864,110 @@
       '<div class="wbs-body">' + (capView === 'tp' ? capTpTable() : capSummaryTable()) + '</div>';
     d.classList.add('open');
     const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0; wb.scrollLeft = 0;
+  }
+
+  /* ---------- Tripwire Report slide-out ---------- */
+  const TW_TEXT = [0, 1, 3, 5], TW_NUM = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+  function _twChk(cols) { const a = []; for (let i = 21; i < cols.length; i++) a.push(i); return a; }
+  const _twMoney = v => (typeof v === 'number') ? v.toLocaleString('en-US', { maximumFractionDigits: 0 }) : _xml(v);
+  const _twRatio = v => (typeof v === 'number') ? String(v) : _xml(v);
+  function ensureTwDrawer() {
+    let d = document.getElementById('twDrawer');
+    if (!d) { d = document.createElement('div'); d.id = 'twDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); }
+    return d;
+  }
+  function closeTripwire() { const d = document.getElementById('twDrawer'); if (d) d.classList.remove('open'); }
+  function openTripwire() {
+    const t = window.TRIPWIRE || { meta: {}, cols: [], rows: [] }, m = t.meta || {};
+    const CHK = _twChk(t.cols);
+    let th = '';
+    TW_TEXT.forEach(i => th += '<th>' + _xml(t.cols[i]) + '</th>');
+    TW_NUM.forEach(i => th += '<th class="num">' + _xml(t.cols[i]) + '</th>');
+    CHK.forEach(i => { const full = t.cols[i]; th += '<th class="tw-chk" title="' + _xml(full) + '">' + _xml(full.split(' ')[0]) + '</th>'; });
+    const body = t.rows.map(r => {
+      let cells = '';
+      TW_TEXT.forEach(i => cells += '<td>' + _xml(r[i]) + '</td>');
+      TW_NUM.forEach(i => cells += '<td class="num">' + (i >= 18 ? _twRatio(r[i]) : _twMoney(r[i])) + '</td>');
+      CHK.forEach(i => { const v = r[i], cls = v === 'ISSUE' ? 'tw-issue' : (v === 'OK' ? 'tw-ok' : 'tw-na'); cells += '<td class="tw-chk ' + cls + '">' + _xml(v) + '</td>'; });
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+    const issues = t.rows.reduce((a, r) => a + r.filter(c => c === 'ISSUE').length, 0);
+    const sub = [m.snapshot, m.baseline].filter(Boolean).join(' · ') + (issues ? ' · ' + issues + ' issues flagged' : '');
+    const d = ensureTwDrawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">' + _xml(m.title || 'Tripwire Report') + '</div>' +
+        '<div class="t2">' + _xml(sub) + '</div></div>' +
+        '<button class="wbs-xls" onclick="downloadTwExcel()" title="Download to Excel"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#107e3e"/><path d="M4.2 4H6l2 2.7L10 4h1.8L8.9 8l2.9 4H10L8 9.3 6 12H4.2l2.9-4z" fill="#fff"/></svg> Excel</button>' +
+        '<button class="wbs-xls" onclick="exportTwPdf()" title="Export to PDF"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#bb0000"/><text x="8" y="11" text-anchor="middle" font-size="6" fill="#fff" font-weight="700">PDF</text></svg> PDF</button>' +
+        '<span class="wbs-close" onclick="closeTripwire()" title="Close">✕</span></div>' +
+      '<div class="wbs-body"><table class="wbs tw"><thead><tr>' + th + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0; wb.scrollLeft = 0;
+  }
+  function _twSheetXml() {
+    const t = window.TRIPWIRE || { meta: {}, cols: [], rows: [] };
+    const CHK = _twChk(t.cols), order = TW_TEXT.concat(TW_NUM).concat(CHK);
+    const tc = (c, r, v, s) => '<c r="' + _colL(c) + r + '" t="inlineStr"' + (s ? ' s="' + s + '"' : '') + '><is><t xml:space="preserve">' + _xml(v) + '</t></is></c>';
+    const nc = (c, r, v) => '<c r="' + _colL(c) + r + '" s="3"><v>' + (typeof v === 'number' ? v : 0) + '</v></c>';
+    let rn = 1; const out = [];
+    out.push('<row r="' + rn + '">' + order.map((idx, k) => tc(k, rn, t.cols[idx], 1)).join('') + '</row>'); rn++;
+    t.rows.forEach(r => {
+      let cells = '';
+      order.forEach((idx, k) => { const v = r[idx]; cells += (TW_NUM.indexOf(idx) >= 0 && typeof v === 'number') ? nc(k, rn, v) : tc(k, rn, v, 0); });
+      out.push('<row r="' + rn + '">' + cells + '</row>'); rn++;
+    });
+    // conditional formatting over the check columns (matches the source file's rules)
+    const c1 = _colL(TW_TEXT.length + TW_NUM.length), c2 = _colL(order.length - 1), lastRow = 1 + t.rows.length;
+    const cf = '<conditionalFormatting sqref="' + c1 + '2:' + c2 + lastRow + '">' +
+      '<cfRule type="cellIs" dxfId="0" priority="1" operator="equal"><formula>"ISSUE"</formula></cfRule>' +
+      '<cfRule type="cellIs" dxfId="1" priority="2" operator="equal"><formula>"OK"</formula></cfRule>' +
+      '<cfRule type="cellIs" dxfId="2" priority="3" operator="equal"><formula>"NA"</formula></cfRule>' +
+      '</conditionalFormatting>';
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + out.join('') + '</sheetData>' + cf + '</worksheet>';
+  }
+  function _twXlsxBytes() {
+    const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Tripwire" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    return _zip([
+      { name: '[Content_Types].xml', data: _u8(_CT) }, { name: '_rels/.rels', data: _u8(_RELS) },
+      { name: 'xl/workbook.xml', data: _u8(wb) }, { name: 'xl/_rels/workbook.xml.rels', data: _u8(_WBR) },
+      { name: 'xl/styles.xml', data: _u8(_STYLES) }, { name: 'xl/worksheets/sheet1.xml', data: _u8(_twSheetXml()) },
+    ]);
+  }
+  function downloadTwExcel() {
+    const blob = new Blob([_twXlsxBytes()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'Tripwire_Report_JTB001.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function _twPdfHtml() {
+    const t = window.TRIPWIRE || { meta: {}, cols: [], rows: [] }, m = t.meta || {};
+    const CHK = _twChk(t.cols);
+    let th = '';
+    TW_TEXT.forEach(i => th += '<th class="d">' + _xml(t.cols[i]) + '</th>');
+    TW_NUM.forEach(i => th += '<th>' + _xml(t.cols[i]) + '</th>');
+    CHK.forEach(i => th += '<th title="' + _xml(t.cols[i]) + '">' + _xml(t.cols[i].split(' ')[0]) + '</th>');
+    const body = t.rows.map(r => {
+      let cells = '';
+      TW_TEXT.forEach(i => cells += '<td class="d">' + _xml(r[i]) + '</td>');
+      TW_NUM.forEach(i => cells += '<td class="num">' + (i >= 18 ? _twRatio(r[i]) : _twMoney(r[i])) + '</td>');
+      CHK.forEach(i => { const v = r[i]; cells += '<td class="' + (v === 'ISSUE' ? 'iss' : '') + '">' + _xml(v) + '</td>'; });
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tripwire</title><style>'
+      + '@page{size:A4 landscape;margin:7mm;}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:10px;color:#222;}'
+      + 'h1{font-size:13px;margin:0 0 2px;}.sub{font-size:9px;color:#555;margin-bottom:6px;}'
+      + 'table{border-collapse:collapse;width:100%;font-size:6px;}th,td{border:1px solid #bbb;padding:1px 2px;text-align:center;}'
+      + 'th{background:#eef3f8;}thead{display:table-header-group;}td.d,th.d{text-align:left;}td.num{text-align:right;}td.iss{background:#fbe5e5;color:#bb0000;font-weight:bold;}'
+      + '</style></head><body><h1>' + _xml(m.title || 'Tripwire Report') + '</h1>'
+      + '<div class="sub">' + [m.snapshot, m.baseline, m.planValues].filter(Boolean).map(_xml).join(' · ') + '</div>'
+      + '<table><thead><tr>' + th + '</tr></thead><tbody>' + body + '</tbody></table>'
+      + '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};</scr' + 'ipt></body></html>';
+  }
+  function exportTwPdf() {
+    const w = window.open('', '_blank');
+    if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
+    w.document.open(); w.document.write(_twPdfHtml()); w.document.close();
   }
 
   /* ---------------------------- Router -------------------------- */
