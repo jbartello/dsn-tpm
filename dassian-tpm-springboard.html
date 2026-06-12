@@ -1538,6 +1538,86 @@
     w.document.open(); w.document.write(_wbsPdfHtml()); w.document.close();
   }
 
+  // ---- RAM exports (reuse the xlsx writer + print-to-PDF) ----
+  const _WB_RAM = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="RAM" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  function _ramFactor() { return ((PERIOD_MAP[ramPeriod] || PERIOD_MAP['2026-05']).f || { plan: 1 }).plan; }
+  function _ramSheetXml() {
+    const data = window.RAM_DICT || { meta: {}, depts: [], people: [], rows: [], footer: [] }, m = data.meta || {};
+    const f = _ramFactor(), people = data.people || [], depts = data.depts || [], P0 = 6;
+    const tc = (c, r, v, s) => '<c r="' + _colL(c) + r + '" t="inlineStr"' + (s ? ' s="' + s + '"' : '') + '><is><t xml:space="preserve">' + _xml(v) + '</t></is></c>';
+    const nc = (c, r, v) => '<c r="' + _colL(c) + r + '" s="3"><v>' + (typeof v === 'number' ? v * f : 0) + '</v></c>';
+    let rn = 1; const out = [];
+    out.push('<row r="' + rn + '">' + tc(0, rn, m.title || 'Responsibility Assignment Matrix (RAM)', 1) + '</row>'); rn++;
+    out.push('<row r="' + rn + '">' + tc(0, rn, [m.project, m.obs, 'Period: ' + (PERIOD_MAP[ramPeriod] ? PERIOD_MAP[ramPeriod].label : '')].filter(Boolean).join(' · '), 0) + '</row>'); rn++;
+    out.push('<row r="' + rn + '"></row>'); rn++;
+    let dr = '', cc = P0; depts.forEach(d => { dr += tc(cc, rn, d.name, 1); cc += d.span; });
+    out.push('<row r="' + rn + '">' + dr + '</row>'); rn++;
+    let hr = ['1', '2', '3', '4', 'WBS Number', 'Description'].map((h, i) => tc(i, rn, h, 1)).join('');
+    hr += people.map((p, i) => tc(P0 + i, rn, p, 1)).join('') + tc(P0 + people.length, rn, 'Total', 1);
+    out.push('<row r="' + rn + '">' + hr + '</row>'); rn++;
+    (data.rows || []).forEach(r => {
+      let cells = '';
+      for (let c = 0; c < 4; c++) cells += tc(c, rn, (c + 1 === r.level) ? (r.ca ? 'CA' : 'X') : '', 0);
+      cells += tc(4, rn, r.number, 0) + tc(5, rn, r.desc, 0);
+      (r.vals || []).forEach((v, i) => { cells += (typeof v === 'number') ? nc(P0 + i, rn, v) : tc(P0 + i, rn, '', 0); });
+      cells += (typeof r.total === 'number') ? nc(P0 + people.length, rn, r.total) : tc(P0 + people.length, rn, '', 0);
+      out.push('<row r="' + rn + '">' + cells + '</row>'); rn++;
+    });
+    (data.footer || []).forEach(ft => {
+      let cells = tc(0, rn, ft.label, 1);
+      for (let c = 1; c < 6; c++) cells += tc(c, rn, '', 1);
+      (ft.vals || []).forEach((v, i) => { cells += (typeof v === 'number') ? nc(P0 + i, rn, v) : tc(P0 + i, rn, '', 1); });
+      cells += (typeof ft.total === 'number') ? nc(P0 + people.length, rn, ft.total) : tc(P0 + people.length, rn, '', 1);
+      out.push('<row r="' + rn + '">' + cells + '</row>'); rn++;
+    });
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + out.join('') + '</sheetData></worksheet>';
+  }
+  function _ramXlsxBytes() {
+    return _zip([
+      { name: '[Content_Types].xml', data: _u8(_CT) },
+      { name: '_rels/.rels', data: _u8(_RELS) },
+      { name: 'xl/workbook.xml', data: _u8(_WB_RAM) },
+      { name: 'xl/_rels/workbook.xml.rels', data: _u8(_WBR) },
+      { name: 'xl/styles.xml', data: _u8(_STYLES) },
+      { name: 'xl/worksheets/sheet1.xml', data: _u8(_ramSheetXml()) },
+    ]);
+  }
+  function downloadRamExcel() {
+    const m = (window.RAM_DICT || {}).meta || {};
+    const name = ((m.project || 'RAM').split(' ')[0] || 'RAM').replace(/[^A-Za-z0-9_-]/g, '');
+    const blob = new Blob([_ramXlsxBytes()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'RAM_' + name + '.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function _ramPdfHtml() {
+    const data = window.RAM_DICT || { meta: {}, depts: [], people: [], rows: [], footer: [] }, m = data.meta || {};
+    const f = _ramFactor();
+    const money = v => (typeof v === 'number') ? (v * f).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    const deptTh = (data.depts || []).map(d => '<th colspan="' + d.span + '">' + _xml(d.name) + '</th>').join('');
+    const personTh = (data.people || []).map(p => '<th>' + _xml(p) + '</th>').join('');
+    const thead = '<thead><tr><th colspan="4">WBS Level</th><th rowspan="2">WBS Number</th><th rowspan="2">Description</th>' + deptTh + '<th rowspan="2">Total</th></tr><tr><th>1</th><th>2</th><th>3</th><th>4</th>' + personTh + '</tr></thead>';
+    const lvl = r => { let s = ''; for (let c = 1; c <= 4; c++) s += '<td class="lvl">' + ((c === r.level) ? (r.ca ? 'CA' : 'X') : '') + '</td>'; return s; };
+    const body = (data.rows || []).map(r => '<tr class="' + (r.ca ? 'ca' : '') + '">' + lvl(r) + '<td>' + _xml(r.number) + '</td><td class="d">' + _xml(r.desc) + '</td>' + (r.vals || []).map(v => '<td class="num">' + money(v) + '</td>').join('') + '<td class="num">' + money(r.total) + '</td></tr>').join('');
+    const foot = (data.footer || []).map((ft, i) => '<tr class="foot' + (i === 0 ? ' ft' : '') + '"><td colspan="6">' + _xml(ft.label) + '</td>' + (ft.vals || []).map(v => '<td class="num">' + money(v) + '</td>').join('') + '<td class="num">' + money(ft.total) + '</td></tr>').join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>RAM</title><style>'
+      + '@page{size:A4 landscape;margin:8mm;}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:12px;color:#222;}'
+      + 'h1{font-size:14px;margin:0 0 2px;}.sub{font-size:10px;color:#555;margin-bottom:8px;}'
+      + 'table{border-collapse:collapse;width:100%;font-size:7px;}'
+      + 'th,td{border:1px solid #bbb;padding:2px 3px;text-align:left;vertical-align:top;}th{background:#eef3f8;text-align:center;}thead{display:table-header-group;}'
+      + 'td.num{text-align:right;}td.lvl{text-align:center;}tr.ca td{background:#eaf2fb;font-weight:bold;}tr.foot td{font-weight:bold;background:#f5f5f5;}tr.ft td{border-top:2px solid #999;}td.d{white-space:normal;max-width:130px;overflow-wrap:anywhere;}'
+      + '</style></head><body><h1>' + _xml(m.title || 'Responsibility Assignment Matrix (RAM)') + '</h1>'
+      + '<div class="sub">' + [m.project, m.obs, 'Period: ' + (PERIOD_MAP[ramPeriod] ? PERIOD_MAP[ramPeriod].label : '')].filter(Boolean).map(_xml).join(' · ') + '</div>'
+      + '<table>' + thead + '<tbody>' + body + foot + '</tbody></table>'
+      + '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};</scr' + 'ipt></body></html>';
+  }
+  function exportRamPdf() {
+    const w = window.open('', '_blank');
+    if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
+    w.document.open(); w.document.write(_ramPdfHtml()); w.document.close();
+  }
+
   function openWbsDict() {
     const data = window.WBS_DICT || { meta: {}, rows: [] };
     const m = data.meta || {};
@@ -1614,6 +1694,10 @@
       '<div class="wbs-head"><div class="wh-title"><div class="t1">' + _xml(m.title || 'Responsibility Assignment Matrix (RAM)') + '</div>' +
         '<div class="t2">' + [m.project, m.obs].filter(Boolean).map(_xml).join(' · ') + '</div></div>' +
         '<span class="ram-period">Period&nbsp;<select onchange="ramSetPeriod(this.value)">' + periodOpts + '</select></span>' +
+        '<button class="wbs-xls" onclick="downloadRamExcel()" title="Download to Excel">' +
+          '<svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#107e3e"/><path d="M4.2 4H6l2 2.7L10 4h1.8L8.9 8l2.9 4H10L8 9.3 6 12H4.2l2.9-4z" fill="#fff"/></svg> Excel</button>' +
+        '<button class="wbs-xls" onclick="exportRamPdf()" title="Export to PDF">' +
+          '<svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#bb0000"/><text x="8" y="11" text-anchor="middle" font-size="6" fill="#fff" font-weight="700">PDF</text></svg> PDF</button>' +
         '<span class="wbs-close" onclick="closeRamReport()" title="Close">✕</span></div>' +
       '<div class="wbs-body"><table class="wbs ram">' + thead + '<tbody>' + body + foot + '</tbody></table></div>';
     d.classList.add('open');
