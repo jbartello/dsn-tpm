@@ -347,11 +347,9 @@
         <div class="sec-title" id="secTitle">Project Values</div>
         <div class="prog-pick">
           <span>Program:</span>
-          <select id="progSelect" onchange="render()">
-            <option value="JTB001">PPC/SIS Demo 1 (JTB001)</option>
-            <option value="DD-0010">CP,PPC,RAP,FPA… (DD-0010)</option>
-            <option value="DD-0020">ECH 2022 Sample (DD-0020)</option>
-            <option value="LM01">LM PACE Demand &amp; Act Cost (LM01)</option>
+          <select id="progSelect" onchange="onProgramChange()">
+            <option value="DEMO">Demo</option>
+            <option value="MFG" selected>MFG Program</option>
           </select>
         </div>
       </div>
@@ -365,26 +363,21 @@
      Demo program data. All placeholder figures — swap for real
      PPC data sources as we build each module out.
   --------------------------------------------------------------- */
+  // A Program owns one or more Projects (project = the DD*/JTB001 ids in CA_ROWS).
+  // values{} are program-level cockpit figures (USD millions) used by the
+  // Analysis / Risk modules; the Project Values module computes from CA_ROWS.
   const PROGRAMS = {
-    'JTB001': {
-      name: 'PPC/SIS Demo 1 (JTB001)',
-      values: { bac: 12.40, eac: 12.95, etc: 5.20, acwp: 7.75,
-                cpi: 0.94, spi: 0.98, cv: -0.41, sv: -0.18, funding: 13.10 },
+    'DEMO': {
+      name: 'Demo',
+      projects: ['JTB001'],
+      values: { bac: 2.35, eac: 2.32, etc: 1.89, acwp: 0.45,
+                cpi: 0.97, spi: 0.93, cv: -0.01, sv: -0.03, funding: 2.40 },
     },
-    'DD-0010': {
-      name: 'CP,PPC,RAP,FPA… (DD-0010)',
-      values: { bac: 48.60, eac: 47.90, etc: 19.30, acwp: 28.60,
-                cpi: 1.03, spi: 1.01, cv: 0.70, sv: 0.22, funding: 49.00 },
-    },
-    'DD-0020': {
-      name: 'ECH 2022 Sample (DD-0020)',
-      values: { bac: 6.10, eac: 6.55, etc: 2.40, acwp: 4.15,
-                cpi: 0.89, spi: 0.92, cv: -0.45, sv: -0.31, funding: 6.30 },
-    },
-    'LM01': {
-      name: 'LM PACE Demand & Act Cost (LM01)',
-      values: { bac: 3.20, eac: 3.18, etc: 1.05, acwp: 2.13,
-                cpi: 1.01, spi: 1.00, cv: 0.02, sv: 0.00, funding: 3.25 },
+    'MFG': {
+      name: 'MFG Program',
+      projects: ['DD-0010', 'DD-0001', 'DD-0002', 'DD-0003'],
+      values: { bac: 485.2, eac: 493.0, etc: 240.0, acwp: 9.10,
+                cpi: 0.96, spi: 0.93, cv: -0.40, sv: -0.20, funding: 500.0 },
     },
   };
 
@@ -397,7 +390,15 @@
 
   let currentModule = 'values';
 
-  function prog() { return PROGRAMS[document.getElementById('progSelect').value]; }
+  function progId() { return document.getElementById('progSelect').value; }
+  function prog() { return PROGRAMS[progId()]; }
+
+  // Program changed: project/CAM lists differ per program, so clear the
+  // in-module filters and sort before re-rendering.
+  function onProgramChange() {
+    pvState.project = ''; pvState.cam = ''; pvState.sortCol = null; pvState.sortDir = 1;
+    render();
+  }
   const money = n => '$' + n.toFixed(2) + 'M';
   const cls = (v, goodWhenPositive = true) => {
     if (v === 0) return '';
@@ -456,7 +457,12 @@
   // [Project, Description, WBS, CA Description, CAM, PlannedValue, EarnedValue,
   //  ActualCost, currenSV, currentCV, cumSV, cumCV, SPI, CPI, BAC, EAC, VAC]
   const DESC = 'CP,PPC,RAP,FPA,PACE,SIS MSP,FD Dmo Prj';
+  const DEMO_DESC = 'PPC/SIS Demo 1';
   const CA_ROWS = [
+    ['JTB001', DEMO_DESC, 'JTB001.1', 'Air Vehicle',                'Jason Bartello', '285000','262000','274000','-8000','-4000','-23000','-12000','0.919','0.956','1450000','1432000','18000'],
+    ['JTB001', DEMO_DESC, 'JTB001.2', 'System Test and Evaluation', 'Jason Bartello', '96000','90000','92000','-2000','-700','-6000','-2000','0.938','0.978','480000','476000','4000'],
+    ['JTB001', DEMO_DESC, 'JTB001.3', 'Data',                       'Allen Ytzen',    '52000','50000','51000','-700','-300','-2000','-1000','0.962','0.980','240000','239000','1000'],
+    ['JTB001', DEMO_DESC, 'JTB001.4', 'Training',                   'Allen Ytzen',    '38000','37000','36500','-300','200','-1000','500','0.974','1.014','175000','173500','1500'],
     ['DD-0010', DESC, '', '', '', '0','0','0','0','0','0','0','0','0','0','0','0'],
     ['DD-0001', DESC, 'DD-0001.1',    'Air Vehicle',                 'EHAYES',      '806815.23','6681926.74','7481885.47','1032729.74','-4311007.11','5875111.5','-799958.73','8.282','0.893','190912186.15','197587256.39','-6675070.23'],
     ['DD-0001', DESC, 'DD-0001.1.10', 'Industrial Facilities',       'Richard Reed','4977.07','42223.01','857.7','6571.46','8444.61','37245.94','41365.3','8.484','49.228','1206371.27','1202251.89','4119.37'],
@@ -493,8 +499,13 @@
   const bandVAC = (vac, bac) => vac >= 0 ? 'good' : vac >= -0.05 * Math.abs(bac) ? 'warn' : 'bad';
   const bandEAC = (eac, bac) => eac <= bac ? 'good' : eac <= 1.05 * bac ? 'warn' : 'bad';
 
+  // Rows belonging to the currently selected Program (its projects only)
+  function pvProgramRows() {
+    const set = new Set(prog().projects);
+    return CA_ROWS.filter(r => set.has(r[0]));
+  }
   function pvFilteredRows() {
-    return CA_ROWS.filter(r =>
+    return pvProgramRows().filter(r =>
       (!pvState.project || r[0] === pvState.project) &&
       (!pvState.cam     || r[4] === pvState.cam));
   }
@@ -528,10 +539,10 @@
     render();
   }
 
-  // Placeholder % Complete by project filter — links to SAP % Complete field later
-  const PV_PCT = { '': 37, 'DD-0010': 0, 'DD-0001': 52, 'DD-0002': 28, 'DD-0003': 9 };
-  // Placeholder recurring share of cost by project — links to SAP REC / Non-REC fields later
-  const PV_REC_RATIO = { '': 0.64, 'DD-0010': 0.50, 'DD-0001': 0.66, 'DD-0002': 0.62, 'DD-0003': 0.55 };
+  // Placeholder % Complete keyed by program (no project filter) or project — links to SAP % Complete later
+  const PV_PCT = { 'DEMO': 19, 'MFG': 37, 'JTB001': 19, 'DD-0010': 0, 'DD-0001': 52, 'DD-0002': 28, 'DD-0003': 9 };
+  // Placeholder recurring share of cost — links to SAP REC / Non-REC fields later
+  const PV_REC_RATIO = { 'DEMO': 0.58, 'MFG': 0.64, 'JTB001': 0.58, 'DD-0010': 0.50, 'DD-0001': 0.66, 'DD-0002': 0.62, 'DD-0003': 0.55 };
 
   function donutSvg(pct) {
     const r = 56, cx = 70, cy = 70, sw = 18;
@@ -548,8 +559,9 @@
   }
 
   function renderCharts(rows, k) {
-    const pct = PV_PCT[pvState.project] ?? 37;
-    const ratio = PV_REC_RATIO[pvState.project] ?? 0.64;
+    const key = pvState.project || progId();
+    const pct = PV_PCT[key] ?? 37;
+    const ratio = PV_REC_RATIO[key] ?? 0.64;
     const rec = k.bac * ratio, nonrec = k.bac * (1 - ratio);
     const maxv = Math.max(rec, nonrec, 1);
     const bh = v => Math.round((v / maxv) * 150) + 2;
@@ -592,8 +604,9 @@
     const k = pvKpis(rows);
 
     // distinct filter options from the data
-    const projects = [...new Set(CA_ROWS.map(r => r[0]))];
-    const cams = [...new Set(CA_ROWS.map(r => r[4]).filter(Boolean))];
+    const baseRows = pvProgramRows();
+    const projects = [...new Set(baseRows.map(r => r[0]))];
+    const cams = [...new Set(baseRows.map(r => r[4]).filter(Boolean))];
     const opts = (list, sel) => '<option value="">(All)</option>' +
       list.map(o => `<option value="${o}" ${o === sel ? 'selected' : ''}>${o}</option>`).join('');
 
@@ -641,7 +654,7 @@
         <span class="ca-title">Control Account Summary **</span>
         <span class="ca-tool" title="Filter">▽</span>
         <span class="ca-tool" title="Export">⤓</span>
-        <span style="color:var(--text-muted);font-size:13px">${rows.length} of ${CA_ROWS.length}</span>
+        <span style="color:var(--text-muted);font-size:13px">${rows.length} of ${baseRows.length}</span>
       </div>
       <div class="ca-wrap">
         <table class="ca">
