@@ -425,6 +425,13 @@
   table.wbs.tw td.tw-issue { background: #fbe5e5; color: var(--bad); font-weight: 700; }
   table.wbs.tw td.tw-ok { color: var(--good); }
   table.wbs.tw td.tw-na { color: #b0b0b0; }
+  /* Program Control Log */
+  .cl-meta { display: flex; flex-wrap: wrap; gap: 6px 26px; padding: 12px 18px; font-size: 13px; border-bottom: 1px solid var(--panel-border); background: #fafafa; }
+  .cl-meta .m { color: var(--text-muted); }
+  .cl-meta .m b { color: var(--text); font-weight: 600; }
+  table.wbs.cl th { position: static; }
+  table.wbs.cl th.cbb { text-align: center; background: #e3ecf5; }
+  table.wbs.cl tr.sum td { font-weight: 700; background: #f5f7f9; }
 </style>
 </head>
 <body>
@@ -480,6 +487,7 @@
 <script src="cap-timephased-data.js"></script>
 <script src="cap-summary-data.js"></script>
 <script src="tripwire-data.js"></script>
+<script src="control-log-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -1331,6 +1339,7 @@
       else if (x[0] === 'Control Account Plans (CAP)') open = '<a class="link" onclick="openCapPlan()">Open ›</a>';
       else if (x[0] === 'Tripwire Report') open = '<a class="link" onclick="openTripwire()">Open ›</a>';
       else if (x[0] === 'Variance Analysis Report (VAR)') open = '<a class="link" onclick="setModule(\'analysis\')">Open ›</a>';
+      else if (x[0] === 'Program Control Log') open = '<a class="link" onclick="openControlLog()">Open ›</a>';
       return `<tr>
         <td>${x[0]}</td><td>${x[3]}</td>
         <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
@@ -1460,14 +1469,18 @@
     + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
     + '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.000"/><numFmt numFmtId="165" formatCode="#,##0.00"/></numFmts>'
     + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
-    + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+    + '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBDD7EE"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFE699"/></patternFill></fill></fills>'
     + '<borders count="1"><border/></borders>'
     + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    + '<cellXfs count="4">'
+    + '<cellXfs count="8">'
     + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
     + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
     + '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
     + '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+    + '<xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1"/>'
+    + '<xf numFmtId="165" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1" applyNumberFormat="1"/>'
+    + '<xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/>'
+    + '<xf numFmtId="165" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1" applyNumberFormat="1"/>'
     + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     + '<dxfs count="3">'
     + '<dxf><font><color rgb="FF9C0006"/></font><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill></dxf>'   // 0 = ISSUE (red)
@@ -1968,6 +1981,110 @@
     const w = window.open('', '_blank');
     if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
     w.document.open(); w.document.write(_twPdfHtml()); w.document.close();
+  }
+
+  /* ---------- Program Control Log slide-out ---------- */
+  function ensureClDrawer() {
+    let d = document.getElementById('clDrawer');
+    if (!d) { d = document.createElement('div'); d.id = 'clDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); }
+    return d;
+  }
+  function closeControlLog() { const d = document.getElementById('clDrawer'); if (d) d.classList.remove('open'); }
+  function openControlLog() {
+    const c = window.CONTROL_LOG || { title: '', meta: [], cols: [], rows: [] };
+    const money = v => (typeof v === 'number') ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : _xml(v);
+    const proj = (c.rows.find(r => String(r[0]).indexOf(' - ') >= 0) || [])[0] || '';
+    const metaHtml = (c.meta || []).map(x => x.label ? '<span class="m"><b>' + _xml(x.label) + ':</b> ' + _xml(x.value) + '</span>' : '<span class="m">' + _xml(x.value) + '</span>').join('');
+    // 2-row header: first 9 cols rowspan, then Contract Budget Baseline group over last 5
+    const left = c.cols.slice(0, 9), cbb = c.cols.slice(9);
+    const thead = '<thead><tr>' + left.map(h => '<th rowspan="2">' + _xml(h) + '</th>').join('') +
+      '<th class="cbb" colspan="5">Contract Budget Baseline</th></tr>' +
+      '<tr>' + cbb.map(h => '<th class="num">' + _xml(h) + '</th>').join('') + '</tr></thead>';
+    const body = (c.rows || []).map(r => {
+      const summary = !String(r[8]).trim();   // no Control Account ⇒ rollup/summary row
+      let cells = '';
+      for (let i = 0; i < 9; i++) cells += '<td>' + _xml(r[i]) + '</td>';
+      for (let i = 9; i < 14; i++) cells += '<td class="num">' + money(r[i]) + '</td>';
+      return '<tr class="' + (summary ? 'sum' : '') + '">' + cells + '</tr>';
+    }).join('');
+    const d = ensureClDrawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">' + _xml(c.title || 'Program Control Log') + '</div>' +
+        '<div class="t2">' + _xml(proj) + '</div></div>' +
+        '<button class="wbs-xls" onclick="downloadClExcel()" title="Download to Excel"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#107e3e"/><path d="M4.2 4H6l2 2.7L10 4h1.8L8.9 8l2.9 4H10L8 9.3 6 12H4.2l2.9-4z" fill="#fff"/></svg> Excel</button>' +
+        '<button class="wbs-xls" onclick="exportClPdf()" title="Export to PDF"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#bb0000"/><text x="8" y="11" text-anchor="middle" font-size="6" fill="#fff" font-weight="700">PDF</text></svg> PDF</button>' +
+        '<span class="wbs-close" onclick="closeControlLog()" title="Close">✕</span></div>' +
+      '<div class="cl-meta">' + metaHtml + '</div>' +
+      '<div class="wbs-body"><table class="wbs cl">' + thead + '<tbody>' + body + '</tbody></table></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0; wb.scrollLeft = 0;
+  }
+  // styles: 4=blue text, 5=blue num, 6=gold text, 7=gold num (rollup highlighting)
+  function _clRowStyle(r) {
+    const isSum = !String(r[8]).trim();
+    if (!isSum) return { t: 0, n: 3 };
+    return (String(r[0]).indexOf(' - ') >= 0) ? { t: 6, n: 7 } : { t: 4, n: 5 };  // gold program subtotal / blue rollup
+  }
+  function _clSheetXml() {
+    const c = window.CONTROL_LOG || { title: '', meta: [], cols: [], rows: [] };
+    const tc = (col, r, v, s) => '<c r="' + _colL(col) + r + '" t="inlineStr"' + (s ? ' s="' + s + '"' : '') + '><is><t xml:space="preserve">' + _xml(v) + '</t></is></c>';
+    const nc = (col, r, v, s) => '<c r="' + _colL(col) + r + '" s="' + s + '"><v>' + (typeof v === 'number' ? v : 0) + '</v></c>';
+    let rn = 1; const out = [];
+    out.push('<row r="' + rn + '">' + tc(0, rn, c.title, 1) + '</row>'); rn++;
+    (c.meta || []).forEach(x => { out.push('<row r="' + rn + '">' + tc(0, rn, x.label || x.value, x.label ? 1 : 0) + (x.label ? tc(1, rn, x.value, 0) : '') + '</row>'); rn++; });
+    out.push('<row r="' + rn + '"></row>'); rn++;
+    out.push('<row r="' + rn + '">' + tc(9, rn, 'Contract Budget Baseline', 1) + '</row>'); rn++;
+    out.push('<row r="' + rn + '">' + c.cols.map((h, i) => tc(i, rn, h, 1)).join('') + '</row>'); rn++;
+    (c.rows || []).forEach(r => {
+      const st = _clRowStyle(r);
+      let cells = '';
+      for (let i = 0; i < 9; i++) cells += tc(i, rn, r[i], st.t);
+      for (let i = 9; i < 14; i++) cells += (typeof r[i] === 'number') ? nc(i, rn, r[i], st.n) : tc(i, rn, r[i] || '', st.t);
+      out.push('<row r="' + rn + '">' + cells + '</row>'); rn++;
+    });
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + out.join('') + '</sheetData></worksheet>';
+  }
+  function _clXlsxBytes() {
+    const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Control Log" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    return _zip([
+      { name: '[Content_Types].xml', data: _u8(_CT) }, { name: '_rels/.rels', data: _u8(_RELS) },
+      { name: 'xl/workbook.xml', data: _u8(wb) }, { name: 'xl/_rels/workbook.xml.rels', data: _u8(_WBR) },
+      { name: 'xl/styles.xml', data: _u8(_STYLES) }, { name: 'xl/worksheets/sheet1.xml', data: _u8(_clSheetXml()) },
+    ]);
+  }
+  function downloadClExcel() {
+    const blob = new Blob([_clXlsxBytes()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'Program_Control_Log_JTB001.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function _clPdfHtml() {
+    const c = window.CONTROL_LOG || { title: '', meta: [], cols: [], rows: [] };
+    const money = v => (typeof v === 'number') ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : _xml(v);
+    const metaHtml = (c.meta || []).map(x => x.label ? '<span><b>' + _xml(x.label) + ':</b> ' + _xml(x.value) + '</span>' : '<span>' + _xml(x.value) + '</span>').join(' &nbsp;&nbsp; ');
+    const left = c.cols.slice(0, 9), cbb = c.cols.slice(9);
+    const thead = '<thead><tr>' + left.map(h => '<th rowspan="2" class="d">' + _xml(h) + '</th>').join('') + '<th colspan="5">Contract Budget Baseline</th></tr><tr>' + cbb.map(h => '<th>' + _xml(h) + '</th>').join('') + '</tr></thead>';
+    const body = (c.rows || []).map(r => {
+      const isSum = !String(r[8]).trim(), gold = isSum && String(r[0]).indexOf(' - ') >= 0, cls = gold ? 'gold' : (isSum ? 'blue' : '');
+      let cells = '';
+      for (let i = 0; i < 9; i++) cells += '<td class="d">' + _xml(r[i]) + '</td>';
+      for (let i = 9; i < 14; i++) cells += '<td class="num">' + money(r[i]) + '</td>';
+      return '<tr class="' + cls + '">' + cells + '</tr>';
+    }).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Program Control Log</title><style>'
+      + '@page{size:A4 landscape;margin:8mm;}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:12px;color:#222;}'
+      + 'h1{font-size:14px;margin:0 0 3px;}.sub{font-size:9px;color:#555;margin-bottom:8px;}'
+      + 'table{border-collapse:collapse;width:100%;font-size:6.5px;}th,td{border:1px solid #bbb;padding:2px 3px;text-align:right;vertical-align:top;}th{background:#eef3f8;text-align:center;}thead{display:table-header-group;}'
+      + 'td.d,th.d{text-align:left;}tr.blue td{background:#BDD7EE;}tr.gold td{background:#FFE699;}'
+      + '</style></head><body><h1>' + _xml(c.title || 'Program Control Log') + '</h1><div class="sub">' + metaHtml + '</div>'
+      + '<table>' + thead + '<tbody>' + body + '</tbody></table>'
+      + '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};</scr' + 'ipt></body></html>';
+  }
+  function exportClPdf() {
+    const w = window.open('', '_blank');
+    if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
+    w.document.open(); w.document.write(_clPdfHtml()); w.document.close();
   }
 
   /* ---------------------------- Router -------------------------- */
