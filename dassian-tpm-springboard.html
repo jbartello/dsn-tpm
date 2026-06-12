@@ -285,6 +285,32 @@
   table.ca td.r { text-align: right; font-variant-numeric: tabular-nums; }
   table.ca tr:hover td { background: #f7faff; }
   table.ca td.lnk { color: var(--sap-blue); }
+
+  /* ---------- Project Values: charts row ---------- */
+  .charts-row { display: flex; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .chart-card {
+    flex: 1 1 320px;
+    background: #fff; border: 1px solid var(--panel-border); border-radius: 8px;
+    display: flex; flex-direction: column;
+  }
+  .chart-card .cc-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 12px 18px; border-bottom: 1px solid #ededed; font-size: 15px;
+  }
+  .chart-card .cc-note { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .chart-card .cc-body { padding: 18px; flex: 1; display: flex; align-items: center; justify-content: center; }
+
+  /* donut */
+  .donut-wrap { display: flex; align-items: center; gap: 22px; }
+  .donut-legend { font-size: 13px; color: var(--text-muted); line-height: 1.9; }
+  .donut-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: middle; }
+
+  /* two-bar chart */
+  .bar2 { display: flex; align-items: flex-end; justify-content: center; gap: 52px; height: 210px; padding-top: 8px; width: 100%; }
+  .b2col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .b2val { font-size: 14px; margin-bottom: 7px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .b2bar { width: 74px; border-radius: 4px 4px 0 0; min-height: 2px; }
+  .b2lbl { margin-top: 8px; font-size: 13px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -502,6 +528,65 @@
     render();
   }
 
+  // Placeholder % Complete by project filter — links to SAP % Complete field later
+  const PV_PCT = { '': 37, 'DD-0010': 0, 'DD-0001': 52, 'DD-0002': 28, 'DD-0003': 9 };
+  // Placeholder recurring share of cost by project — links to SAP REC / Non-REC fields later
+  const PV_REC_RATIO = { '': 0.64, 'DD-0010': 0.50, 'DD-0001': 0.66, 'DD-0002': 0.62, 'DD-0003': 0.55 };
+
+  function donutSvg(pct) {
+    const r = 56, cx = 70, cy = 70, sw = 18;
+    const circ = 2 * Math.PI * r;
+    const off = circ * (1 - pct / 100);
+    return `<svg width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e9e9e9" stroke-width="${sw}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--sap-blue)" stroke-width="${sw}"
+          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
+          stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
+        <text x="${cx}" y="${cy - 2}" text-anchor="middle" font-size="28" font-weight="300" fill="var(--text)">${pct}%</text>
+        <text x="${cx}" y="${cy + 18}" text-anchor="middle" font-size="12" fill="var(--text-muted)">Complete</text>
+      </svg>`;
+  }
+
+  function renderCharts(rows, k) {
+    const pct = PV_PCT[pvState.project] ?? 37;
+    const ratio = PV_REC_RATIO[pvState.project] ?? 0.64;
+    const rec = k.bac * ratio, nonrec = k.bac * (1 - ratio);
+    const maxv = Math.max(rec, nonrec, 1);
+    const bh = v => Math.round((v / maxv) * 150) + 2;
+    return `
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="cc-head"><span>% Complete **</span><span class="cc-note">placeholder · SAP % Complete</span></div>
+          <div class="cc-body">
+            <div class="donut-wrap">
+              ${donutSvg(pct)}
+              <div class="donut-legend">
+                <div><span class="dot" style="background:var(--sap-blue)"></span>Complete &nbsp;${pct}%</div>
+                <div><span class="dot" style="background:#e9e9e9"></span>Remaining &nbsp;${100 - pct}%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="cc-head"><span>Cost by Type (BAC) **</span><span class="cc-note">placeholder · SAP REC / Non-REC</span></div>
+          <div class="cc-body">
+            <div class="bar2">
+              <div class="b2col">
+                <div class="b2val">${fmtM(rec)}</div>
+                <div class="b2bar" style="height:${bh(rec)}px;background:var(--sap-blue)"></div>
+                <div class="b2lbl">REC</div>
+              </div>
+              <div class="b2col">
+                <div class="b2val">${fmtM(nonrec)}</div>
+                <div class="b2bar" style="height:${bh(nonrec)}px;background:#6b4ba8"></div>
+                <div class="b2lbl">Non-REC</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function renderValues(p) {
     const rows = pvSortedRows();
     const k = pvKpis(rows);
@@ -549,6 +634,8 @@
         ${kpiCard('CPI', k.cpi.toFixed(2), false, bandCPI(k.cpi))}
         ${kpiCard('SPI', k.spi.toFixed(2), false, bandSPI(k.spi))}
       </div>
+
+      ${renderCharts(rows, k)}
 
       <div class="ca-head">
         <span class="ca-title">Control Account Summary **</span>
