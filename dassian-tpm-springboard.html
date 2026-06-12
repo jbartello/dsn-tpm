@@ -1403,25 +1403,114 @@
   function closeWbsDict() { const d = document.getElementById('wbsDrawer'); if (d) d.classList.remove('open'); }
 
   const WBS_COLS = ['Level', 'WBS Element', 'Description', 'Authorization Description', 'SOW Ref', 'CAM', 'Rec/NRE', 'BAC Hrs', 'BAC Cost (USD)', 'EV Method', 'IMS Baseline Start', 'IMS Baseline Finish', 'PMB Start', 'PMB Finish', 'IMS Forecast Start', 'IMS Forecast Finish', 'EAC Start', 'EAC Finish'];
-  function buildWbsCsv() {
+  // ---- Minimal client-side .xlsx writer (stored ZIP, no external libs) ----
+  function _u8(s) { return new TextEncoder().encode(s); }
+  function _concat(a) { let n = 0; a.forEach(x => n += x.length); const o = new Uint8Array(n); let p = 0; a.forEach(x => { o.set(x, p); p += x.length; }); return o; }
+  function _le16(n) { return new Uint8Array([n & 255, (n >> 8) & 255]); }
+  function _le32(n) { return new Uint8Array([n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255]); }
+  function _crc32(b) { let c = ~0; for (let i = 0; i < b.length; i++) { c ^= b[i]; for (let j = 0; j < 8; j++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1)); } return (~c) >>> 0; }
+  function _zip(files) {
+    const local = [], central = []; let off = 0;
+    files.forEach(f => {
+      const nm = _u8(f.name), d = f.data, crc = _crc32(d), sz = d.length;
+      const lh = _concat([_le32(0x04034b50), _le16(20), _le16(0), _le16(0), _le16(0), _le16(0), _le32(crc), _le32(sz), _le32(sz), _le16(nm.length), _le16(0), nm, d]);
+      local.push(lh);
+      central.push(_concat([_le32(0x02014b50), _le16(20), _le16(20), _le16(0), _le16(0), _le16(0), _le16(0), _le32(crc), _le32(sz), _le32(sz), _le16(nm.length), _le16(0), _le16(0), _le16(0), _le16(0), _le32(0), _le32(off), nm]));
+      off += lh.length;
+    });
+    const cd = _concat(central);
+    const end = _concat([_le32(0x06054b50), _le16(0), _le16(0), _le16(files.length), _le16(files.length), _le32(cd.length), _le32(off), _le16(0)]);
+    return _concat([...local, cd, end]);
+  }
+  function _xml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function _colL(n) { let s = ''; n++; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+  // styles: 0=text, 1=bold header, 2=hours #,##0.000, 3=cost #,##0.00
+  const _STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+    + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    + '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.000"/><numFmt numFmtId="165" formatCode="#,##0.00"/></numFmts>'
+    + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
+    + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+    + '<borders count="1"><border/></borders>'
+    + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+    + '<cellXfs count="4">'
+    + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+    + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+    + '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+    + '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+    + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  const _CT = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  const _RELS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const _WB = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="WBS Dictionary" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  const _WBR = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+
+  function _wbsSheetXml() {
     const data = window.WBS_DICT || { meta: {}, rows: [] }, m = data.meta || {};
-    const esc = v => { v = (v == null ? '' : String(v)); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    const lines = [];
-    [m.title, m.project, m.contract, m.printDate].forEach(x => { if (x) lines.push(esc(x)); });
-    lines.push('');
-    lines.push(WBS_COLS.map(esc).join(','));
-    data.rows.forEach(r => lines.push([r.level, r.wbs, r.desc, r.auth, r.sow, r.cam, r.rec, r.hrs, r.cost, r.ev, r.imsBS, r.imsBF, r.pmbS, r.pmbF, r.fcstS, r.fcstF, r.eacS, r.eacF].map(esc).join(',')));
-    return '﻿' + lines.join('\r\n');   // BOM so Excel reads UTF-8
+    const tc = (c, r, v, s) => '<c r="' + _colL(c) + r + '" t="inlineStr"' + (s ? ' s="' + s + '"' : '') + '><is><t xml:space="preserve">' + _xml(v) + '</t></is></c>';
+    const nc = (c, r, v, s) => '<c r="' + _colL(c) + r + '" s="' + s + '"><v>' + (typeof v === 'number' ? v : 0) + '</v></c>';
+    let rn = 1; const out = [];
+    [m.title, m.project, m.contract, m.printDate].filter(Boolean).forEach(t => { out.push('<row r="' + rn + '">' + tc(0, rn, t, 0) + '</row>'); rn++; });
+    out.push('<row r="' + rn + '"></row>'); rn++;
+    out.push('<row r="' + rn + '">' + WBS_COLS.map((h, i) => tc(i, rn, h, 1)).join('') + '</row>'); rn++;
+    data.rows.forEach(r => {
+      const v = [r.level, r.wbs, r.desc, r.auth, r.sow, r.cam, r.rec, r.hrs, r.cost, r.ev, r.imsBS, r.imsBF, r.pmbS, r.pmbF, r.fcstS, r.fcstF, r.eacS, r.eacF];
+      let cells = '';
+      v.forEach((val, i) => { cells += (i === 7) ? nc(7, rn, val, 2) : (i === 8) ? nc(8, rn, val, 3) : tc(i, rn, val, 0); });
+      out.push('<row r="' + rn + '">' + cells + '</row>'); rn++;
+    });
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + out.join('') + '</sheetData></worksheet>';
+  }
+  function _wbsXlsxBytes() {
+    return _zip([
+      { name: '[Content_Types].xml', data: _u8(_CT) },
+      { name: '_rels/.rels', data: _u8(_RELS) },
+      { name: 'xl/workbook.xml', data: _u8(_WB) },
+      { name: 'xl/_rels/workbook.xml.rels', data: _u8(_WBR) },
+      { name: 'xl/styles.xml', data: _u8(_STYLES) },
+      { name: 'xl/worksheets/sheet1.xml', data: _u8(_wbsSheetXml()) },
+    ]);
   }
   function downloadWbsExcel() {
     const m = (window.WBS_DICT || {}).meta || {};
     const name = ((m.project || 'WBS_Dictionary').split(' ')[0] || 'WBS_Dictionary').replace(/[^A-Za-z0-9_-]/g, '');
-    const blob = new Blob([buildWbsCsv()], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([_wbsXlsxBytes()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'WBS_Dictionary_' + name + '.csv';
+    a.href = url; a.download = 'WBS_Dictionary_' + name + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ---- Export to PDF (print-optimised view → browser Save as PDF) ----
+  function _wbsPdfHtml() {
+    const data = window.WBS_DICT || { meta: {}, rows: [] }, m = data.meta || {};
+    const num = (v, d) => { if (typeof v !== 'number') return ''; if (v === 0) return '0'; return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); };
+    const widths = [3, 7, 9, 15, 7, 6, 4, 5, 6, 4, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5];
+    const colgroup = '<colgroup>' + widths.map(w => '<col style="width:' + w + '%"/>').join('') + '</colgroup>';
+    const head = '<tr>' + WBS_COLS.map(h => '<th>' + _xml(h) + '</th>').join('') + '</tr>';
+    const body = data.rows.map(r => {
+      const ca = /CA/.test(r.level);
+      let cells = [r.level, r.wbs, r.desc, r.auth, r.sow, r.cam, r.rec].map(x => '<td>' + _xml(x) + '</td>').join('');
+      cells += '<td class="num">' + num(r.hrs, 3) + '</td><td class="num">' + num(r.cost, 2) + '</td><td>' + _xml(r.ev) + '</td>';
+      cells += [r.imsBS, r.imsBF, r.pmbS, r.pmbF, r.fcstS, r.fcstF, r.eacS, r.eacF].map(x => '<td>' + _xml(x) + '</td>').join('');
+      return '<tr class="' + (ca ? 'ca' : '') + '">' + cells + '</tr>';
+    }).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + _xml(m.title || 'WBS Dictionary') + '</title><style>'
+      + '@page{size:A4 landscape;margin:9mm;}'
+      + 'body{font-family:Arial,Helvetica,sans-serif;color:#222;margin:0;padding:12px;}'
+      + 'h1{font-size:14px;margin:0 0 2px;}.sub{font-size:10px;color:#555;margin-bottom:8px;}'
+      + 'table{border-collapse:collapse;width:100%;font-size:7px;table-layout:fixed;}'
+      + 'th,td{border:1px solid #bbb;padding:2px 3px;text-align:left;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;}'
+      + 'th{background:#eef3f8;}thead{display:table-header-group;}tr.ca{background:#eaf2fb;font-weight:bold;}td.num{text-align:right;}'
+      + '</style></head><body><h1>' + _xml(m.title || 'Contract Work Breakdown Structure Dictionary') + '</h1>'
+      + '<div class="sub">' + [m.project, m.contract, m.printDate].filter(Boolean).map(_xml).join(' &middot; ') + '</div>'
+      + '<table>' + colgroup + '<thead>' + head + '</thead><tbody>' + body + '</tbody></table>'
+      + '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};</scr' + 'ipt></body></html>';
+  }
+  function exportWbsPdf() {
+    const w = window.open('', '_blank');
+    if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
+    w.document.open(); w.document.write(_wbsPdfHtml()); w.document.close();
   }
 
   function openWbsDict() {
@@ -1454,6 +1543,9 @@
         '<button class="wbs-xls" onclick="downloadWbsExcel()" title="Download to Excel">' +
           '<svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#107e3e"/><path d="M4.2 4H6l2 2.7L10 4h1.8L8.9 8l2.9 4H10L8 9.3 6 12H4.2l2.9-4z" fill="#fff"/></svg>' +
           ' Download to Excel</button>' +
+        '<button class="wbs-xls" onclick="exportWbsPdf()" title="Export to PDF">' +
+          '<svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#bb0000"/><text x="8" y="11" text-anchor="middle" font-size="6" fill="#fff" font-weight="700">PDF</text></svg>' +
+          ' Export to PDF</button>' +
         '<span class="wbs-close" onclick="closeWbsDict()" title="Close">✕</span></div>' +
       '<div class="wbs-body"><table class="wbs"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
     d.classList.add('open');
