@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dassian Program Risk Register — Prototype</title>
+<style>
+  :root {
+    --sap-blue: #0a6ed1;
+    --sap-blue-dark: #085caf;
+    --shell-bg: #354a5f;
+    --panel-border: #d9d9d9;
+    --text: #32363a;
+    --text-muted: #6a6d70;
+    --section-bg: #f7f7f7;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background: #fff;
+    font-size: 14px;
+  }
+
+  /* ---------- Shell header bar ---------- */
+  .shellbar {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    background: var(--shell-bg);
+    color: #fff;
+    padding: 0 12px;
+    gap: 14px;
+  }
+  .shellbar .back { font-size: 18px; opacity: .85; cursor: pointer; }
+  .sap-logo {
+    font-weight: 700;
+    font-style: italic;
+    letter-spacing: 1px;
+    background: #1a73c0;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 16px;
+  }
+  .shellbar .title {
+    font-size: 15px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .shellbar .title .chev { font-size: 11px; opacity: .8; }
+  .shellbar .spacer { flex: 1; }
+  .shellbar .icon { font-size: 16px; opacity: .9; cursor: pointer; }
+  .shellbar .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--sap-blue);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,.4);
+  }
+
+  /* ---------- Body layout ---------- */
+  .layout { display: flex; height: calc(100vh - 44px); }
+  .sidebar {
+    width: 370px;
+    min-width: 370px;
+    border-right: 1px solid var(--panel-border);
+    display: flex; flex-direction: column;
+    background: #fff;
+  }
+  .panel-header {
+    text-align: center;
+    padding: 10px;
+    font-size: 15px;
+    color: var(--text);
+    border-bottom: 1px solid var(--panel-border);
+    background: #fff;
+  }
+  .program-list { overflow-y: auto; flex: 1; }
+  .program-card {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ededed;
+    cursor: pointer;
+  }
+  .program-card:hover { background: #f5f8fc; }
+  .program-card .pid { font-size: 13px; color: var(--text); }
+  .program-card .pname { font-size: 15px; color: var(--text); margin: 2px 0 8px; }
+  .program-card .meta { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ---------- Main content ---------- */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-left: 3px solid var(--sap-blue); }
+  .section-bar {
+    display: flex; align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--panel-border);
+    background: #fff;
+  }
+  .section-bar .sec-title { flex: 1; text-align: center; font-size: 15px; }
+  .section-bar .actions { display: flex; align-items: center; gap: 14px; color: var(--sap-blue); }
+  .btn-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--sap-blue);
+    color: var(--sap-blue);
+    background: #fff;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .section-bar .icon-btn { color: var(--sap-blue); cursor: pointer; font-size: 16px; }
+  .section-bar .icon-btn.close { color: #5b738b; }
+
+  .content { flex: 1; overflow-y: auto; padding: 18px 28px; }
+
+  .content-top {
+    display: flex; align-items: center; margin-bottom: 8px;
+  }
+  .program-title { font-size: 18px; font-weight: 400; flex: 1; }
+
+  /* ---------- Segmented toggle ---------- */
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--sap-blue);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .segmented button {
+    border: none;
+    background: #fff;
+    color: var(--sap-blue);
+    padding: 7px 22px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .segmented button + button { border-left: 1px solid var(--sap-blue); }
+  .segmented button.active { background: var(--sap-blue); color: #fff; }
+  .segmented.opps button { border-color: #6b4ba8; color: #6b4ba8; }
+  .segmented.opps button + button { border-left-color: #6b4ba8; }
+  .segmented.opps button.active { background: #6b4ba8; color: #fff; }
+
+  /* ---------- Heat map ---------- */
+  .heat-wrap {
+    display: flex;
+    margin: 18px 0 6px;
+  }
+  .y-title {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding-right: 6px;
+    align-self: center;
+  }
+  .row-labels {
+    display: flex; flex-direction: column;
+    width: 86px;
+  }
+  .row-labels .rl {
+    flex: 1;
+    display: flex; align-items: center; justify-content: flex-end;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding-right: 10px;
+  }
+  .row-labels .rl span { transform: rotate(-30deg); transform-origin: right center; white-space: nowrap; }
+
+  .matrix-area { flex: 1; }
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .cell {
+    height: 66px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    font-weight: 400;
+    color: #1d1d1d;
+  }
+  .col-labels {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+    height: 46px;
+  }
+  .col-labels .cl {
+    display: flex; align-items: flex-start; justify-content: center;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .col-labels .cl span { transform: rotate(-30deg); transform-origin: center top; white-space: nowrap; }
+  .x-title {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 8px 0 4px;
+    /* offset to align with matrix center (account for y-title + row-labels width) */
+    padding-left: 100px;
+  }
+
+  /* ---------- Risk table ---------- */
+  .table-head-row {
+    display: flex; align-items: center;
+    margin: 26px 0 4px;
+  }
+  .table-head-row .tbl-title { font-size: 16px; font-weight: 400; flex: 1; }
+  .table-toolbar { display: flex; align-items: center; gap: 14px; color: var(--sap-blue); }
+  .table-toolbar .ti { cursor: pointer; font-size: 15px; }
+  .table-toolbar .search {
+    display: flex; align-items: center;
+    border: 1px solid #c4c4c4; border-radius: 4px;
+    padding: 3px 8px; color: var(--text-muted);
+  }
+  .table-toolbar .search input { border: none; outline: none; font-family: inherit; font-size: 13px; width: 150px; }
+
+  table.risk { width: 100%; border-collapse: collapse; }
+  table.risk th {
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  table.risk td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #ededed;
+    font-size: 13px;
+  }
+  td.score-bad { color: #c0271a; }
+  td.score-opp { color: #6b4ba8; }
+  td.score-good { color: #107e3e; }
+</style>
+</head>
+<body>
+
+  <!-- Shell bar -->
+  <div class="shellbar">
+    <span class="back">‹</span>
+    <span class="sap-logo">SAP</span>
+    <span class="title">Dassian Program Risk Register <span class="chev">▾</span></span>
+    <span class="spacer"></span>
+    <span class="icon">🔍</span>
+    <span class="icon">🔔</span>
+    <span class="avatar">JB</span>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar: program list -->
+    <aside class="sidebar">
+      <div class="panel-header">Program List</div>
+      <div class="program-list">
+        <div class="program-card">
+          <div class="meta">Controlling Area: A000<br>Plant: 1710</div>
+        </div>
+        <div class="program-card">
+          <div class="pid">DD-0010</div>
+          <div class="pname">CP,PPC,RAP,FPA,PACE,SIS MSP,FD Dmo Prj</div>
+          <div class="meta">Controlling Area: A000<br>Plant: 1710</div>
+        </div>
+        <div class="program-card">
+          <div class="pid">DD-0011</div>
+          <div class="pname">CP,PPC,RAP,FPA,PACE,SIS MSP,FD Dmo Prj</div>
+          <div class="meta">Controlling Area: A000<br>Plant: 1720</div>
+        </div>
+        <div class="program-card">
+          <div class="pid">LM01</div>
+          <div class="pname">LM PACE Demand and Act Cost - Trainee 1</div>
+          <div class="meta">Controlling Area: A000<br>Plant: 1710</div>
+        </div>
+        <div class="program-card">
+          <div class="pid">LM02</div>
+          <div class="pname">LM PACE Demand and Act Cost - Trainee 2</div>
+          <div class="meta">Controlling Area: A000<br>Plant: 1710</div>
+        </div>
+        <div class="program-card">
+          <div class="pid">DD-0020</div>
+          <div class="pname">ECH 2022 Sample</div>
+          <div class="meta">Controlling Area: A000<br>Plant: 1710</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <section class="main">
+      <div class="section-bar">
+        <div class="actions" style="visibility:hidden">x</div>
+        <div class="sec-title" id="secTitle">Program Risks</div>
+        <div class="actions">
+          <span class="btn-link">⧉ To Project Burndown</span>
+          <span class="icon-btn">⤢</span>
+          <span class="icon-btn close">✕</span>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="content-top">
+          <div class="program-title">PPC/SIS Demo 1 (JTB001)</div>
+          <div class="segmented" id="segmented">
+            <button id="btnRisks" class="active" onclick="setView('risks')">Risks</button>
+            <button id="btnOpps" onclick="setView('opportunities')">Opportunities</button>
+          </div>
+        </div>
+
+        <!-- Heat map -->
+        <div class="heat-wrap">
+          <div class="y-title" id="yTitle">Risk Probability</div>
+          <div class="row-labels" id="rowLabels"></div>
+          <div class="matrix-area">
+            <div class="matrix" id="matrix"></div>
+            <div class="col-labels" id="colLabels"></div>
+          </div>
+        </div>
+        <div class="x-title" id="xTitle">Risk Impact</div>
+
+        <!-- Table -->
+        <div class="table-head-row">
+          <div class="tbl-title" id="tblTitle">Risks(3/3)</div>
+          <div class="table-toolbar">
+            <span class="ti">⇅</span>
+            <span class="ti">▽</span>
+            <span class="ti">⊟</span>
+            <span class="ti">⧨</span>
+            <span class="search"><input type="text" placeholder="Search"> 🔍</span>
+          </div>
+        </div>
+        <table class="risk">
+          <thead>
+            <tr id="tblHead"></tr>
+          </thead>
+          <tbody id="tblBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+<script>
+  // Axis labels (top->bottom, left->right) — matches the live SAP screen
+  const PROB = ['Near Certain', 'Highly Likely', 'Likely', 'Unlikely', 'Remote'];
+  const IMPACT = ['Insignificant', 'Modest', 'Moderate', 'Significant', 'Unacceptable'];
+
+  // Color "tier" of every cell, identical grid for both views (the matrix shape
+  // is the same; only the palette changes). row 0 = Near Certain ... row 4 = Remote
+  const TIER = [
+    [3, 4, 4, 5, 5],
+    [2, 3, 4, 5, 5],
+    [0, 2, 3, 4, 5],
+    [0, 0, 2, 3, 4],
+    [0, 0, 2, 2, 3],
+  ];
+
+  // Risk palette — the existing red / orange / yellow / green scheme (kept exact)
+  const RISK_PALETTE = {
+    0: '#2e7d0e', // dark green
+    1: '#4fa015', // green
+    2: '#8cc63e', // light green / lime
+    3: '#e2df1e', // yellow
+    4: '#ef8a2b', // orange
+    5: '#e12219', // red
+  };
+
+  // Opportunity palette — shades of blue -> purple
+  const OPP_PALETTE = {
+    0: '#d6e3f7', // light blue
+    1: '#a9c5ec', // blue
+    2: '#6f9fdc', // medium blue
+    3: '#5577c9', // deeper blue
+    4: '#6b4ba8', // blue-purple
+    5: '#4b2c87', // deep purple
+  };
+
+  // Item placements derived from the live data (score = probability x impact).
+  // counts[probRow][impactCol]
+  const VIEWS = {
+    risks: {
+      sectionTitle: 'Program Risks',
+      tableTitle: 'Risks',
+      descHeader: 'Risk Description',
+      palette: RISK_PALETTE,
+      whiteTextTiers: [],            // risks keep black numbers (matches the live screen)
+      scoreClass: 'score-bad',
+      // Risk 1 -> Highly Likely x Significant ; Risk 2 & 3 -> Near Certain x Unacceptable
+      counts: [
+        [0, 0, 0, 0, 2],
+        [0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      rows: [
+        ['Risk 1', '10/20/2022', 'Jason Bartello', 'In Process', '0.64000000000000012', '0.64000000000000012', '0.089999999999999997'],
+        ['Risk 2', '11/03/2022', 'Jason Bartello', 'New', '0.90249999999999997', '0.90249999999999997', '0.010000000000000002'],
+        ['Risk 3', '02/24/2026', 'Jason Bartello', 'New', '0.90249999999999997', '0.90249999999999997', '0.14999999999999999'],
+      ],
+    },
+    opportunities: {
+      sectionTitle: 'Program Opportunities',
+      tableTitle: 'Opportunities',
+      descHeader: 'Opportunity Description',
+      palette: OPP_PALETTE,
+      whiteTextTiers: [4, 5],        // white numbers on the deep blue/purple cells
+      scoreClass: 'score-opp',
+      // Opportunity 1 -> Unlikely x Significant (0.3 x 0.8 = 0.24)
+      counts: [
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      rows: [
+        ['Opportunity 1', '02/24/2026', 'Allen Ytzen', 'New', '0.23999999999999999', '0.23999999999999999', '0.050000000000000003'],
+      ],
+    },
+  };
+
+  // default to risks, but allow ?view=opportunities for direct/linked rendering
+  const _q = new URLSearchParams(location.search).get('view');
+  let current = _q === 'opportunities' ? 'opportunities' : 'risks';
+
+  function render() {
+    const v = VIEWS[current];
+
+    // Section + titles
+    document.getElementById('secTitle').textContent = v.sectionTitle;
+    document.getElementById('tblTitle').textContent =
+      v.tableTitle + '(' + v.rows.length + '/' + v.rows.length + ')';
+
+    // Matrix
+    const matrix = document.getElementById('matrix');
+    matrix.innerHTML = '';
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const tier = TIER[r][c];
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.style.background = v.palette[tier];
+        cell.style.color = v.whiteTextTiers.includes(tier) ? '#fff' : '#1d1d1d';
+        cell.textContent = v.counts[r][c];
+        matrix.appendChild(cell);
+      }
+    }
+
+    // Row labels (probability)
+    const rl = document.getElementById('rowLabels');
+    rl.innerHTML = '';
+    PROB.forEach(p => {
+      const d = document.createElement('div');
+      d.className = 'rl';
+      d.innerHTML = '<span>' + p + '</span>';
+      rl.appendChild(d);
+    });
+
+    // Column labels (impact)
+    const cl = document.getElementById('colLabels');
+    cl.innerHTML = '';
+    IMPACT.forEach(i => {
+      const d = document.createElement('div');
+      d.className = 'cl';
+      d.innerHTML = '<span>' + i + '</span>';
+      cl.appendChild(d);
+    });
+
+    // Table
+    const head = document.getElementById('tblHead');
+    head.innerHTML =
+      '<th>' + v.descHeader + '</th>' +
+      '<th>Date Raised</th><th>Owner</th><th>Status</th>' +
+      '<th>Original Score</th><th>Current Score</th><th>Target Score</th>';
+
+    const body = document.getElementById('tblBody');
+    body.innerHTML = '';
+    v.rows.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + row[0] + '</td>' +
+        '<td>' + row[1] + '</td>' +
+        '<td>' + row[2] + '</td>' +
+        '<td>' + row[3] + '</td>' +
+        '<td class="' + v.scoreClass + '">' + row[4] + '</td>' +
+        '<td class="' + v.scoreClass + '">' + row[5] + '</td>' +
+        '<td class="score-good">' + row[6] + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  function setView(view) {
+    current = view;
+    document.getElementById('btnRisks').classList.toggle('active', view === 'risks');
+    document.getElementById('btnOpps').classList.toggle('active', view === 'opportunities');
+    document.getElementById('segmented').classList.toggle('opps', view === 'opportunities');
+    render();
+  }
+
+  setView(current);
+</script>
+</body>
+</html>
