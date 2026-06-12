@@ -400,6 +400,17 @@
   table.wbs tr.ca td { background: #eaf2fb; font-weight: 600; }
   table.wbs tr:hover td { background: #f7faff; }
   table.wbs .wbs-lvl { color: var(--text-muted); white-space: nowrap; }
+  /* RAM matrix specifics */
+  table.ram th { position: static; }
+  table.ram th.dept { text-align: center; background: #e3ecf5; }
+  table.ram td:nth-child(2) { white-space: normal; min-width: 150px; }
+  table.ram tr.foot td { font-weight: 700; background: #f5f7f9; }
+  table.ram tr.foot-top td { border-top: 2px solid #b5b5b5; }
+  table.ram th.lvlgrp { text-align: center; background: #e3ecf5; }
+  table.ram th.lvl, table.ram td.lvl { text-align: center; width: 24px; min-width: 24px; padding-left: 4px; padding-right: 4px; }
+  table.ram td.ca-mark { font-weight: 700; color: var(--sap-blue); }
+  .wbs-head .ram-period { font-size: 13px; color: var(--text); display: inline-flex; align-items: center; white-space: nowrap; }
+  .wbs-head .ram-period select { margin-left: 6px; font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 5px 8px; }
 </style>
 </head>
 <body>
@@ -422,7 +433,7 @@
       <div class="nav-item" data-mod="values"   onclick="setModule('values')">
         <span class="nav-ico">📊</span> Project Values</div>
       <div class="nav-item" data-mod="reports"  onclick="setModule('reports')">
-        <span class="nav-ico">📄</span> Project Reports</div>
+        <span class="nav-ico">📄</span> Project Analytics</div>
       <div class="nav-item" data-mod="risk"     onclick="setModule('risk')">
         <span class="nav-ico">⚠️</span> Risk Information</div>
       <div class="nav-item" data-mod="analysis" onclick="setModule('analysis')">
@@ -453,6 +464,7 @@
   </div>
 
 <script src="wbs-dictionary-data.js"></script>
+<script src="ram-report-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -478,7 +490,7 @@
 
   const MODULE_TITLES = {
     values:    'Project Values',
-    reports:   'Project Reports',
+    reports:   'Project Analytics',
     risk:      'Risk Information',
     analysis:  'Project Analysis',
     artifacts: 'Project Artifacts',
@@ -1284,6 +1296,7 @@
   function renderArtifacts(p) {
     const ARTIFACTS = [
       ['WBS Dictionary', 'Baseline', 'P. Nguyen', '05/30/2026', 'Current'],
+      ['Responsibility Assignment Matrix (RAM)', 'Baseline', 'P. Nguyen', '05/30/2026', 'Current'],
       ['Integrated Master Schedule (IMS)', 'Schedule', 'P. Nguyen', '06/05/2026', 'Current'],
       ['Control Account Plans (CAP)', 'Baseline', 'EHAYES', '05/28/2026', 'Current'],
       ['Basis of Estimate (BOE)', 'Cost', 'R. Reed', '05/20/2026', 'Current'],
@@ -1298,9 +1311,9 @@
     const cnt = st => ARTIFACTS.filter(x => x[4] === st).length;
     const tile = (label, val, cls2, sub) => `<div class="tile"><div class="t-label">${label}</div><div class="t-value ${cls2}">${val}</div><div class="t-sub">${sub}</div></div>`;
     const rows = ARTIFACTS.map(x => {
-      const open = x[0] === 'WBS Dictionary'
-        ? '<a class="link" onclick="openWbsDict()">Open ›</a>'
-        : '<a class="link">Open ›</a>';
+      let open = '<a class="link">Open ›</a>';
+      if (x[0] === 'WBS Dictionary') open = '<a class="link" onclick="openWbsDict()">Open ›</a>';
+      else if (x[0] === 'Responsibility Assignment Matrix (RAM)') open = '<a class="link" onclick="openRamReport()">Open ›</a>';
       return `<tr>
         <td>${x[0]}</td><td>${x[3]}</td>
         <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
@@ -1551,6 +1564,48 @@
     d.classList.add('open');
     const wb = d.querySelector('.wbs-body');
     wb.scrollTop = 0; wb.scrollLeft = 0;
+  }
+
+  /* ---------- Responsibility Assignment Matrix (RAM) slide-out ---------- */
+  function ensureRamDrawer() {
+    let d = document.getElementById('ramDrawer');
+    if (!d) { d = document.createElement('div'); d.id = 'ramDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); }
+    return d;
+  }
+  function closeRamReport() { const d = document.getElementById('ramDrawer'); if (d) d.classList.remove('open'); }
+  let ramPeriod = '2026-05';
+  function ramSetPeriod(v) { ramPeriod = v; openRamReport(); }
+  function openRamReport() {
+    const data = window.RAM_DICT || { meta: {}, depts: [], people: [], rows: [], footer: [] };
+    const m = data.meta || {};
+    // budgets shown time-phased through the selected status period (illustrative; May = full)
+    const f = ((PERIOD_MAP[ramPeriod] || PERIOD_MAP['2026-05']).f || { plan: 1 }).plan;
+    const money = v => (typeof v === 'number') ? (v * f).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    const deptTh = (data.depts || []).map(d => '<th class="dept" colspan="' + d.span + '">' + _xml(d.name) + '</th>').join('');
+    const personTh = (data.people || []).map(p => '<th>' + _xml(p) + '</th>').join('');
+    const thead = '<thead><tr>' +
+      '<th colspan="4" class="lvlgrp">WBS Level</th>' +
+      '<th rowspan="2">WBS Number</th><th rowspan="2">Description</th>' + deptTh + '<th rowspan="2">Total</th></tr>' +
+      '<tr><th class="lvl">1</th><th class="lvl">2</th><th class="lvl">3</th><th class="lvl">4</th>' + personTh + '</tr></thead>';
+    const lvlCells = r => { let s = ''; for (let c = 1; c <= 4; c++) { const mk = (c === r.level) ? (r.ca ? 'CA' : 'X') : ''; s += '<td class="lvl' + (mk === 'CA' ? ' ca-mark' : '') + '">' + mk + '</td>'; } return s; };
+    const body = (data.rows || []).map(r => {
+      const cells = (r.vals || []).map(v => '<td class="num">' + money(v) + '</td>').join('');
+      return '<tr class="' + (r.ca ? 'ca' : '') + '">' + lvlCells(r) + '<td>' + _xml(r.number) + '</td><td>' + _xml(r.desc) + '</td>' + cells + '<td class="num">' + money(r.total) + '</td></tr>';
+    }).join('');
+    const foot = (data.footer || []).map((ft, i) => {
+      const cells = (ft.vals || []).map(v => '<td class="num">' + money(v) + '</td>').join('');
+      return '<tr class="foot' + (i === 0 ? ' foot-top' : '') + '"><td colspan="6">' + _xml(ft.label) + '</td>' + cells + '<td class="num">' + money(ft.total) + '</td></tr>';
+    }).join('');
+    const periodOpts = PERIODS.map(p => '<option value="' + p.id + '"' + (p.id === ramPeriod ? ' selected' : '') + '>' + p.label + '</option>').join('');
+    const d = ensureRamDrawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">' + _xml(m.title || 'Responsibility Assignment Matrix (RAM)') + '</div>' +
+        '<div class="t2">' + [m.project, m.obs].filter(Boolean).map(_xml).join(' · ') + '</div></div>' +
+        '<span class="ram-period">Period&nbsp;<select onchange="ramSetPeriod(this.value)">' + periodOpts + '</select></span>' +
+        '<span class="wbs-close" onclick="closeRamReport()" title="Close">✕</span></div>' +
+      '<div class="wbs-body"><table class="wbs ram">' + thead + '<tbody>' + body + foot + '</tbody></table></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0; wb.scrollLeft = 0;
   }
 
   /* ---------------------------- Router -------------------------- */
