@@ -411,6 +411,15 @@
   table.ram td.ca-mark { font-weight: 700; color: var(--sap-blue); }
   .wbs-head .ram-period { font-size: 13px; color: var(--text); display: inline-flex; align-items: center; white-space: nowrap; }
   .wbs-head .ram-period select { margin-left: 6px; font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 5px 8px; }
+  /* CAP slide-out */
+  .wbs-head .cap-toggle { display: inline-flex; border: 1px solid var(--sap-blue); border-radius: 6px; overflow: hidden; margin-right: 10px; flex: 0 0 auto; }
+  .wbs-head .cap-toggle button { border: none; background: #fff; color: var(--sap-blue); padding: 6px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .wbs-head .cap-toggle button + button { border-left: 1px solid var(--sap-blue); }
+  .wbs-head .cap-toggle button.active { background: var(--sap-blue); color: #fff; }
+  table.cap-tp td.cap-type { font-weight: 600; }
+  table.cap-tp td.tot { font-weight: 700; }
+  table.cap-tp tr.wp-top td { border-top: 2px solid #d2dae3; }
+  table.wbs td.neg { color: var(--bad); }
 </style>
 </head>
 <body>
@@ -465,6 +474,8 @@
 
 <script src="wbs-dictionary-data.js"></script>
 <script src="ram-report-data.js"></script>
+<script src="cap-timephased-data.js"></script>
+<script src="cap-summary-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -1314,6 +1325,7 @@
       let open = '<a class="link">Open ›</a>';
       if (x[0] === 'WBS Dictionary') open = '<a class="link" onclick="openWbsDict()">Open ›</a>';
       else if (x[0] === 'Responsibility Assignment Matrix (RAM)') open = '<a class="link" onclick="openRamReport()">Open ›</a>';
+      else if (x[0] === 'Control Account Plans (CAP)') open = '<a class="link" onclick="openCapPlan()">Open ›</a>';
       return `<tr>
         <td>${x[0]}</td><td>${x[3]}</td>
         <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
@@ -1604,6 +1616,70 @@
         '<span class="ram-period">Period&nbsp;<select onchange="ramSetPeriod(this.value)">' + periodOpts + '</select></span>' +
         '<span class="wbs-close" onclick="closeRamReport()" title="Close">✕</span></div>' +
       '<div class="wbs-body"><table class="wbs ram">' + thead + '<tbody>' + body + foot + '</tbody></table></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0; wb.scrollLeft = 0;
+  }
+
+  /* ---------- Control Account Plans (CAP) slide-out: Time-Phased / Summary ---------- */
+  function ensureCapDrawer() {
+    let d = document.getElementById('capDrawer');
+    if (!d) { d = document.createElement('div'); d.id = 'capDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); }
+    return d;
+  }
+  function closeCapPlan() { const d = document.getElementById('capDrawer'); if (d) d.classList.remove('open'); }
+  let capView = 'tp';
+  function capSetView(v) { capView = v; openCapPlan(); }
+
+  function capTpTable() {
+    const t = window.CAP_TP || { months: [], rows: [] };
+    const money = v => (typeof v === 'number' && v !== 0) ? v.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '';
+    const monthTh = t.months.map(m => '<th class="num">' + m + '</th>').join('');
+    let body = '', i = 0;
+    while (i < t.rows.length) {
+      const wp = t.rows[i].wp, grp = [];
+      while (i < t.rows.length && t.rows[i].wp === wp) { grp.push(t.rows[i]); i++; }
+      grp.forEach((r, gi) => {
+        const lead = gi === 0
+          ? '<td rowspan="' + grp.length + '">' + _xml(r.ca) + '</td><td rowspan="' + grp.length + '">' + _xml(r.wp) + '</td><td rowspan="' + grp.length + '">' + _xml(r.wpDesc) + '</td>'
+          : '';
+        const mvals = r.vals.map(v => '<td class="num">' + money(v) + '</td>').join('');
+        body += '<tr' + (gi === 0 ? ' class="wp-top"' : '') + '>' + lead + '<td class="cap-type">' + r.type + '</td><td class="num tot">' + money(r.totals) + '</td>' + mvals + '</tr>';
+      });
+    }
+    return '<table class="wbs cap-tp"><thead><tr><th>Control Account</th><th>Work Package</th><th>Description</th><th>Type</th><th class="num">TOTALS</th>' + monthTh + '</tr></thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function capSummaryTable() {
+    const s = window.CAP_SUMMARY || { cols: [], rows: [] };
+    const show = [3, 4, 12, 13, 14, 16, 17, 20, 21, 22, 23, 24, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37];
+    const fmt = (name, v) => {
+      if (typeof v !== 'number') return _xml(String(v).replace('WBS ', ''));
+      if (/SPI|CPI|TCPI/.test(name)) return v.toFixed(2);
+      if (/%/.test(name)) return v.toFixed(1) + '%';
+      return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    };
+    const th = show.map((idx, k) => '<th' + (k > 1 ? ' class="num"' : '') + '>' + _xml(s.cols[idx]) + '</th>').join('');
+    const body = s.rows.map(r => '<tr>' + show.map((idx, k) => {
+      const name = s.cols[idx], v = r[idx];
+      const cls = (k <= 1) ? '' : ('num' + ((typeof v === 'number' && v < 0) ? ' neg' : ''));
+      return '<td class="' + cls + '">' + fmt(name, v) + '</td>';
+    }).join('') + '</tr>').join('');
+    return '<table class="wbs cap-sum"><thead><tr>' + th + '</tr></thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function openCapPlan() {
+    const s = window.CAP_SUMMARY || { cols: [], rows: [] };
+    const r0 = s.rows[0] || [];
+    const sub = [r0[6], r0[7]].filter(Boolean).join(' · ');
+    const seg = '<span class="cap-toggle">' +
+      '<button class="' + (capView === 'tp' ? 'active' : '') + '" onclick="capSetView(\'tp\')">Time-Phased</button>' +
+      '<button class="' + (capView === 'summary' ? 'active' : '') + '" onclick="capSetView(\'summary\')">Summary</button></span>';
+    const d = ensureCapDrawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">Control Account Plans (CAP)</div>' +
+        '<div class="t2">' + _xml(sub) + '</div></div>' + seg +
+        '<span class="wbs-close" onclick="closeCapPlan()" title="Close">✕</span></div>' +
+      '<div class="wbs-body">' + (capView === 'tp' ? capTpTable() : capSummaryTable()) + '</div>';
     d.classList.add('open');
     const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0; wb.scrollLeft = 0;
   }
