@@ -379,6 +379,27 @@
   .modal-foot { padding: 12px 18px; border-top: 1px solid var(--panel-border); display: flex; justify-content: flex-end; gap: 10px; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--good); color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 2100; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.show { opacity: 1; }
+
+  /* ---------- WBS Dictionary slide-out ---------- */
+  .wbs-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1180px, 96%); background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.22); transform: translateX(101%); transition: transform .28s ease; z-index: 1500; display: flex; flex-direction: column; }
+  .wbs-drawer.open { transform: translateX(0); }
+  .wbs-head { background: #eef3f8; border-bottom: 1px solid var(--panel-border); padding: 14px 20px; display: flex; align-items: flex-start; gap: 16px; }
+  .wbs-head .wh-title { flex: 1; }
+  .wbs-head .t1 { font-size: 17px; }
+  .wbs-head .t2 { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+  .wbs-head .wbs-xls { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--panel-border); background: #fff; border-radius: 4px; padding: 6px 12px; font-size: 13px; font-family: inherit; cursor: pointer; color: var(--text); white-space: nowrap; }
+  .wbs-head .wbs-xls:hover { background: #f0f3f6; }
+  .wbs-head .wbs-close { cursor: pointer; font-size: 20px; color: #5b738b; padding-top: 4px; }
+  .wbs-body { overflow: auto; flex: 1; }
+  table.wbs { border-collapse: collapse; white-space: nowrap; font-size: 12px; }
+  table.wbs th { position: sticky; top: 0; background: #fafafa; text-align: left; font-weight: 700; padding: 9px 10px; border-bottom: 1px solid var(--panel-border); border-right: 1px solid #ededed; z-index: 1; }
+  table.wbs td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; border-right: 1px solid #f3f3f3; vertical-align: top; }
+  table.wbs td.wrap { white-space: normal; min-width: 240px; max-width: 340px; }
+  table.wbs td.sow { white-space: pre-line; min-width: 120px; max-width: 180px; }
+  table.wbs td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.wbs tr.ca td { background: #eaf2fb; font-weight: 600; }
+  table.wbs tr:hover td { background: #f7faff; }
+  table.wbs .wbs-lvl { color: var(--text-muted); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -406,6 +427,8 @@
         <span class="nav-ico">⚠️</span> Risk Information</div>
       <div class="nav-item" data-mod="analysis" onclick="setModule('analysis')">
         <span class="nav-ico">📈</span> Project Analysis</div>
+      <div class="nav-item" data-mod="artifacts" onclick="setModule('artifacts')">
+        <span class="nav-ico">🗂️</span> Project Artifacts</div>
       <!-- Access Help: placeholder link to the configuration data repository (URL to be set later) -->
       <a class="nav-item nav-link" id="accessHelp" href="#" onclick="return false" title="Configuration data repository (link to be configured)">
         <span class="nav-ico">🛟</span> Access Help <span class="ext">↗</span></a>
@@ -429,6 +452,7 @@
     </section>
   </div>
 
+<script src="wbs-dictionary-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -453,10 +477,11 @@
   };
 
   const MODULE_TITLES = {
-    values:   'Project Values',
-    reports:  'Project Reports',
-    risk:     'Risk Information',
-    analysis: 'Project Analysis',
+    values:    'Project Values',
+    reports:   'Project Reports',
+    risk:      'Risk Information',
+    analysis:  'Project Analysis',
+    artifacts: 'Project Artifacts',
   };
 
   let currentModule = 'values';
@@ -1255,6 +1280,51 @@
       </div>`;
   }
 
+  /* ===================== Project Artifacts (own module) ===================== */
+  function renderArtifacts(p) {
+    const ARTIFACTS = [
+      ['WBS Dictionary', 'Baseline', 'P. Nguyen', '05/30/2026', 'Current'],
+      ['Integrated Master Schedule (IMS)', 'Schedule', 'P. Nguyen', '06/05/2026', 'Current'],
+      ['Control Account Plans (CAP)', 'Baseline', 'EHAYES', '05/28/2026', 'Current'],
+      ['Basis of Estimate (BOE)', 'Cost', 'R. Reed', '05/20/2026', 'Current'],
+      ['Variance Analysis Report (VAR)', 'EVM', 'J. Bartello', '06/01/2026', 'Draft'],
+      ['Comprehensive EAC Package', 'Cost', 'J. Bartello', '04/30/2026', 'Overdue'],
+      ['Format 1–5 (CPR / IPMR)', 'EVM', 'A. Ytzen', '06/03/2026', 'Current'],
+      ['Risk &amp; Opportunity Register', 'Risk', 'J. Bartello', '06/10/2026', 'Current'],
+      ['Work Authorization Documents (WAD)', 'Baseline', 'T. LaRue', '05/15/2026', 'Current'],
+    ];
+    const aStatus = s => s === 'Current' ? 'good' : s === 'Draft' ? 'warn' : 'bad';
+    const n = ARTIFACTS.length;
+    const cnt = st => ARTIFACTS.filter(x => x[4] === st).length;
+    const tile = (label, val, cls2, sub) => `<div class="tile"><div class="t-label">${label}</div><div class="t-value ${cls2}">${val}</div><div class="t-sub">${sub}</div></div>`;
+    const rows = ARTIFACTS.map(x => {
+      const open = x[0] === 'WBS Dictionary'
+        ? '<a class="link" onclick="openWbsDict()">Open ›</a>'
+        : '<a class="link">Open ›</a>';
+      return `<tr>
+        <td>${x[0]}</td><td>${x[3]}</td>
+        <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
+        <td class="num">${open}</td></tr>`;
+    }).join('');
+    return `
+      <p class="module-intro">Program artifacts &amp; deliverables for <strong>${p.name}</strong>. Open links resolve to the document repository once connected.</p>
+      <div class="tile-grid" style="margin-bottom:18px">
+        ${tile('Total Artifacts', n, '', 'Tracked')}
+        ${tile('Current', cnt('Current'), 'good', 'Up to date')}
+        ${tile('Draft', cnt('Draft'), cnt('Draft') ? 'warn' : '', 'In progress')}
+        ${tile('Overdue', cnt('Overdue'), cnt('Overdue') ? 'bad' : 'good', cnt('Overdue') ? 'Need attention' : 'None')}
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="ch-title">Artifacts</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="grid">
+            <thead><tr><th>Artifact</th><th>Last Updated</th><th>Status</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
   /* ---------- Notify CAM (workflow / email) ---------- */
   let lastAlerts = [];
   let notifyIdx = -1;
@@ -1324,6 +1394,73 @@
     t._h = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
+  /* ---------- WBS Dictionary slide-out ---------- */
+  function ensureWbsDrawer() {
+    let d = document.getElementById('wbsDrawer');
+    if (!d) { d = document.createElement('div'); d.id = 'wbsDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); }
+    return d;
+  }
+  function closeWbsDict() { const d = document.getElementById('wbsDrawer'); if (d) d.classList.remove('open'); }
+
+  const WBS_COLS = ['Level', 'WBS Element', 'Description', 'Authorization Description', 'SOW Ref', 'CAM', 'Rec/NRE', 'BAC Hrs', 'BAC Cost (USD)', 'EV Method', 'IMS Baseline Start', 'IMS Baseline Finish', 'PMB Start', 'PMB Finish', 'IMS Forecast Start', 'IMS Forecast Finish', 'EAC Start', 'EAC Finish'];
+  function buildWbsCsv() {
+    const data = window.WBS_DICT || { meta: {}, rows: [] }, m = data.meta || {};
+    const esc = v => { v = (v == null ? '' : String(v)); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const lines = [];
+    [m.title, m.project, m.contract, m.printDate].forEach(x => { if (x) lines.push(esc(x)); });
+    lines.push('');
+    lines.push(WBS_COLS.map(esc).join(','));
+    data.rows.forEach(r => lines.push([r.level, r.wbs, r.desc, r.auth, r.sow, r.cam, r.rec, r.hrs, r.cost, r.ev, r.imsBS, r.imsBF, r.pmbS, r.pmbF, r.fcstS, r.fcstF, r.eacS, r.eacF].map(esc).join(',')));
+    return '﻿' + lines.join('\r\n');   // BOM so Excel reads UTF-8
+  }
+  function downloadWbsExcel() {
+    const m = (window.WBS_DICT || {}).meta || {};
+    const name = ((m.project || 'WBS_Dictionary').split(' ')[0] || 'WBS_Dictionary').replace(/[^A-Za-z0-9_-]/g, '');
+    const blob = new Blob([buildWbsCsv()], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'WBS_Dictionary_' + name + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function openWbsDict() {
+    const data = window.WBS_DICT || { meta: {}, rows: [] };
+    const m = data.meta || {};
+    const lvlNum = lvl => { const x = (lvl || '').match(/\d+/); return x ? parseInt(x[0], 10) : 1; };
+    const num = (v, dec) => { if (typeof v !== 'number') return ''; if (v === 0) return '0'; return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); };
+    const cols = ['Level', 'WBS Element', 'Description', 'Authorization Description', 'SOW Ref', 'CAM', 'Rec/NRE', 'BAC Hrs', 'BAC Cost (USD)', 'EV', 'IMS Base Start', 'IMS Base Finish', 'PMB Start', 'PMB Finish', 'IMS Fcst Start', 'IMS Fcst Finish', 'EAC Start', 'EAC Finish'];
+    const head = '<tr>' + cols.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+    const body = data.rows.map(r => {
+      const ca = /CA/.test(r.level);
+      const indent = 10 + (lvlNum(r.level) - 1) * 12;
+      return '<tr class="' + (ca ? 'ca' : '') + '">' +
+        '<td class="wbs-lvl">' + r.level + '</td>' +
+        '<td style="padding-left:' + indent + 'px">' + r.wbs + '</td>' +
+        '<td>' + r.desc + '</td>' +
+        '<td class="wrap">' + r.auth + '</td>' +
+        '<td class="wrap sow">' + r.sow + '</td>' +
+        '<td>' + r.cam + '</td><td>' + r.rec + '</td>' +
+        '<td class="num">' + num(r.hrs, 3) + '</td><td class="num">' + num(r.cost, 2) + '</td>' +
+        '<td>' + r.ev + '</td>' +
+        '<td>' + r.imsBS + '</td><td>' + r.imsBF + '</td><td>' + r.pmbS + '</td><td>' + r.pmbF + '</td>' +
+        '<td>' + r.fcstS + '</td><td>' + r.fcstF + '</td><td>' + r.eacS + '</td><td>' + r.eacF + '</td></tr>';
+    }).join('');
+    const d = ensureWbsDrawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title">' +
+        '<div class="t1">' + (m.title || 'Contract Work Breakdown Structure Dictionary') + '</div>' +
+        '<div class="t2">' + [m.project, m.contract, m.printDate].filter(Boolean).join(' · ') + '</div></div>' +
+        '<button class="wbs-xls" onclick="downloadWbsExcel()" title="Download to Excel">' +
+          '<svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#107e3e"/><path d="M4.2 4H6l2 2.7L10 4h1.8L8.9 8l2.9 4H10L8 9.3 6 12H4.2l2.9-4z" fill="#fff"/></svg>' +
+          ' Download to Excel</button>' +
+        '<span class="wbs-close" onclick="closeWbsDict()" title="Close">✕</span></div>' +
+      '<div class="wbs-body"><table class="wbs"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body');
+    wb.scrollTop = 0; wb.scrollLeft = 0;
+  }
+
   /* ---------------------------- Router -------------------------- */
   function render() {
     const p = prog();
@@ -1334,6 +1471,7 @@
       case 'reports':  c.innerHTML = renderReports();   break;
       case 'risk':     c.innerHTML = renderRisk(p);     break;
       case 'analysis': c.innerHTML = renderAnalysis(p); break;
+      case 'artifacts': c.innerHTML = renderArtifacts(p); break;
     }
   }
 
