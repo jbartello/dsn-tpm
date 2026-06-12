@@ -347,6 +347,36 @@
   .risk-embed-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .risk-embed-bar .ch-title { font-size: 16px; }
   .risk-frame { width: 100%; height: calc(100vh - 185px); border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; display: block; }
+
+  /* ---------- Project Analysis: variance narrative ---------- */
+  .alert-card { background: #fff; border: 1px solid var(--panel-border); border-left: 4px solid var(--warn); border-radius: 6px; padding: 13px 16px; margin-bottom: 12px; }
+  .alert-card.out { border-left-color: var(--bad); }
+  .alert-card .ac-top { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .alert-card .ac-wbs { font-weight: 700; font-size: 14px; }
+  .alert-card .ac-desc { color: var(--text-muted); font-size: 13px; }
+  .alert-card .ac-narr { font-size: 13px; line-height: 1.55; }
+  .alert-card .ac-rec { font-size: 12px; color: var(--text-muted); margin-top: 7px; }
+  .alert-ok { background: #e3f4ea; color: var(--good); border: 1px solid #b6e0c4; border-radius: 6px; padding: 12px 16px; font-size: 13px; }
+  .trend-down { color: var(--bad); font-size: 12px; }
+  .trend-up { color: var(--good); font-size: 12px; }
+  .ac-rec-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+  .ac-notify { border: 1px solid var(--sap-blue); color: var(--sap-blue); background: #fff; border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; white-space: nowrap; flex: 0 0 auto; }
+  .ac-notify:hover { background: #eaf2fb; }
+  .ac-notify[disabled] { border-color: #b6e0c4; color: var(--good); background: #fff; cursor: default; }
+
+  /* ---------- Notify modal + toast ---------- */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 2000; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: min(560px, 92%); max-height: 86vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--panel-border); font-size: 16px; }
+  .modal-body { padding: 16px 18px; }
+  .modal-body label { display: block; font-size: 12px; color: var(--text-muted); margin: 10px 0 4px; }
+  .modal-body .ro { background: #f2f2f2; border: 1px solid #c4c4c4; border-radius: 4px; padding: 7px 10px; font-size: 13px; }
+  .modal-body textarea { width: 100%; border: 1px solid #c4c4c4; border-radius: 4px; padding: 8px 10px; font-size: 13px; font-family: inherit; min-height: 170px; resize: vertical; }
+  .modal-note { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+  .modal-foot { padding: 12px 18px; border-top: 1px solid var(--panel-border); display: flex; justify-content: flex-end; gap: 10px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--good); color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 2100; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -1096,36 +1126,197 @@
       <iframe class="risk-frame" src="${src}" title="Program Risk Register"></iframe>`;
   }
 
+  /* ===================== Project Analysis: variance trend + narrative ===================== */
+  // Tolerance bands on variance % (unfavorable = negative): watch beyond -5%, out beyond -10%.
+  const TOL_WATCH = -5, TOL_OUT = -10;
+  function tol(pct) { return pct <= TOL_OUT ? 'out' : pct <= TOL_WATCH ? 'watch' : 'ok'; }
+  const pctClass = st => st === 'out' ? 'bad' : st === 'watch' ? 'warn' : 'good';
+
+  // Per-WBS variance + trend for the current selection. Current variance/CPI are
+  // derived from the control account's BAC scale; the prior-period figure gives a
+  // trend so we can flag degradation. Illustrative until linked to SAP period data.
+  function analysisRows() {
+    const s = Math.max(0, PERIODS.findIndex(p => p.id === pvState.period));  // status month index
+    const rows = pvProgramRows().filter(r => r[2]
+      && (!pvState.project || r[0] === pvState.project)
+      && (!pvState.cam || r[4] === pvState.cam));
+    return rows.map(r => {
+      const wbs = r[2], desc = r[3], cam = r[4], bac = num(r[14]);
+      const seed = [...wbs].reduce((t, ch) => t + ch.charCodeAt(0), 0);
+      // Each WBS has a starting variance and a per-period drift (negative = worsening),
+      // so the picture evolves as the Month End status date moves.
+      const cvBase = 4 - (seed % 22), cvDrift = ((seed % 5) - 2) * 1.1;
+      const svBase = 3 - ((seed * 5) % 20), svDrift = (((seed * 3) % 5) - 2) * 0.9;
+      const cvPct = cvBase + cvDrift * s;
+      const svPct = svBase + svDrift * s;
+      const priorCVpct = cvBase + cvDrift * (s - 1);
+      const priorSVpct = svBase + svDrift * (s - 1);
+      const degradingCV = cvDrift < -0.05;
+      const degradingSV = svDrift < -0.05;
+      const cvStatus = tol(cvPct), svStatus = tol(svPct);
+      return {
+        wbs, desc, cam, bac,
+        cvPct, svPct, priorCVpct, priorSVpct, degradingCV, degradingSV, cvStatus, svStatus,
+        cpi: 1 + cvPct / 100, spi: 1 + svPct / 100,
+        cv$: (cvPct / 100) * bac, sv$: (svPct / 100) * bac,
+        flagCV: degradingCV && cvStatus !== 'ok',
+        flagSV: degradingSV && svStatus !== 'ok',
+      };
+    });
+  }
+
+  function narrative(a) {
+    const seg = (label, pct, prior, status, cpiName, cpiVal) => {
+      const where = status === 'out' ? 'is <strong>out of tolerance</strong>' : 'is <strong>approaching the tolerance limit</strong>';
+      const swing = (prior - pct).toFixed(1);
+      return `${label} ${where} at ${pct.toFixed(1)}% (${cpiName} ${cpiVal.toFixed(2)}), degraded from ${prior.toFixed(1)}% last period — an unfavorable swing of ${swing} pts.`;
+    };
+    const parts = [];
+    if (a.flagCV) parts.push(seg('Cost variance', a.cvPct, a.priorCVpct, a.cvStatus, 'CPI', a.cpi));
+    if (a.flagSV) parts.push(seg('Schedule variance', a.svPct, a.priorSVpct, a.svStatus, 'SPI', a.spi));
+    return parts.join(' ');
+  }
+
   function renderAnalysis(p) {
-    const v = p.values;
-    // simple proportional bar heights vs. a $ scale
-    const max = Math.max(v.bac, v.eac, v.funding) * 1.1;
-    const h = n => Math.round((n / max) * 150);
-    return `
-      <p class="module-intro">Performance analysis for <strong>${p.name}</strong>.</p>
-      <div class="placeholder-note">Illustrative analysis — charts use the same demo figures as Project Values. Real trend data to follow.</div>
-      <div class="card">
-        <div class="card-head"><span class="ch-title">Budget vs. Forecast vs. Funding</span></div>
-        <div class="card-body">
-          <div class="bars">
-            <div class="bar-col"><div class="bar" style="height:${h(v.bac)}px;background:#0a6ed1"></div><div class="bar-lbl">BAC</div></div>
-            <div class="bar-col"><div class="bar" style="height:${h(v.eac)}px;background:${v.eac>v.bac?'#bb0000':'#107e3e'}"></div><div class="bar-lbl">EAC</div></div>
-            <div class="bar-col"><div class="bar" style="height:${h(v.acwp)}px;background:#6a6d70"></div><div class="bar-lbl">ACWP</div></div>
-            <div class="bar-col"><div class="bar" style="height:${h(v.funding)}px;background:#107e3e"></div><div class="bar-lbl">Funding</div></div>
-          </div>
-        </div>
-      </div>
-      <div class="tile-grid">
-        <div class="tile"><div class="t-label">CPI Trend</div>
-          <div class="t-value ${v.cpi>=1?'good':'bad'}">${v.cpi.toFixed(2)}</div>
-          <div class="t-sub">${v.cpi>=1?'Favorable':'Unfavorable'}</div></div>
-        <div class="tile"><div class="t-label">SPI Trend</div>
-          <div class="t-value ${v.spi>=1?'good':'warn'}">${v.spi.toFixed(2)}</div>
-          <div class="t-sub">${v.spi>=1?'On track':'Watch'}</div></div>
-        <div class="tile"><div class="t-label">Variance at Completion (VAC)</div>
-          <div class="t-value ${cls(v.bac - v.eac)}">${money(v.bac - v.eac)}</div>
-          <div class="t-sub">BAC − EAC</div></div>
+    const list = analysisRows();
+    const period = PERIOD_MAP[pvState.period].label;
+
+    // BAC-weighted program rollup
+    const totalBac = list.reduce((t, a) => t + a.bac, 0) || 1;
+    const wCPI = list.reduce((t, a) => t + a.cpi * a.bac, 0) / totalBac;
+    const wSPI = list.reduce((t, a) => t + a.spi * a.bac, 0) / totalBac;
+    const totCV = list.reduce((t, a) => t + a.cv$, 0);
+    const totSV = list.reduce((t, a) => t + a.sv$, 0);
+    const cvPctAgg = (totCV / totalBac) * 100, svPctAgg = (totSV / totalBac) * 100;
+
+    // alerts (degrading + watch/out), worst first
+    const sev = a => Math.min(a.flagCV ? (a.cvStatus === 'out' ? 0 : 1) : 9, a.flagSV ? (a.svStatus === 'out' ? 0 : 1) : 9);
+    const alerts = list.filter(a => a.flagCV || a.flagSV).sort((a, b) => sev(a) - sev(b) || a.cvPct - b.cvPct);
+
+    const tile = (label, value, cls2, sub) =>
+      `<div class="tile"><div class="t-label">${label}</div><div class="t-value ${cls2}">${value}</div><div class="t-sub">${sub}</div></div>`;
+
+    const summary = `
+      <div class="tile-grid" style="margin-bottom:20px">
+        ${tile('Cost Performance (CPI)', wCPI.toFixed(2), wCPI >= 1 ? 'good' : pctClass(tol(cvPctAgg)), wCPI >= 1 ? 'Favorable' : 'Unfavorable')}
+        ${tile('Schedule Performance (SPI)', wSPI.toFixed(2), wSPI >= 1 ? 'good' : pctClass(tol(svPctAgg)), wSPI >= 1 ? 'On / ahead' : 'Behind')}
+        ${tile('Cost Variance', mfmt(totCV) + ' (' + cvPctAgg.toFixed(1) + '%)', pctClass(tol(cvPctAgg)), 'Program rollup')}
+        ${tile('Schedule Variance', mfmt(totSV) + ' (' + svPctAgg.toFixed(1) + '%)', pctClass(tol(svPctAgg)), 'Program rollup')}
+        ${tile('Variance Alerts', String(alerts.length), alerts.length ? 'bad' : 'good', alerts.length ? 'Need attention' : 'All in tolerance')}
       </div>`;
+
+    lastAlerts = alerts;   // referenced by notifyCAM()
+    const alertHtml = alerts.length ? alerts.map((a, i) => {
+      const worst = (a.flagCV && a.cvStatus === 'out') || (a.flagSV && a.svStatus === 'out') ? 'out' : 'watch';
+      const pills = (a.flagCV ? `<span class="pill ${pctClass(a.cvStatus)}">CV ${a.cvPct.toFixed(1)}%</span>` : '')
+        + (a.flagSV ? `<span class="pill ${pctClass(a.svStatus)}">SV ${a.svPct.toFixed(1)}%</span>` : '');
+      return `<div class="alert-card ${worst}">
+        <div class="ac-top"><span class="ac-wbs">${a.wbs}</span><span class="ac-desc">${a.desc} · CAM ${a.cam}</span><span style="flex:1"></span>${pills}</div>
+        <div class="ac-narr">${narrative(a)}</div>
+        <div class="ac-rec-row">
+          <span class="ac-rec">▶ Recommend a corrective-action review with the control account manager (${a.cam}).</span>
+          <button class="ac-notify" id="notifyBtn-${i}" onclick="notifyCAM(${i})">✉ Notify CAM</button>
+        </div>
+      </div>`;
+    }).join('') : `<div class="alert-ok">✓ No control accounts are degrading toward or beyond tolerance for the current selection.</div>`;
+
+    // full variance table
+    const arrow = (deg) => deg ? '<span class="trend-down">▼ degrading</span>' : '<span class="trend-up">▲ stable/improving</span>';
+    const tableRows = list.map(a => `<tr>
+        <td>${a.wbs}</td><td>${a.desc}</td><td>${a.cam}</td>
+        <td class="num ${pctClass(a.cvStatus)}">${a.cvPct.toFixed(1)}%</td>
+        <td class="num ${pctClass(a.svStatus)}">${a.svPct.toFixed(1)}%</td>
+        <td class="num">${a.cpi.toFixed(2)}</td><td class="num">${a.spi.toFixed(2)}</td>
+        <td>${arrow(a.degradingCV || a.degradingSV)}</td>
+        <td><span class="pill ${pctClass(a.cvStatus === 'out' || a.svStatus === 'out' ? 'out' : (a.cvStatus === 'watch' || a.svStatus === 'watch' ? 'watch' : 'ok'))}">${(a.cvStatus === 'out' || a.svStatus === 'out') ? 'Out' : (a.cvStatus === 'watch' || a.svStatus === 'watch') ? 'Watch' : 'In tol.'}</span></td>
+      </tr>`).join('');
+
+    return `
+      ${renderFilterBar(false)}
+      <p class="module-intro">Earned-value variance analysis for <strong>${p.name}</strong> — status <strong>${period}</strong>. Tolerance: <strong>±5%</strong> watch · <strong>±10%</strong> out. Illustrative trend data.</p>
+      ${summary}
+      <div class="card">
+        <div class="card-head"><span class="ch-title">Variance Narrative — degrading &amp; out-of-tolerance WBS</span></div>
+        <div class="card-body">${alertHtml}</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="ch-title">Control Account Variance</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="grid">
+            <thead><tr><th>WBS</th><th>Description</th><th>CAM</th><th class="num">CV %</th><th class="num">SV %</th><th class="num">CPI</th><th class="num">SPI</th><th>Trend</th><th>Status</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  /* ---------- Notify CAM (workflow / email) ---------- */
+  let lastAlerts = [];
+  let notifyIdx = -1;
+  function camEmail(name) {
+    const n = (name || '').trim();
+    if (n.includes(' ')) { const parts = n.split(/\s+/); return (parts[0][0] + parts.slice(1).join('')).toLowerCase() + '@dassian.com'; }
+    return n.toLowerCase() + '@dassian.com';
+  }
+  function ensureNotifyModal() {
+    let o = document.getElementById('notifyOverlay');
+    if (!o) {
+      o = document.createElement('div');
+      o.id = 'notifyOverlay';
+      o.className = 'modal-overlay';
+      o.innerHTML = '<div class="modal">' +
+        '<div class="modal-head">✉ Send to Control Account Manager</div>' +
+        '<div class="modal-body"></div>' +
+        '<div class="modal-foot"><button class="btn" onclick="closeNotify()">Cancel</button>' +
+        '<button class="btn primary" onclick="sendNotify()">Send workflow &amp; email</button></div>' +
+        '</div>';
+      document.body.appendChild(o);
+      o.addEventListener('click', e => { if (e.target === o) closeNotify(); });
+    }
+    return o;
+  }
+  function notifyCAM(i) {
+    notifyIdx = i;
+    const a = lastAlerts[i];
+    if (!a) return;
+    const email = camEmail(a.cam);
+    const plain = narrative(a).replace(/<[^>]+>/g, '');
+    const subject = 'Variance Alert — ' + a.wbs + ' · ' + prog().name;
+    const body =
+      a.cam + ',\n\n' +
+      'The following control account requires a corrective-action review (status ' + PERIOD_MAP[pvState.period].label + '):\n\n' +
+      'Program: ' + prog().name + '\n' +
+      'WBS: ' + a.wbs + ' — ' + a.desc + '\n' +
+      'CAM: ' + a.cam + '\n\n' +
+      plain + '\n\n' +
+      'Cost: CPI ' + a.cpi.toFixed(2) + ', CV ' + a.cvPct.toFixed(1) + '%\n' +
+      'Schedule: SPI ' + a.spi.toFixed(2) + ', SV ' + a.svPct.toFixed(1) + '%\n\n' +
+      'Please initiate a corrective-action plan and reply with proposed mitigation steps and revised target dates.\n\n' +
+      '— Dassian Total Program Management';
+    const o = ensureNotifyModal();
+    o.querySelector('.modal-body').innerHTML =
+      '<label>To</label><div class="ro">' + a.cam + ' &lt;' + email + '&gt;</div>' +
+      '<label>Subject</label><div class="ro">' + subject + '</div>' +
+      '<label>Message</label><textarea id="notifyBody"></textarea>' +
+      '<div class="modal-note">Creates a corrective-action workflow task and emails the CAM.</div>';
+    o.querySelector('#notifyBody').value = body;
+    o.classList.add('open');
+  }
+  function closeNotify() { const o = document.getElementById('notifyOverlay'); if (o) o.classList.remove('open'); }
+  function sendNotify() {
+    const a = lastAlerts[notifyIdx];
+    closeNotify();
+    const btn = document.getElementById('notifyBtn-' + notifyIdx);
+    if (btn) { btn.textContent = '✓ Sent'; btn.disabled = true; }
+    tpmToast('✓ Workflow created and email sent to ' + (a ? a.cam : 'CAM'));
+  }
+  function tpmToast(msg) {
+    let t = document.getElementById('tpmToast');
+    if (!t) { t = document.createElement('div'); t.id = 'tpmToast'; t.className = 'toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
   /* ---------------------------- Router -------------------------- */
