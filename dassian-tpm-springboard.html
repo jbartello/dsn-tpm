@@ -450,8 +450,6 @@
         <span class="nav-ico">📄</span> Project Analytics</div>
       <div class="nav-item" data-mod="risk"     onclick="setModule('risk')">
         <span class="nav-ico">⚠️</span> Risk Information</div>
-      <div class="nav-item" data-mod="analysis" onclick="setModule('analysis')">
-        <span class="nav-ico">📈</span> Project Analysis</div>
       <div class="nav-item" data-mod="artifacts" onclick="setModule('artifacts')">
         <span class="nav-ico">🗂️</span> Project Artifacts &amp; Reports</div>
       <!-- Access Help: placeholder link to the configuration data repository (URL to be set later) -->
@@ -1331,6 +1329,7 @@
       else if (x[0] === 'Responsibility Assignment Matrix (RAM)') open = '<a class="link" onclick="openRamReport()">Open ›</a>';
       else if (x[0] === 'Control Account Plans (CAP)') open = '<a class="link" onclick="openCapPlan()">Open ›</a>';
       else if (x[0] === 'Tripwire Report') open = '<a class="link" onclick="openTripwire()">Open ›</a>';
+      else if (x[0] === 'Variance Analysis Report (VAR)') open = '<a class="link" onclick="setModule(\'analysis\')">Open ›</a>';
       return `<tr>
         <td>${x[0]}</td><td>${x[3]}</td>
         <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
