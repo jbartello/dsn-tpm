@@ -223,6 +223,11 @@
   }
 
   /* ---------- Project Values: KPI / filter strip ---------- */
+  .filter-strip {
+    display: flex; gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
   .kpi-strip {
     display: flex; gap: 14px;
     overflow-x: auto;
@@ -439,7 +444,7 @@
   ];
 
   // Project Values UI state (kept in JS so re-renders preserve it)
-  const pvState = { project: '', cam: '', sortCol: null, sortDir: 1 };
+  const pvState = { project: '', cam: '', period: '2026-05', sortCol: null, sortDir: 1 };
 
   // Add thousands separators while preserving the original decimals/sign.
   function addCommas(s) {
@@ -452,6 +457,37 @@
   }
   const num = s => parseFloat(s) || 0;
   const fmtM = n => (n / 1e6).toFixed(1) + 'M';   // millions, 1 decimal (no $, matches D23)
+
+  // Month-end periods. The stored CA_ROWS values represent the latest period
+  // (May, factor 1.0 — matches the D23 screenshot). Earlier periods scale the
+  // time-phased figures (Planned / Earned / Actual) independently so SPI/CPI and
+  // % complete shift period to period. BAC/EAC/VAC are at-completion figures and
+  // stay constant. Simulated until linked to SAP period data.
+  const PERIODS = [
+    { id: '2026-03', label: 'Mar 2026', f: { plan: 0.55, earn: 0.45, act: 0.52 } },
+    { id: '2026-04', label: 'Apr 2026', f: { plan: 0.80, earn: 0.72, act: 0.77 } },
+    { id: '2026-05', label: 'May 2026', f: { plan: 1.00, earn: 1.00, act: 1.00 } },
+  ];
+  const PERIOD_MAP = Object.fromEntries(PERIODS.map(p => [p.id, p]));
+
+  // Recompute a control-account row for the selected month-end period.
+  function pvApplyPeriod(row) {
+    const f = (PERIOD_MAP[pvState.period] || PERIOD_MAP['2026-05']).f;
+    const planned = num(row[5]) * f.plan;
+    const earned  = num(row[6]) * f.earn;
+    const actual  = num(row[7]) * f.act;
+    const curSV   = num(row[8]) * f.earn;
+    const curCV   = num(row[9]) * f.earn;
+    const cumSV   = earned - planned;
+    const cumCV   = earned - actual;
+    const spi = planned ? earned / planned : 0;
+    const cpi = actual ? earned / actual : 0;
+    const d2 = n => (Math.round(n * 100) / 100).toString();
+    const d3 = n => (Math.round(n * 1000) / 1000).toString();
+    return [ row[0], row[1], row[2], row[3], row[4],
+      d2(planned), d2(earned), d2(actual), d2(curSV), d2(curCV), d2(cumSV), d2(cumCV),
+      d3(spi), d3(cpi), row[14], row[15], row[16] ];   // BAC / EAC / VAC unchanged
+  }
 
   // Control Account Summary rows — transcribed from the D23 screen.
   // [Project, Description, WBS, CA Description, CAM, PlannedValue, EarnedValue,
@@ -505,9 +541,10 @@
     return CA_ROWS.filter(r => set.has(r[0]));
   }
   function pvFilteredRows() {
-    return pvProgramRows().filter(r =>
-      (!pvState.project || r[0] === pvState.project) &&
-      (!pvState.cam     || r[4] === pvState.cam));
+    return pvProgramRows()
+      .filter(r => (!pvState.project || r[0] === pvState.project) &&
+                   (!pvState.cam     || r[4] === pvState.cam))
+      .map(pvApplyPeriod);
   }
 
   function pvSortedRows() {
@@ -560,7 +597,8 @@
 
   function renderCharts(rows, k) {
     const key = pvState.project || progId();
-    const pct = PV_PCT[key] ?? 37;
+    const pf = (PERIOD_MAP[pvState.period] || PERIOD_MAP['2026-05']).f.earn;
+    const pct = Math.round((PV_PCT[key] ?? 37) * pf);
     const ratio = PV_REC_RATIO[key] ?? 0.64;
     const rec = k.bac * ratio, nonrec = k.bac * (1 - ratio);
     const maxv = Math.max(rec, nonrec, 1);
@@ -628,8 +666,11 @@
       return `<tr>${cells}</tr>`;
     }).join('');
 
+    const periodOpts = PERIODS.map(p =>
+      `<option value="${p.id}" ${p.id === pvState.period ? 'selected' : ''}>${p.label}</option>`).join('');
+
     return `
-      <div class="kpi-strip">
+      <div class="filter-strip">
         <div class="kpi-card filter">
           <div class="k-top"><span class="k-label">Project Filter</span>${FUNNEL}</div>
           <select onchange="pvSetFilter('project', this.value)">${opts(projects, pvState.project)}</select>
@@ -638,6 +679,12 @@
           <div class="k-top"><span class="k-label">CAM Filter **</span>${FUNNEL}</div>
           <select onchange="pvSetFilter('cam', this.value)">${opts(cams, pvState.cam)}</select>
         </div>
+        <div class="kpi-card filter">
+          <div class="k-top"><span class="k-label">Month End **</span>${FUNNEL}</div>
+          <select onchange="pvSetFilter('period', this.value)">${periodOpts}</select>
+        </div>
+      </div>
+      <div class="kpi-strip">
         ${kpiCard('Plan Value', fmtM(k.plan), true)}
         ${kpiCard('Earned Value', fmtM(k.earned), true)}
         ${kpiCard('Actual Cost', fmtM(k.actual), true)}
