@@ -229,6 +229,45 @@
     border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px;
   }
 
+  /* ---------- Display Baseline (PPC Workbench: WBS tree + baseline detail) ---------- */
+  .bd-wrap { display: flex; gap: 16px; align-items: flex-start; }
+  .bd-tree { flex: 0 0 360px; max-height: 640px; overflow: auto; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; padding: 6px 0; }
+  .bd-row { display: flex; align-items: center; gap: 2px; padding: 1px 8px; white-space: nowrap; }
+  .bd-caret { flex: 0 0 14px; width: 14px; text-align: center; color: #5b738b; font-size: 10px; cursor: pointer; user-select: none; }
+  .bd-name { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .bd-name:hover { background: #f0f3f6; }
+  .bd-name.active { background: #e3f0ff; color: var(--sap-blue); font-weight: 600; }
+  .bd-name .bd-wid { overflow: hidden; text-overflow: ellipsis; }
+  .bd-name .bd-bcws { flex: 0 0 auto; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .bd-name.active .bd-bcws { color: var(--sap-blue); }
+  .bd-children { display: none; }
+  .bd-children.open { display: block; }
+  .bd-detail { flex: 1; min-width: 0; }
+  .bd-head { margin-bottom: 14px; }
+  .bd-card-h { font-size: 15px; font-weight: 700; color: var(--text); }
+  .bd-sub { color: var(--text-muted); font-size: 13px; margin-top: 3px; }
+  .bd-kpis { margin-bottom: 18px; }
+  .bd-tp-head { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; }
+  .bd-tp-title { font-size: 14px; font-weight: 600; }
+  .bd-measure { display: inline-flex; border: 1px solid var(--sap-blue); border-radius: 6px; overflow: hidden; }
+  .bd-measure button { border: none; background: #fff; color: var(--sap-blue); padding: 5px 14px; font-size: 13px; font-family: inherit; cursor: pointer; }
+  .bd-measure button + button { border-left: 1px solid var(--sap-blue); }
+  .bd-measure button.active { background: var(--sap-blue); color: #fff; }
+  .bd-tp-note { color: var(--text-muted); font-size: 12px; margin: 0 0 8px; }
+  .bd-tp-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; }
+  table.bd-tp { border-collapse: collapse; white-space: nowrap; font-size: 12px; }
+  table.bd-tp th, table.bd-tp td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; text-align: right; font-variant-numeric: tabular-nums; }
+  table.bd-tp thead th { position: sticky; top: 0; z-index: 1; background: #fafafa; border-bottom: 1px solid var(--panel-border); }
+  table.bd-tp .lbl { position: sticky; left: 0; z-index: 2; text-align: left; font-weight: 600; background: #fff; border-right: 1px solid #e6e6e6; }
+  table.bd-tp thead th.lbl { z-index: 3; background: #fafafa; }
+  table.bd-tp .tot { font-weight: 700; background: #f7faff; }
+  table.bd-tp .bd-rate { color: var(--text-muted); font-weight: 400; font-size: 11px; }
+  table.bd-tp tr.grand td { font-weight: 700; border-top: 2px solid #d2dae3; background: #eef4fb; }
+  table.bd-tp tr.cum td { color: var(--text-muted); }
+  table.bd-tp tbody tr:hover td { background: #f7faff; }
+  table.bd-tp tbody tr:hover td.lbl { background: #eef4fb; }
+  table.bd-tp tbody tr.grand:hover td { background: #e6eef9; }
+
   /* ---------- Project Values: KPI / filter strip ---------- */
   .filter-strip {
     display: flex; gap: 14px;
@@ -437,6 +476,63 @@
   table.wbs.cl th { position: static; }
   table.wbs.cl th.cbb { text-align: center; background: #e3ecf5; }
   table.wbs.cl tr.sum td { font-weight: 700; background: #f5f7f9; }
+
+  /* ---------- Baseline Change Request: log toolbar + form ---------- */
+  .bcr-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .bcr-toolbar .ch-title { font-size: 16px; flex: 1; }
+  .bcr-id { font-weight: 700; color: var(--sap-blue); white-space: nowrap; }
+  .pill.info { background: #e7eef9; color: var(--sap-blue); }
+  .bcr-type { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #eef0f2; color: var(--text-muted); }
+  /* form inside the slide-out */
+  .bcr-form { padding: 16px 20px 60px; font-size: 13px; }
+  .bcr-sec { margin: 0 0 18px; border: 1px solid var(--panel-border); border-radius: 8px; overflow: hidden; background: #fff; }
+  .bcr-sec > h3 { margin: 0; font-size: 13px; font-weight: 700; background: #eef3f8; padding: 9px 14px; border-bottom: 1px solid var(--panel-border); color: var(--text); }
+  .bcr-sec .sec-in { padding: 14px; }
+  .bcr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; }
+  .bcr-fld { display: flex; flex-direction: column; gap: 4px; }
+  .bcr-fld.wide { grid-column: 1 / -1; }
+  .bcr-fld label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+  .bcr-fld input, .bcr-fld select, .bcr-fld textarea {
+    font-family: inherit; font-size: 13px; color: var(--text);
+    border: 1px solid #c4c4c4; border-radius: 4px; padding: 7px 9px; background: #fff; width: 100%;
+  }
+  .bcr-fld textarea { min-height: 60px; resize: vertical; }
+  .bcr-fld input:focus, .bcr-fld select:focus, .bcr-fld textarea:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
+  .bcr-checks { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .bcr-checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); text-transform: none; letter-spacing: 0; }
+  table.bcr-tbl { width: 100%; border-collapse: collapse; }
+  table.bcr-tbl th { text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--panel-border); }
+  table.bcr-tbl th.num, table.bcr-tbl td.num { text-align: right; }
+  table.bcr-tbl td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  table.bcr-tbl input, table.bcr-tbl select { width: 100%; border: 1px solid #d2d2d2; border-radius: 4px; padding: 6px 7px; font-family: inherit; font-size: 13px; }
+  table.bcr-tbl input.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.bcr-tbl td.calc { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); text-align: right; padding-right: 10px; }
+  .bcr-addrow { margin-top: 8px; }
+  .bcr-addrow button { border: 1px dashed var(--sap-blue); color: var(--sap-blue); background: #fff; border-radius: 4px; padding: 5px 12px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  .bcr-addrow button:hover { background: #eaf2fb; }
+  .bcr-balance { margin-top: 10px; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 6px; }
+  .bcr-balance.ok { background: #e3f4ea; color: var(--good); border: 1px solid #b6e0c4; }
+  .bcr-balance.bad { background: #fbe5e5; color: var(--bad); border: 1px solid #f0b8b8; }
+  .bcr-eoc { white-space: nowrap; }
+  /* Approvals: send-for-approval button + read-only decision status */
+  .bcr-sendbtn { border: 1px solid var(--sap-blue); color: var(--sap-blue); background: #fff; border-radius: 4px; padding: 5px 10px; font-size: 12px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .bcr-sendbtn:hover { background: #eaf2fb; }
+  .bcr-sendbtn.sent { border-color: #b6c4d2; color: var(--text-muted); }
+  td.bcr-appr-act { text-align: center; }
+  .bcr-recv { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .bcr-dec { display: inline-block; padding: 3px 11px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+  .bcr-dec.good { background: #e3f4ea; color: var(--good); }
+  .bcr-dec.bad  { background: #fbe5e5; color: var(--bad); }
+  .bcr-dec.warn { background: #fcefe3; color: var(--warn); }
+  .bcr-dec.na   { background: #eef0f2; color: var(--text-muted); }
+  .bcr-emailbtns { display: flex; gap: 10px; margin-top: 14px; }
+  .bcr-emailbtns .btn { flex: 1; justify-content: center; font-weight: 700; }
+  .btn.approve { border-color: var(--good); color: var(--good); }
+  .btn.approve:hover { background: #e3f4ea; }
+  .btn.reject { border-color: var(--bad); color: var(--bad); }
+  .btn.reject:hover { background: #fbe5e5; }
+  .bcr-emailwrap { border: 1px solid var(--panel-border); border-radius: 6px; padding: 12px 14px; background: #fafafa; margin-top: 6px; }
+  .bcr-emailwrap .em-hd { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -503,6 +599,7 @@
 <script src="cap-summary-data.js"></script>
 <script src="tripwire-data.js"></script>
 <script src="control-log-data.js"></script>
+<script src="bcr-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -817,15 +914,359 @@
     const collapsed = sub.classList.toggle('collapsed');
     chev.classList.toggle('collapsed', collapsed);
   }
-  function renderBaselineChange(p) {
-    return `
-      <p class="module-intro">Baseline Change Requests for <strong>${p.name}</strong>.</p>
-      <div class="placeholder-note">Baseline Change Request view — to be built out (BCR log, requested budget moves, approval status/workflow).</div>`;
+  // Status → pill color band for the BCR log
+  const BCR_STATUS_CLASS = s =>
+    s === 'Approved' ? 'good' :
+    s === 'Rejected' ? 'bad' :
+    s === 'Draft'    ? 'info' : 'warn';   // Submitted / In Review
+
+  // Numeric sort key from a BCR id like "BCR-2026-014"
+  const bcrIdNum = id => { const m = String(id).match(/(\d+)\D*$/); return m ? parseInt(m[1], 10) : 0; };
+
+  function bcrProgramRows() {
+    return (window.BCR_REQUESTS || [])
+      .filter(b => b.prog === progId())
+      .sort((a, b) => bcrIdNum(a.id) - bcrIdNum(b.id));
   }
-  function renderBaselineDisplay(p) {
+
+  function renderBaselineChange(p) {
+    const rows = bcrProgramRows();
+    const cnt = pred => rows.filter(pred).length;
+    const tile = (label, val, cls2, sub) => `<div class="tile"><div class="t-label">${label}</div><div class="t-value ${cls2}">${val}</div><div class="t-sub">${sub}</div></div>`;
+    const body = rows.map((b, i) => `
+      <tr>
+        <td><span class="bcr-id link" onclick="openBcr('${b.id}')">${b.id}</span>${b.rev && b.rev !== '0' ? ` <span class="bcr-type">Rev ${b.rev}</span>` : ''}</td>
+        <td>${b.title}</td>
+        <td><span class="bcr-type" title="${bcrTypeLabel(b.type)}">${b.type}</span></td>
+        <td>${b.dateSubmitted || '—'}</td>
+        <td>${b.originator || '—'}</td>
+        <td><span class="pill ${BCR_STATUS_CLASS(b.status)}">${b.status}</span></td>
+        <td class="num"><a class="link" onclick="openBcr('${b.id}')">Open ›</a></td>
+      </tr>`).join('');
+    const empty = `<tr><td colspan="7" style="color:var(--text-muted);padding:18px 14px">No baseline change requests for ${p.name}. Use <strong>Create New Request</strong> to start one.</td></tr>`;
     return `
-      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${p.name}</strong>.</p>
-      <div class="placeholder-note">Display Baseline view — to be built out (time-phased budget baseline, BCWS by control account, baseline version history).</div>`;
+      <p class="module-intro">Baseline Change Request log for <strong>${p.name}</strong>. Requests are listed by ID with current approval status. Open a request to view or edit the form, or start a new one.</p>
+      <div class="tile-grid" style="margin-bottom:18px">
+        ${tile('Total Requests', rows.length, '', 'This program')}
+        ${tile('Approved', cnt(b => b.status === 'Approved'), 'good', 'Incorporated')}
+        ${tile('In Process', cnt(b => b.status === 'Submitted' || b.status === 'In Review' || b.status === 'Draft'), 'warn', 'Draft / under review')}
+        ${tile('Rejected', cnt(b => b.status === 'Rejected'), cnt(b => b.status === 'Rejected') ? 'bad' : 'good', cnt(b => b.status === 'Rejected') ? 'Returned' : 'None')}
+      </div>
+      <div class="bcr-toolbar">
+        <span class="ch-title">Baseline Change Requests</span>
+        <button class="btn primary" onclick="openBcr(null)">＋ Create New Request</button>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="grid">
+            <thead><tr><th>BCR ID</th><th>Title</th><th>Type</th><th>Submitted</th><th>Originator</th><th>Status</th><th></th></tr></thead>
+            <tbody>${rows.length ? body : empty}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+  /* ===================== Display Baseline (PPC Workbench) =====================
+     Master–detail view of the PMB: a WBS hierarchy (from WBS_DICT, down to the
+     work-package leaf) on the left; selecting a node shows its baseline header
+     facts + a time-phased BCWS table (monthly, from CAP_TP). Only the Demo
+     program's JTB001 project has WBS/time-phased data today; other projects
+     show a placeholder. BCWS for a node rolls up every CAP_TP row beneath it. */
+  const bdState = { sel: '', expanded: {}, _init: false, measure: 'cost' };
+  let _bdTree = null;
+
+  /* Resource model for the time-phased breakout. CAP_TP carries a single
+     cost-loaded BCWS line per work package with no resource split, so the
+     split below is demo data: a catalog (labor resources carry a $/hr rate;
+     cost resources carry value only) and a few mix profiles. Each work
+     package is assigned a profile deterministically by its WBS id, so the
+     composition is varied but stable across reloads. Edit freely. */
+  const BD_RES = {
+    catalog: [
+      { id: 'ENG',  name: 'Engineering',          cls: 'labor', rate: 165 },
+      { id: 'MFG',  name: 'Manufacturing',        cls: 'labor', rate: 95 },
+      { id: 'TEST', name: 'Test & Integration',   cls: 'labor', rate: 120 },
+      { id: 'PM',   name: 'Program Management',    cls: 'labor', rate: 185 },
+      { id: 'MATL', name: 'Material',              cls: 'cost' },
+      { id: 'ODC',  name: 'Other Direct Costs',   cls: 'cost' },
+      { id: 'SUB',  name: 'Subcontract',          cls: 'cost' },
+    ],
+    // each profile: [[resourceId, fraction], ...] summing to 1
+    profiles: [
+      [['ENG', 0.45], ['TEST', 0.15], ['PM', 0.10], ['MATL', 0.20], ['ODC', 0.10]],
+      [['MFG', 0.40], ['ENG', 0.20], ['MATL', 0.25], ['SUB', 0.10], ['ODC', 0.05]],
+      [['ENG', 0.30], ['MFG', 0.30], ['TEST', 0.20], ['PM', 0.10], ['ODC', 0.10]],
+      [['SUB', 0.55], ['PM', 0.15], ['ENG', 0.15], ['MATL', 0.15]],
+    ],
+  };
+  const BD_RATE = {};
+  BD_RES.catalog.forEach(r => { BD_RATE[r.id] = r; });
+  function bdHash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+  function bdProfile(wp) { return BD_RES.profiles[bdHash(wp) % BD_RES.profiles.length]; }
+  // Working hours in the month a period ends: business days (Mon–Fri) × 8.
+  function bdWorkHours(mdy) {
+    const p = String(mdy).split('/');
+    if (p.length < 3) return 0;
+    const m = parseInt(p[0], 10), y = parseInt(p[2], 10);
+    const days = new Date(y, m, 0).getDate();
+    let wd = 0;
+    for (let d = 1; d <= days; d++) { const dow = new Date(y, m - 1, d).getDay(); if (dow !== 0 && dow !== 6) wd++; }
+    return wd * 8;
+  }
+
+  // Resolve the nearest existing ancestor of a dotted WBS id ("a.b.c" -> "a.b").
+  function bdParent(wbs, map) {
+    let id = wbs;
+    while (id.indexOf('.') > -1) {
+      id = id.slice(0, id.lastIndexOf('.'));
+      if (map[id]) return id;
+    }
+    return null;
+  }
+  // Sort WBS ids by their dotted segments, numerically where possible (so .2 < .10).
+  function bdCmp(a, b) {
+    const A = a.split('.'), B = b.split('.');
+    for (let i = 0; i < Math.min(A.length, B.length); i++) {
+      const x = parseInt(A[i], 10), y = parseInt(B[i], 10);
+      if (!isNaN(x) && !isNaN(y) && x !== y) return x - y;
+      if (A[i] !== B[i]) return A[i] < B[i] ? -1 : 1;
+    }
+    return A.length - B.length;
+  }
+  // Build the WBS tree once from WBS_DICT (static JTB001 data).
+  function bdBuild() {
+    if (_bdTree) return _bdTree;
+    const dict = window.WBS_DICT || { rows: [] };
+    const map = {}, roots = [];
+    // Scope to the JTB001 PMB tree; WBS_DICT also carries a few stray SAP
+    // network-activity rows (e.g. "5000480 0010") that aren't part of it.
+    (dict.rows || [])
+      .filter(r => r.wbs === 'JTB001' || (r.wbs && r.wbs.indexOf('JTB001.') === 0))
+      .forEach(r => { map[r.wbs] = Object.assign({}, r, { children: [] }); });
+    Object.keys(map).forEach(wbs => {
+      const par = bdParent(wbs, map);
+      if (par) map[par].children.push(wbs); else roots.push(wbs);
+    });
+    Object.keys(map).forEach(wbs => map[wbs].children.sort(bdCmp));
+    roots.sort(bdCmp);
+    _bdTree = { map, roots };
+    return _bdTree;
+  }
+  // Sum the monthly BCWS for every CAP_TP work-package row at or beneath a node.
+  function bdRollupBCWS(wbs) {
+    const tp = window.CAP_TP || { months: [], rows: [] };
+    const vals = new Array(tp.months.length).fill(0);
+    const pref = wbs + '.';
+    (tp.rows || []).forEach(r => {
+      if (r.type !== 'BCWS') return;
+      if (r.wp === wbs || (r.wp && r.wp.indexOf(pref) === 0)) {
+        (r.vals || []).forEach((v, i) => { vals[i] += (v || 0); });
+      }
+    });
+    return { vals, total: vals.reduce((a, b) => a + b, 0) };
+  }
+  // Split the rolled BCWS into per-resource monthly cost using each WP's mix
+  // profile. Returns { resId: monthlyCost[] }; the per-month sum across all
+  // resources equals the node's BCWS for that month.
+  function bdRollupByResource(wbs) {
+    const tp = window.CAP_TP || { months: [], rows: [] };
+    const n = tp.months.length;
+    const pref = wbs + '.';
+    const byRes = {};
+    (tp.rows || []).forEach(r => {
+      if (r.type !== 'BCWS') return;
+      if (!(r.wp === wbs || (r.wp && r.wp.indexOf(pref) === 0))) return;
+      bdProfile(r.wp).forEach(([resId, pct]) => {
+        if (!byRes[resId]) byRes[resId] = new Array(n).fill(0);
+        (r.vals || []).forEach((v, i) => { byRes[resId][i] += (v || 0) * pct; });
+      });
+    });
+    return byRes;
+  }
+  const bdMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function bdMonthLabel(s) {
+    const p = String(s).split('/');
+    if (p.length < 3) return s;
+    return (bdMonths[parseInt(p[0], 10) - 1] || p[0]) + " '" + p[2].slice(2);
+  }
+  function bdMonthYear(s) {
+    const p = String(s).split('/');
+    if (p.length < 3) return '—';
+    return (bdMonths[parseInt(p[0], 10) - 1] || p[0]) + ' ' + p[2];
+  }
+  // First calendar day of the month a period-end date falls in: MM/01/YYYY.
+  function bdFirstOfMonth(s) {
+    const p = String(s).split('/');
+    if (p.length < 3) return '—';
+    return p[0] + '/01/' + p[2];
+  }
+  const bdUsd = v => '$' + addCommas(Math.round(v));
+
+  function bdTreeHtml(wbs, depth) {
+    const node = bdBuild().map[wbs];
+    const kids = node.children;
+    const roll = bdRollupBCWS(wbs);
+    const open = !!bdState.expanded[wbs];
+    const caret = kids.length
+      ? `<span class="bd-caret" onclick="bdToggle('${wbs}')">${open ? '▾' : '▸'}</span>`
+      : '<span class="bd-caret"></span>';
+    const active = bdState.sel === wbs ? ' active' : '';
+    let html = `<div class="bd-row" data-wbs="${wbs}" style="padding-left:${10 + depth * 16}px">${caret}` +
+      `<span class="bd-name${active}" onclick="bdSelect('${wbs}')">` +
+      `<span class="bd-wid">${_xml(wbs)} · ${_xml(node.desc || '')}</span>` +
+      `<span class="bd-bcws">${roll.total ? bdUsd(roll.total) : '—'}</span></span></div>`;
+    if (kids.length) {
+      html += `<div class="bd-children${open ? ' open' : ''}" data-parent="${wbs}">` +
+        kids.map(k => bdTreeHtml(k, depth + 1)).join('') + '</div>';
+    }
+    return html;
+  }
+
+  // KPI card matching the Project Values strip (no "**"/funnel — these are real values).
+  function bdCard(label, value) {
+    return `<div class="kpi-card"><div class="k-top"><span class="k-label">${label}</span></div>` +
+      `<div class="k-body"><span class="k-val">${_xml(String(value))}</span></div></div>`;
+  }
+  function bdDetailHtml(wbs) {
+    const node = bdBuild().map[wbs];
+    if (!node) return '';
+    const tp = window.CAP_TP || { months: [], rows: [] };
+    const roll = bdRollupBCWS(wbs);
+    const months = tp.months;
+    const measure = bdState.measure || 'cost';
+    const monthCols = months.map(m => `<th>${bdMonthLabel(m)}</th>`).join('');
+
+    // resource breakdown of the rolled BCWS
+    const byRes = bdRollupByResource(wbs);
+    const resList = BD_RES.catalog.filter(r => byRes[r.id] && byRes[r.id].some(v => Math.round(v) !== 0));
+    const workHrs = months.map(m => bdWorkHours(m));
+    const totLaborHrs = months.map((_, i) =>
+      resList.filter(r => r.cls === 'labor').reduce((s, r) => s + (byRes[r.id][i] || 0) / r.rate, 0));
+
+    // Header cards derive from the rolled-up detail so they tie out at any level:
+    // dates from the BCWS active span, hours from the derived labor hours.
+    const totHours = totLaborHrs.reduce((a, b) => a + b, 0);
+    let spanS = -1, spanF = -1;
+    roll.vals.forEach((v, i) => { if (v > 0.005) { if (spanS < 0) spanS = i; spanF = i; } });
+    const cards =
+      bdCard('PMB Start Date', spanS < 0 ? '—' : bdFirstOfMonth(months[spanS])) +
+      bdCard('PMB Finish Date', spanS < 0 ? '—' : months[spanF]) +
+      bdCard('Total BCWS', bdUsd(roll.total)) +
+      bdCard('Hours', totHours ? addCommas(Math.round(totHours)) : '—');
+
+    const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const eqp = (h, i) => (workHrs[i] && h / workHrs[i] >= 0.05) ? (h / workHrs[i]).toFixed(1) : '·';
+    const row = (label, cls, cells, total) => `<tr class="${cls}"><td class="lbl">${label}</td>${cells}<td class="tot">${total}</td></tr>`;
+
+    // one row per resource
+    const resRows = resList.map(r => {
+      const series = byRes[r.id];
+      let cells, total;
+      if (measure === 'cost') {
+        cells = series.map(v => `<td>${cents(v)}</td>`).join('');
+        total = bdUsd(series.reduce((a, b) => a + b, 0));
+      } else if (r.cls === 'labor') {
+        const hrs = series.map(v => v / r.rate);
+        if (measure === 'hours') {
+          cells = hrs.map(h => `<td>${cents(h)}</td>`).join('');
+          total = addCommas(Math.round(hrs.reduce((a, b) => a + b, 0)));
+        } else {
+          cells = hrs.map((h, i) => `<td>${eqp(h, i)}</td>`).join('');
+          let sh = 0, sw = 0; hrs.forEach((h, i) => { if (h > 1e-4) { sh += h; sw += workHrs[i]; } });
+          total = sw ? (sh / sw).toFixed(1) : '·';
+        }
+      } else {                       // cost resource: no hours / no EQP
+        cells = months.map(() => '<td>·</td>').join('');
+        total = '·';
+      }
+      const lbl = r.cls === 'labor'
+        ? `${_xml(r.name)} <span class="bd-rate">@ $${r.rate}</span>`
+        : `${_xml(r.name)} <span class="bd-rate">cost</span>`;
+      return row(lbl, 'res', cells, total);
+    }).join('');
+
+    // grand-total row (+ cumulative for cost/hours; EQP isn't additive)
+    let totalRow, cumRow = '';
+    if (measure === 'cost') {
+      const tot = months.map((_, i) => resList.reduce((s, r) => s + (byRes[r.id][i] || 0), 0));
+      totalRow = row('Total BCWS', 'grand', tot.map(v => `<td>${cents(v)}</td>`).join(''), bdUsd(roll.total));
+      let c = 0; const cum = tot.map(v => { c += v; return `<td>${cents(c)}</td>`; }).join('');
+      cumRow = row('Cumulative', 'cum', cum, bdUsd(roll.total));
+    } else if (measure === 'hours') {
+      const tt = totLaborHrs.reduce((a, b) => a + b, 0);
+      totalRow = row('Total Hours', 'grand', totLaborHrs.map(h => `<td>${cents(h)}</td>`).join(''), addCommas(Math.round(tt)));
+      let c = 0; const cum = totLaborHrs.map(h => { c += h; return `<td>${cents(c)}</td>`; }).join('');
+      cumRow = row('Cumulative', 'cum', cum, addCommas(Math.round(tt)));
+    } else {
+      const cells = totLaborHrs.map((h, i) => `<td>${eqp(h, i)}</td>`).join('');
+      let sh = 0, sw = 0; totLaborHrs.forEach((h, i) => { if (h > 1e-4) { sh += h; sw += workHrs[i]; } });
+      totalRow = row('Total EQP', 'grand', cells, sw ? (sh / sw).toFixed(1) : '·');
+    }
+
+    const measures = [['cost', 'Cost'], ['hours', 'Hours'], ['eqp', 'EQP']];
+    const toggle = measures.map(([m, lbl]) =>
+      `<button class="${m === measure ? 'active' : ''}" onclick="bdSetMeasure('${m}')">${lbl}</button>`).join('');
+    const lastHdr = measure === 'eqp' ? 'Avg' : 'Total';
+
+    return `
+      <div class="bd-head">
+        <div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div>
+        <div class="bd-sub">Level ${_xml(node.level || '—')} · CAM ${_xml(node.cam || '—')}</div>
+      </div>
+      <div class="kpi-strip bd-kpis">${cards}</div>
+      <div class="bd-tp-head">
+        <span class="bd-tp-title">Time-Phased BCWS (Baseline) — by Resource</span>
+        <span class="bd-measure">${toggle}</span>
+      </div>
+      <div class="bd-tp-note">Resource split, hours, and EQP are derived from the cost-loaded BCWS — per-resource rates; EQP = period hours ÷ working hours that month (business days × 8). Resource allocation is demo data.</div>
+      <div class="bd-tp-wrap">
+        <table class="bd-tp">
+          <thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">${lastHdr}</th></tr></thead>
+          <tbody>${resRows}${totalRow}${cumRow}</tbody>
+        </table>
+      </div>`;
+  }
+  function bdSetMeasure(m) {
+    bdState.measure = m;
+    const d = document.getElementById('bdDetail');
+    if (d) d.innerHTML = bdDetailHtml(bdState.sel);
+  }
+
+  function bdToggle(wbs) {
+    bdState.expanded[wbs] = !bdState.expanded[wbs];
+    const open = bdState.expanded[wbs];
+    const kids = document.querySelector('.bd-children[data-parent="' + wbs + '"]');
+    if (kids) kids.classList.toggle('open', open);
+    const caret = document.querySelector('.bd-row[data-wbs="' + wbs + '"] .bd-caret');
+    if (caret) caret.textContent = open ? '▾' : '▸';
+  }
+  function bdSelect(wbs) {
+    bdState.sel = wbs;
+    document.querySelectorAll('.bd-name.active').forEach(e => e.classList.remove('active'));
+    const nm = document.querySelector('.bd-row[data-wbs="' + wbs + '"] .bd-name');
+    if (nm) nm.classList.add('active');
+    const d = document.getElementById('bdDetail');
+    if (d) d.innerHTML = bdDetailHtml(wbs);
+  }
+
+  function renderBaselineDisplay(p) {
+    if (!p.projects.includes('JTB001')) {
+      return `
+        <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong>.</p>
+        <div class="placeholder-note">Baseline not yet loaded for this project. The time-phased WBS baseline is currently available for the <strong>Demo</strong> program (project JTB001 · PPC/SIS Demo 1).</div>`;
+    }
+    const { map, roots } = bdBuild();
+    if (!bdState.sel || !map[bdState.sel]) bdState.sel = roots[0];
+    if (!bdState._init) {   // default: expand the top three id levels (down to the CA rows)
+      Object.keys(map).forEach(w => { if (w.split('.').length <= 3) bdState.expanded[w] = true; });
+      bdState._init = true;
+    }
+    const tree = roots.map(r => bdTreeHtml(r, 0)).join('');
+    return `
+      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong> — project JTB001 · PPC/SIS Demo 1. Select a WBS element to view its baseline detail.</p>
+      <div class="bd-wrap">
+        <div class="bd-tree">${tree}</div>
+        <div class="bd-detail" id="bdDetail">${bdDetailHtml(bdState.sel)}</div>
+      </div>`;
   }
   function renderEac(p) {
     return `
@@ -2124,6 +2565,539 @@
     const w = window.open('', '_blank');
     if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
     w.document.open(); w.document.write(_clPdfHtml()); w.document.close();
+  }
+
+  /* ---------- Baseline Change Request slide-out (fillable form) ---------- */
+  const BCR_TYPES = [
+    ['BCR-P', 'Internal replanning within the PMB (no CBB change)'],
+    ['BCR-M', 'Allocation of Management Reserve to control accounts'],
+    ['BCR-C', 'CBB / authorized scope change (Contracting Officer action)'],
+    ['FCR',   'Forecast / EAC change only (no budget movement)'],
+  ];
+  const BCR_PRIORITIES = ['Routine', 'Urgent', 'Emergency'];
+  const BCR_STATUSES = ['Draft', 'Submitted', 'In Review', 'Approved', 'Rejected'];
+  const BCR_DISPOS = ['Draft', 'In Review', 'Pending CCB', 'Approved', 'Approved w/ conditions', 'Rejected', 'Deferred'];
+  const BCR_DECISIONS = ['Pending', 'Approved', 'Rejected', 'N/A'];
+  const BCR_EOC = ['Labor', 'Material', 'ODC', 'Subcontract', 'Mixed'];
+  const BCR_BASELINE = [
+    ['cbb', 'Contract Budget Base (CBB)'],
+    ['pmb', 'Performance Measurement Baseline (PMB)'],
+    ['mr',  'Management Reserve (MR)'],
+    ['ub',  'Undistributed Budget (UB) — within PMB'],
+    ['eac', 'Estimate at Completion (EAC)'],
+  ];
+  const BCR_APPR_ROLES = ['Control Account Manager', 'Program / Project Manager', 'Business / Control (EVM Analyst)', 'Change Control Board (CCB) Chair', 'Customer / Contracting Officer'];
+
+  function bcrTypeLabel(t) { const f = BCR_TYPES.find(x => x[0] === t); return f ? f[1] : t; }
+  function bcrNum(v) { const n = parseFloat(String(v == null ? '' : v).replace(/[, ]/g, '')); return isNaN(n) ? 0 : n; }
+  function bcrMoney(n) { return bcrNum(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+
+  function bcrBlank() {
+    const next = (window.BCR_REQUESTS || []).reduce((m, b) => Math.max(m, bcrIdNum(b.id)), 0) + 1;
+    const yr = 2026;   // prototype year; wire to the contract/fiscal calendar when connected
+    return {
+      id: 'BCR-' + yr + '-' + String(next).padStart(3, '0'), rev: '0', prog: progId(),
+      title: '', contract: '', dateSubmitted: '', originator: '', priority: 'Routine',
+      customerDirected: false, customerRef: '',
+      type: 'BCR-P', affects: { scope: false, budget: true, schedule: false },
+      retro: false, retroJust: '', driver: '', description: '', justification: '', impactIfNot: '',
+      affectedWork: [{ wbs: '', ca: '', wp: '', cam: '', obs: '' }],
+      budgetMoves: [{ from: '', to: '', eoc: 'Labor', hours: 0, dollars: 0 }],
+      baseline: { cbb: { before: 0, change: 0 }, pmb: { before: 0, change: 0 }, mr: { before: 0, change: 0 }, ub: { before: 0, change: 0 }, eac: { before: 0, change: 0 } },
+      schedule: [{ milestone: '', before: '', after: '', variance: '' }],
+      approvals: BCR_APPR_ROLES.map(r => ({ role: r, name: '', date: '', decision: 'Pending' })),
+      disposition: 'Draft', effectiveMonth: '', logEntry: '', implemented: false, implementedDate: '',
+      status: 'Draft', _new: true,
+    };
+  }
+
+  function ensureBcrDrawer() {
+    let d = document.getElementById('bcrDrawer');
+    if (!d) { d = document.createElement('div'); d.id = 'bcrDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); }
+    return d;
+  }
+  function closeBcr() { const d = document.getElementById('bcrDrawer'); if (d) d.classList.remove('open'); }
+
+  function openBcr(id) {
+    const src = id ? (window.BCR_REQUESTS || []).find(b => b.id === id) : null;
+    const b = src ? JSON.parse(JSON.stringify(src)) : bcrBlank();
+    const d = ensureBcrDrawer();
+    const heading = src ? _xml(b.id) : 'New Baseline Change Request';
+    const sub = src ? _xml(b.title || '') : 'Complete the form and Save to add it to the log.';
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">' + heading + '</div>' +
+        '<div class="t2">' + sub + '</div></div>' +
+        '<button class="wbs-xls" onclick="saveBcr()" title="Save to log"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#0a6ed1"/><path d="M4 4h6l2 2v6H4z" fill="none" stroke="#fff" stroke-width="1.2"/><rect x="6" y="4" width="3" height="3" fill="#fff"/></svg> Save</button>' +
+        '<button class="wbs-xls" onclick="downloadBcrExcel()" title="Download to Excel"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#107e3e"/><path d="M4.2 4H6l2 2.7L10 4h1.8L8.9 8l2.9 4H10L8 9.3 6 12H4.2l2.9-4z" fill="#fff"/></svg> Excel</button>' +
+        '<button class="wbs-xls" onclick="exportBcrPdf()" title="Export to PDF"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#bb0000"/><text x="8" y="11" text-anchor="middle" font-size="6" fill="#fff" font-weight="700">PDF</text></svg> PDF</button>' +
+        '<span class="wbs-close" onclick="closeBcr()" title="Close">✕</span></div>' +
+      '<div class="wbs-body">' + bcrFormHtml(b) + '</div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); wb.scrollTop = 0;
+    bcrRecalc();
+  }
+
+  // --- form builders ---
+  const _opt = (list, sel) => list.map(o => { const v = Array.isArray(o) ? o[0] : o; return '<option' + (v === sel ? ' selected' : '') + '>' + _xml(v) + '</option>'; }).join('');
+  const _fld = (label, id, val, wide) => '<div class="bcr-fld' + (wide ? ' wide' : '') + '"><label>' + label + '</label><input id="' + id + '" value="' + _xml(val) + '"></div>';
+  const _sel = (label, id, list, val) => '<div class="bcr-fld"><label>' + label + '</label><select id="' + id + '">' + _opt(list, val) + '</select></div>';
+  const _txt = (label, id, val) => '<div class="bcr-fld wide"><label>' + label + '</label><textarea id="' + id + '">' + _xml(val) + '</textarea></div>';
+
+  function bcrWorkRow(w) {
+    w = w || {};
+    return '<tr>' +
+      '<td><input data-f="wbs" value="' + _xml(w.wbs) + '"></td>' +
+      '<td><input data-f="ca" value="' + _xml(w.ca) + '"></td>' +
+      '<td><input data-f="wp" value="' + _xml(w.wp) + '"></td>' +
+      '<td><input data-f="cam" value="' + _xml(w.cam) + '"></td>' +
+      '<td><input data-f="obs" value="' + _xml(w.obs) + '"></td></tr>';
+  }
+  function bcrMoveRow(m) {
+    m = m || {};
+    return '<tr>' +
+      '<td><input data-f="from" value="' + _xml(m.from) + '"></td>' +
+      '<td><input data-f="to" value="' + _xml(m.to) + '"></td>' +
+      '<td><select data-f="eoc">' + _opt(BCR_EOC, m.eoc || 'Labor') + '</select></td>' +
+      '<td><input data-f="hours" class="num" value="' + _xml(m.hours) + '"></td>' +
+      '<td><input data-f="dollars" class="num" value="' + _xml(m.dollars) + '"></td></tr>';
+  }
+  function bcrSchedRow(s) {
+    s = s || {};
+    return '<tr>' +
+      '<td><input data-f="milestone" value="' + _xml(s.milestone) + '"></td>' +
+      '<td><input data-f="before" value="' + _xml(s.before) + '"></td>' +
+      '<td><input data-f="after" value="' + _xml(s.after) + '"></td>' +
+      '<td><input data-f="variance" value="' + _xml(s.variance) + '"></td></tr>';
+  }
+  function bcrDecClass(d) {
+    return d === 'Approved' ? 'good' : d === 'Rejected' ? 'bad' : d === 'N/A' ? 'na' : 'warn';
+  }
+  // Action-cell content: once a decision is received (Approved/Rejected) or not
+  // required (N/A), there is no Send button — only Pending/Awaiting can (re)send.
+  function bcrApprActionHtml(i, dec) {
+    if (dec === 'Approved' || dec === 'Rejected') return '<span class="bcr-recv">✓ Decision recorded</span>';
+    if (dec === 'N/A') return '<span class="bcr-recv">Not required</span>';
+    const resend = dec === 'Awaiting Approval';
+    return '<button type="button" class="bcr-sendbtn' + (resend ? ' sent' : '') + '" onclick="bcrApprovalEmail(' + i + ')" title="Email this approver a request with Approve / Reject buttons">' +
+      (resend ? '✉ Resend' : '✉ Send for approval') + '</button>';
+  }
+  function bcrApprRow(a, i) {
+    a = a || {};
+    const dec = a.decision || 'Pending';
+    return '<tr>' +
+      '<td><input data-f="role" value="' + _xml(a.role) + '"></td>' +
+      '<td><input data-f="name" value="' + _xml(a.name) + '"></td>' +
+      '<td><input data-f="date" value="' + _xml(a.date) + '"></td>' +
+      '<td class="bcr-appr-act" data-idx="' + i + '">' + bcrApprActionHtml(i, dec) + '</td>' +
+      '<td><input type="hidden" data-f="decision" value="' + _xml(dec) + '">' +
+        '<span class="bcr-dec ' + bcrDecClass(dec) + '">' + _xml(dec) + '</span></td></tr>';
+  }
+  function bcrAddWork() { document.getElementById('bcrWorkBody').insertAdjacentHTML('beforeend', bcrWorkRow({})); }
+  function bcrAddMove() { document.getElementById('bcrMoveBody').insertAdjacentHTML('beforeend', bcrMoveRow({})); }
+  function bcrAddSched() { document.getElementById('bcrSchedBody').insertAdjacentHTML('beforeend', bcrSchedRow({})); }
+
+  function bcrFormHtml(b) {
+    const aff = b.affects || {};
+    const baseRows = BCR_BASELINE.map(([k, label]) => {
+      const v = (b.baseline && b.baseline[k]) || { before: 0, change: 0 };
+      return '<tr>' +
+        '<td class="bcr-eoc">' + _xml(label) + '</td>' +
+        '<td><input class="num" id="bcr_' + k + '_before" value="' + _xml(v.before) + '" oninput="bcrRecalc()"></td>' +
+        '<td><input class="num" id="bcr_' + k + '_change" value="' + _xml(v.change) + '" oninput="bcrRecalc()"></td>' +
+        '<td class="calc" id="bcr_' + k + '_after">0</td></tr>';
+    }).join('');
+
+    return '<div class="bcr-form">' +
+      // hidden anchors for non-edited identity
+      '<input type="hidden" id="bcr_id_val" value="' + _xml(b.id) + '">' +
+      '<input type="hidden" id="bcr_prog_val" value="' + _xml(b.prog) + '">' +
+
+      '<div class="bcr-sec"><h3>1 · Identification</h3><div class="sec-in"><div class="bcr-grid">' +
+        _fld('BCR Number', 'bcr_id', b.id) +
+        _fld('Revision', 'bcr_rev', b.rev) +
+        _fld('Program / Project', 'bcr_program', prog().name) +
+        _fld('Contract / Task Order No.', 'bcr_contract', b.contract) +
+        _fld('Date Submitted', 'bcr_date', b.dateSubmitted) +
+        _fld('Originator (name / role)', 'bcr_orig', b.originator) +
+        _sel('Priority', 'bcr_priority', BCR_PRIORITIES, b.priority) +
+        _sel('Status', 'bcr_status', BCR_STATUSES, b.status) +
+        '<div class="bcr-fld wide"><label>Customer-directed?</label><div class="bcr-checks">' +
+          '<label><input type="checkbox" id="bcr_custDir"' + (b.customerDirected ? ' checked' : '') + '> Customer-directed change</label>' +
+          '<input id="bcr_custRef" placeholder="ECP / CCN / Mod reference" value="' + _xml(b.customerRef) + '" style="max-width:280px">' +
+        '</div></div>' +
+      '</div></div></div>' +
+
+      '<div class="bcr-sec"><h3>2 · Change Classification</h3><div class="sec-in"><div class="bcr-grid">' +
+        '<div class="bcr-fld"><label>Change Type</label><select id="bcr_type">' +
+          BCR_TYPES.map(t => '<option value="' + t[0] + '"' + (t[0] === b.type ? ' selected' : '') + '>' + t[0] + ' — ' + _xml(t[1]) + '</option>').join('') +
+        '</select></div>' +
+        '<div class="bcr-fld"><label>Affects</label><div class="bcr-checks">' +
+          '<label><input type="checkbox" id="bcr_aff_scope"' + (aff.scope ? ' checked' : '') + '> Scope</label>' +
+          '<label><input type="checkbox" id="bcr_aff_budget"' + (aff.budget ? ' checked' : '') + '> Budget</label>' +
+          '<label><input type="checkbox" id="bcr_aff_sched"' + (aff.schedule ? ' checked' : '') + '> Schedule</label>' +
+        '</div></div>' +
+        '<div class="bcr-fld wide"><label>Retroactive (prior period)?</label><div class="bcr-checks">' +
+          '<label><input type="checkbox" id="bcr_retro"' + (b.retro ? ' checked' : '') + '> Retroactive change</label>' +
+          '<input id="bcr_retroJust" placeholder="Justification if retroactive" value="' + _xml(b.retroJust) + '" style="flex:1;min-width:240px">' +
+        '</div></div>' +
+        _fld('SOW reference / change driver', 'bcr_driver', b.driver, true) +
+      '</div></div></div>' +
+
+      '<div class="bcr-sec"><h3>3 · Description &amp; Justification</h3><div class="sec-in"><div class="bcr-grid">' +
+        _txt('Description of change', 'bcr_desc', b.description) +
+        _txt('Reason / justification (why now, root cause)', 'bcr_just', b.justification) +
+        _txt('Impact if not approved', 'bcr_impact', b.impactIfNot) +
+      '</div></div></div>' +
+
+      '<div class="bcr-sec"><h3>4 · Affected Work</h3><div class="sec-in">' +
+        '<table class="bcr-tbl"><thead><tr><th>WBS</th><th>Control Account</th><th>Work Package(s)</th><th>CAM</th><th>OBS / IPT</th></tr></thead>' +
+        '<tbody id="bcrWorkBody">' + (b.affectedWork && b.affectedWork.length ? b.affectedWork : [{}]).map(bcrWorkRow).join('') + '</tbody></table>' +
+        '<div class="bcr-addrow"><button onclick="bcrAddWork()">＋ Add row</button></div>' +
+      '</div></div>' +
+
+      '<div class="bcr-sec"><h3>5 · Budget Movement</h3><div class="sec-in">' +
+        '<table class="bcr-tbl"><thead><tr><th>From (source)</th><th>To (destination)</th><th>Element of Cost</th><th class="num">Hours</th><th class="num">Dollars</th></tr></thead>' +
+        '<tbody id="bcrMoveBody">' + (b.budgetMoves && b.budgetMoves.length ? b.budgetMoves : [{}]).map(bcrMoveRow).join('') + '</tbody></table>' +
+        '<div class="bcr-addrow"><button onclick="bcrAddMove()">＋ Add row</button></div>' +
+      '</div></div>' +
+
+      '<div class="bcr-sec"><h3>6 · Baseline Impact (Before → After)</h3><div class="sec-in">' +
+        '<table class="bcr-tbl"><thead><tr><th>Element</th><th class="num">Before</th><th class="num">Change (+/−)</th><th class="num">After</th></tr></thead>' +
+        '<tbody>' + baseRows + '</tbody></table>' +
+        '<div class="bcr-balance" id="bcrBalance">—</div>' +
+      '</div></div>' +
+
+      '<div class="bcr-sec"><h3>7 · Schedule Impact</h3><div class="sec-in">' +
+        '<table class="bcr-tbl"><thead><tr><th>Milestone / Activity</th><th>Baseline Date (Before)</th><th>Revised Date (After)</th><th>Variance</th></tr></thead>' +
+        '<tbody id="bcrSchedBody">' + (b.schedule && b.schedule.length ? b.schedule : [{}]).map(bcrSchedRow).join('') + '</tbody></table>' +
+        '<div class="bcr-addrow"><button onclick="bcrAddSched()">＋ Add row</button></div>' +
+      '</div></div>' +
+
+      '<div class="bcr-sec"><h3>8 · Approvals</h3><div class="sec-in">' +
+        '<table class="bcr-tbl"><thead><tr><th>Role</th><th>Name</th><th>Date</th><th style="text-align:center">Approval Request</th><th>Decision</th></tr></thead>' +
+        '<tbody id="bcrApprBody">' + (b.approvals && b.approvals.length ? b.approvals : BCR_APPR_ROLES.map(r => ({ role: r }))).map(bcrApprRow).join('') + '</tbody></table>' +
+      '</div></div>' +
+
+      '<div class="bcr-sec"><h3>9 · Disposition / Log Entry</h3><div class="sec-in"><div class="bcr-grid">' +
+        _sel('CCB Disposition', 'bcr_disp', BCR_DISPOS, b.disposition) +
+        _fld('Effective Period (accounting month)', 'bcr_effMonth', b.effectiveMonth) +
+        _fld('CBB / Change Control Log Entry No.', 'bcr_log', b.logEntry) +
+        '<div class="bcr-fld"><label>Implemented in tool</label><div class="bcr-checks">' +
+          '<label><input type="checkbox" id="bcr_impl"' + (b.implemented ? ' checked' : '') + '> Implemented</label>' +
+          '<input id="bcr_implDate" placeholder="Date" value="' + _xml(b.implementedDate) + '" style="max-width:140px">' +
+        '</div></div>' +
+      '</div></div></div>' +
+    '</div>';
+  }
+
+  // Recompute After column + the CBB = PMB + MR balance check
+  function bcrRecalc() {
+    const after = {};
+    BCR_BASELINE.forEach(([k]) => {
+      const bef = bcrNum(document.getElementById('bcr_' + k + '_before').value);
+      const chg = bcrNum(document.getElementById('bcr_' + k + '_change').value);
+      const a = bef + chg;
+      after[k] = a;
+      document.getElementById('bcr_' + k + '_after').textContent = bcrMoney(a);
+    });
+    const el = document.getElementById('bcrBalance');
+    if (!el) return;
+    const lhs = after.cbb, rhs = after.pmb + after.mr;
+    const ok = Math.abs(lhs - rhs) < 0.5;
+    el.className = 'bcr-balance ' + (ok ? 'ok' : 'bad');
+    el.innerHTML = ok
+      ? '✓ Balanced: CBB ' + bcrMoney(after.cbb) + ' = PMB ' + bcrMoney(after.pmb) + ' + MR ' + bcrMoney(after.mr)
+      : '✗ Out of balance: CBB ' + bcrMoney(after.cbb) + ' ≠ PMB ' + bcrMoney(after.pmb) + ' + MR ' + bcrMoney(after.mr) + ' (= ' + bcrMoney(rhs) + ')';
+  }
+
+  // Read a tbody of [data-f] inputs into an array of objects
+  function bcrReadRows(tbodyId, numFields) {
+    numFields = numFields || [];
+    return Array.from(document.querySelectorAll('#' + tbodyId + ' tr')).map(tr => {
+      const o = {};
+      tr.querySelectorAll('[data-f]').forEach(inp => {
+        const f = inp.getAttribute('data-f');
+        o[f] = numFields.indexOf(f) >= 0 ? bcrNum(inp.value) : inp.value.trim();
+      });
+      return o;
+    });
+  }
+  function bcrV(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+  function bcrC(id) { const e = document.getElementById(id); return !!(e && e.checked); }
+
+  // Gather the live form into a record
+  function bcrCollect() {
+    const base = {};
+    BCR_BASELINE.forEach(([k]) => {
+      base[k] = { before: bcrNum(bcrV('bcr_' + k + '_before')), change: bcrNum(bcrV('bcr_' + k + '_change')) };
+    });
+    return {
+      id: bcrV('bcr_id') || bcrV('bcr_id_val'),
+      rev: bcrV('bcr_rev'),
+      prog: document.getElementById('bcr_prog_val').value,
+      title: bcrV('bcr_title'),   // no dedicated title input; saveBcr derives one from the description
+      contract: bcrV('bcr_contract'),
+      dateSubmitted: bcrV('bcr_date'),
+      originator: bcrV('bcr_orig'),
+      priority: bcrV('bcr_priority'),
+      customerDirected: bcrC('bcr_custDir'), customerRef: bcrV('bcr_custRef'),
+      type: bcrV('bcr_type'),
+      affects: { scope: bcrC('bcr_aff_scope'), budget: bcrC('bcr_aff_budget'), schedule: bcrC('bcr_aff_sched') },
+      retro: bcrC('bcr_retro'), retroJust: bcrV('bcr_retroJust'),
+      driver: bcrV('bcr_driver'), description: bcrV('bcr_desc'), justification: bcrV('bcr_just'), impactIfNot: bcrV('bcr_impact'),
+      affectedWork: bcrReadRows('bcrWorkBody'),
+      budgetMoves: bcrReadRows('bcrMoveBody', ['hours', 'dollars']),
+      baseline: base,
+      schedule: bcrReadRows('bcrSchedBody'),
+      approvals: bcrReadRows('bcrApprBody'),
+      disposition: bcrV('bcr_disp'), effectiveMonth: bcrV('bcr_effMonth'), logEntry: bcrV('bcr_log'),
+      implemented: bcrC('bcr_impl'), implementedDate: bcrV('bcr_implDate'),
+      status: bcrV('bcr_status'),
+    };
+  }
+
+  function saveBcr() {
+    const rec = bcrCollect();
+    // title isn't a separate input; derive a display title from the description's first line if blank
+    if (!rec.title) rec.title = (rec.description || '').split('\n')[0].slice(0, 80) || rec.id;
+    window.BCR_REQUESTS = window.BCR_REQUESTS || [];
+    const i = window.BCR_REQUESTS.findIndex(b => b.id === rec.id);
+    if (i >= 0) { rec.title = window.BCR_REQUESTS[i].title || rec.title; window.BCR_REQUESTS[i] = rec; }
+    else window.BCR_REQUESTS.push(rec);
+    closeBcr();
+    if (currentModule === 'baseline-change') render();
+    tpmToast('✓ ' + rec.id + ' saved to the change log');
+  }
+
+  // --- Excel export (single sheet, sections + tables) ---
+  function _bcrSheetRows() {
+    const b = bcrCollect();
+    const rows = [];   // each: { cells: [[col,val,style], ...] }
+    let r = 0;
+    const T = (label, value) => rows.push({ r: ++r, cells: [[0, label, 1], [1, value, 0]] });
+    const H = (label) => rows.push({ r: ++r, cells: [[0, label, 1]] });
+    const blank = () => rows.push({ r: ++r, cells: [] });
+    const head = (cols) => rows.push({ r: ++r, cells: cols.map((c, i) => [i, c, 1]) });
+    const row = (vals, nums) => rows.push({ r: ++r, cells: vals.map((v, i) => [i, v, 0, (nums || []).indexOf(i) >= 0]) });
+
+    H('Baseline Change Request');
+    T('BCR Number', b.id); T('Revision', b.rev); T('Program / Project', prog().name);
+    T('Contract / Task Order', b.contract); T('Date Submitted', b.dateSubmitted); T('Originator', b.originator);
+    T('Priority', b.priority); T('Status', b.status);
+    T('Customer-directed', (b.customerDirected ? 'Yes' : 'No') + (b.customerRef ? ' — ' + b.customerRef : ''));
+    blank();
+    H('Change Classification');
+    T('Change Type', b.type + ' — ' + bcrTypeLabel(b.type));
+    T('Affects', [b.affects.scope && 'Scope', b.affects.budget && 'Budget', b.affects.schedule && 'Schedule'].filter(Boolean).join(', '));
+    T('Retroactive', (b.retro ? 'Yes' : 'No') + (b.retroJust ? ' — ' + b.retroJust : ''));
+    T('SOW ref / driver', b.driver);
+    blank();
+    H('Description'); rows.push({ r: ++r, cells: [[0, b.description, 0]] });
+    H('Justification'); rows.push({ r: ++r, cells: [[0, b.justification, 0]] });
+    H('Impact if not approved'); rows.push({ r: ++r, cells: [[0, b.impactIfNot, 0]] });
+    blank();
+    H('Affected Work'); head(['WBS', 'Control Account', 'Work Package', 'CAM', 'OBS / IPT']);
+    b.affectedWork.forEach(w => row([w.wbs, w.ca, w.wp, w.cam, w.obs]));
+    blank();
+    H('Budget Movement'); head(['From', 'To', 'Element of Cost', 'Hours', 'Dollars']);
+    b.budgetMoves.forEach(m => row([m.from, m.to, m.eoc, m.hours, m.dollars], [3, 4]));
+    blank();
+    H('Baseline Impact'); head(['Element', 'Before', 'Change', 'After']);
+    BCR_BASELINE.forEach(([k, label]) => { const v = b.baseline[k]; row([label, v.before, v.change, v.before + v.change], [1, 2, 3]); });
+    blank();
+    H('Schedule Impact'); head(['Milestone / Activity', 'Before', 'After', 'Variance']);
+    b.schedule.forEach(s => row([s.milestone, s.before, s.after, s.variance]));
+    blank();
+    H('Approvals'); head(['Role', 'Name', 'Date', 'Decision']);
+    b.approvals.forEach(a => row([a.role, a.name, a.date, a.decision]));
+    blank();
+    H('Disposition'); T('CCB Disposition', b.disposition); T('Effective Month', b.effectiveMonth);
+    T('Log Entry No.', b.logEntry); T('Implemented', (b.implemented ? 'Yes' : 'No') + (b.implementedDate ? ' — ' + b.implementedDate : ''));
+    return rows;
+  }
+  function _bcrSheetXml() {
+    const tc = (c, r, v, s) => '<c r="' + _colL(c) + r + '" t="inlineStr"' + (s ? ' s="' + s + '"' : '') + '><is><t xml:space="preserve">' + _xml(v) + '</t></is></c>';
+    const nc = (c, r, v) => '<c r="' + _colL(c) + r + '" s="3"><v>' + (typeof v === 'number' ? v : bcrNum(v)) + '</v></c>';
+    const out = _bcrSheetRows().map(rw =>
+      '<row r="' + rw.r + '">' + rw.cells.map(cell => {
+        const [col, val, style, isNum] = cell;
+        return isNum ? nc(col, rw.r, val) : tc(col, rw.r, val, style);
+      }).join('') + '</row>'
+    ).join('');
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + out + '</sheetData></worksheet>';
+  }
+  function _bcrXlsxBytes() {
+    const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="BCR" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    return _zip([
+      { name: '[Content_Types].xml', data: _u8(_CT) }, { name: '_rels/.rels', data: _u8(_RELS) },
+      { name: 'xl/workbook.xml', data: _u8(wb) }, { name: 'xl/_rels/workbook.xml.rels', data: _u8(_WBR) },
+      { name: 'xl/styles.xml', data: _u8(_STYLES) }, { name: 'xl/worksheets/sheet1.xml', data: _u8(_bcrSheetXml()) },
+    ]);
+  }
+  function downloadBcrExcel() {
+    const id = bcrV('bcr_id') || 'BCR';
+    const blob = new Blob([_bcrXlsxBytes()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = id.replace(/[^A-Za-z0-9_-]/g, '_') + '.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // --- PDF export (print window) ---
+  function _bcrPdfHtml() {
+    const b = bcrCollect();
+    const esc = _xml;
+    const kv = (label, value) => '<tr><td class="k">' + esc(label) + '</td><td>' + esc(value) + '</td></tr>';
+    const tbl = (cols, rowsArr) => '<table class="t"><thead><tr>' + cols.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr></thead><tbody>' +
+      rowsArr.map(cells => '<tr>' + cells.map((c, i) => '<td' + (i > 0 ? ' class="r"' : '') + '>' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+    const aff = [b.affects.scope && 'Scope', b.affects.budget && 'Budget', b.affects.schedule && 'Schedule'].filter(Boolean).join(', ');
+    const balOk = Math.abs((b.baseline.cbb.before + b.baseline.cbb.change) - (b.baseline.pmb.before + b.baseline.pmb.change) - (b.baseline.mr.before + b.baseline.mr.change)) < 0.5;
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(b.id) + '</title><style>'
+      + '@page{size:A4 portrait;margin:12mm;}body{font-family:Arial,Helvetica,sans-serif;color:#222;margin:0;font-size:10px;}'
+      + 'h1{font-size:16px;margin:0 0 2px;}.sub{color:#555;font-size:10px;margin-bottom:10px;}'
+      + 'h2{font-size:11px;background:#eef3f8;border:1px solid #cdd8e3;padding:4px 7px;margin:12px 0 5px;}'
+      + 'table{border-collapse:collapse;width:100%;margin-bottom:4px;}'
+      + 'table.kv td{border:1px solid #ddd;padding:3px 6px;vertical-align:top;}table.kv td.k{background:#f6f8fa;font-weight:700;width:32%;}'
+      + 'table.t th,table.t td{border:1px solid #ccc;padding:3px 6px;text-align:left;}table.t th{background:#eef3f8;}table.t td.r{text-align:left;}'
+      + 'p.para{margin:2px 0 6px;white-space:pre-wrap;}.bal{margin:5px 0;padding:5px 8px;border-radius:4px;font-weight:700;font-size:10px;}'
+      + '.bal.ok{background:#e3f4ea;color:#107e3e;}.bal.bad{background:#fbe5e5;color:#bb0000;}'
+      + '</style></head><body>'
+      + '<h1>Baseline Change Request — ' + esc(b.id) + (b.rev && b.rev !== '0' ? ' (Rev ' + esc(b.rev) + ')' : '') + '</h1>'
+      + '<div class="sub">' + esc(prog().name) + ' &middot; ' + esc(b.contract) + ' &middot; Status: ' + esc(b.status) + '</div>'
+      + '<h2>1 · Identification</h2><table class="kv">' + kv('Date Submitted', b.dateSubmitted) + kv('Originator', b.originator) + kv('Priority', b.priority) + kv('Customer-directed', (b.customerDirected ? 'Yes' : 'No') + (b.customerRef ? ' — ' + b.customerRef : '')) + '</table>'
+      + '<h2>2 · Classification</h2><table class="kv">' + kv('Change Type', b.type + ' — ' + bcrTypeLabel(b.type)) + kv('Affects', aff) + kv('Retroactive', (b.retro ? 'Yes' : 'No') + (b.retroJust ? ' — ' + b.retroJust : '')) + kv('SOW ref / driver', b.driver) + '</table>'
+      + '<h2>3 · Description &amp; Justification</h2>'
+      + '<b>Description:</b><p class="para">' + esc(b.description) + '</p>'
+      + '<b>Justification:</b><p class="para">' + esc(b.justification) + '</p>'
+      + '<b>Impact if not approved:</b><p class="para">' + esc(b.impactIfNot) + '</p>'
+      + '<h2>4 · Affected Work</h2>' + tbl(['WBS', 'Control Account', 'Work Package', 'CAM', 'OBS / IPT'], b.affectedWork.map(w => [w.wbs, w.ca, w.wp, w.cam, w.obs]))
+      + '<h2>5 · Budget Movement</h2>' + tbl(['From', 'To', 'EOC', 'Hours', 'Dollars'], b.budgetMoves.map(m => [m.from, m.to, m.eoc, bcrMoney(m.hours), bcrMoney(m.dollars)]))
+      + '<h2>6 · Baseline Impact</h2>' + tbl(['Element', 'Before', 'Change', 'After'], BCR_BASELINE.map(([k, label]) => { const v = b.baseline[k]; return [label, bcrMoney(v.before), bcrMoney(v.change), bcrMoney(v.before + v.change)]; }))
+      + '<div class="bal ' + (balOk ? 'ok' : 'bad') + '">' + (balOk ? '✓ Balanced: CBB = PMB + MR' : '✗ Out of balance: CBB ≠ PMB + MR') + '</div>'
+      + '<h2>7 · Schedule Impact</h2>' + tbl(['Milestone / Activity', 'Before', 'After', 'Variance'], b.schedule.map(s => [s.milestone, s.before, s.after, s.variance]))
+      + '<h2>8 · Approvals</h2>' + tbl(['Role', 'Name', 'Date', 'Decision'], b.approvals.map(a => [a.role, a.name, a.date, a.decision]))
+      + '<h2>9 · Disposition</h2><table class="kv">' + kv('CCB Disposition', b.disposition) + kv('Effective Month', b.effectiveMonth) + kv('Log Entry No.', b.logEntry) + kv('Implemented', (b.implemented ? 'Yes' : 'No') + (b.implementedDate ? ' — ' + b.implementedDate : '')) + '</table>'
+      + '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},350);};</scr' + 'ipt></body></html>';
+  }
+  function exportBcrPdf() {
+    const w = window.open('', '_blank');
+    if (!w) { tpmToast('Allow pop-ups to export the PDF'); return; }
+    w.document.open(); w.document.write(_bcrPdfHtml()); w.document.close();
+  }
+
+  /* ---------- Approval workflow: email request + Approve/Reject ---------- */
+  let bcrApprIdx = -1;
+  function bcrApprRowEl(i) { return document.querySelectorAll('#bcrApprBody tr')[i]; }
+  function bcrSetDecision(tr, decision) {
+    tr.querySelector('[data-f="decision"]').value = decision;
+    const span = tr.querySelector('.bcr-dec');
+    span.textContent = decision;
+    span.className = 'bcr-dec ' + bcrDecClass(decision);
+    const act = tr.querySelector('.bcr-appr-act');
+    if (act) { const idx = parseInt(act.getAttribute('data-idx'), 10) || 0; act.innerHTML = bcrApprActionHtml(idx, decision); }
+  }
+  // Plain-text body carrying the full form, as the approver's email would contain it
+  function bcrApprovalBody(b, role, name) {
+    const L = [];
+    L.push((name || 'Approver') + ',');
+    L.push('');
+    L.push('Your approval is requested for the Baseline Change Request below. Review the details, then click "Approve Change" or "Reject Change" at the bottom of this email.');
+    L.push('');
+    L.push('BCR Number: ' + b.id + (b.rev && b.rev !== '0' ? '  (Rev ' + b.rev + ')' : ''));
+    L.push('Program / Project: ' + prog().name);
+    L.push('Contract: ' + b.contract);
+    L.push('Type: ' + b.type + ' — ' + bcrTypeLabel(b.type));
+    L.push('Priority: ' + b.priority + '    Status: ' + b.status);
+    L.push('Customer-directed: ' + (b.customerDirected ? ('Yes — ' + b.customerRef) : 'No'));
+    L.push('Submitted: ' + b.dateSubmitted + '  by ' + b.originator);
+    L.push('');
+    L.push('Description: ' + (b.description || ''));
+    L.push('Justification: ' + (b.justification || ''));
+    L.push('Impact if not approved: ' + (b.impactIfNot || ''));
+    L.push('');
+    L.push('Affected Work:');
+    b.affectedWork.forEach(w => { const s = [w.wbs, w.ca, w.wp, w.cam, w.obs].filter(Boolean).join(' | '); if (s) L.push('  • ' + s); });
+    L.push('');
+    L.push('Budget Movement:');
+    b.budgetMoves.forEach(m => { if (m.from || m.to || m.dollars) L.push('  • ' + m.from + ' → ' + m.to + '  [' + m.eoc + ']  ' + bcrMoney(m.hours) + ' hrs / $' + bcrMoney(m.dollars)); });
+    L.push('');
+    L.push('Baseline Impact (Before → After):');
+    BCR_BASELINE.forEach(([k, label]) => { const v = b.baseline[k]; L.push('  • ' + label + ': ' + bcrMoney(v.before) + ' → ' + bcrMoney(v.before + v.change) + '  (Δ ' + bcrMoney(v.change) + ')'); });
+    const balOk = Math.abs((b.baseline.cbb.before + b.baseline.cbb.change) - (b.baseline.pmb.before + b.baseline.pmb.change) - (b.baseline.mr.before + b.baseline.mr.change)) < 0.5;
+    L.push('  ' + (balOk ? '✓ Balanced: CBB = PMB + MR' : '✗ Out of balance: CBB ≠ PMB + MR'));
+    L.push('');
+    L.push('Schedule Impact:');
+    b.schedule.forEach(s => { if (s.milestone) L.push('  • ' + s.milestone + ': ' + s.before + ' → ' + s.after + '  (' + s.variance + ')'); });
+    L.push('');
+    L.push('Approval requested for role: ' + role);
+    L.push('');
+    L.push('— Dassian Total Program Management');
+    return L.join('\n');
+  }
+  function ensureBcrApprModal() {
+    let o = document.getElementById('bcrApprOverlay');
+    if (!o) {
+      o = document.createElement('div');
+      o.id = 'bcrApprOverlay';
+      o.className = 'modal-overlay';
+      o.innerHTML = '<div class="modal"><div class="modal-head">✉ Send for Approval</div>' +
+        '<div class="modal-body"></div>' +
+        '<div class="modal-foot"><button class="btn" onclick="closeBcrAppr()">Cancel</button>' +
+        '<button class="btn primary" onclick="bcrApprSend()">Send for approval</button></div></div>';
+      document.body.appendChild(o);
+      o.addEventListener('click', e => { if (e.target === o) closeBcrAppr(); });
+    }
+    return o;
+  }
+  function closeBcrAppr() { const o = document.getElementById('bcrApprOverlay'); if (o) o.classList.remove('open'); }
+  function bcrApprovalEmail(i) {
+    bcrApprIdx = i;
+    const tr = bcrApprRowEl(i);
+    if (!tr) return;
+    const role = tr.querySelector('[data-f="role"]').value;
+    const name = tr.querySelector('[data-f="name"]').value;
+    if (!name) { tpmToast('Enter an approver name first'); return; }
+    const email = camEmail(name);
+    const rec = bcrCollect();
+    const subject = 'Approval Request — ' + rec.id + ' · ' + prog().name;
+    const o = ensureBcrApprModal();
+    o.querySelector('.modal-body').innerHTML =
+      '<label>To</label><div class="ro">' + _xml(name) + ' (' + _xml(role) + ') &lt;' + _xml(email) + '&gt;</div>' +
+      '<label>Subject</label><div class="ro">' + _xml(subject) + '</div>' +
+      '<label>Message (full change request)</label><textarea id="bcrApprMsg"></textarea>' +
+      '<div class="bcr-emailwrap"><div class="em-hd">The recipient\'s email includes these action buttons — clicking one records their decision and updates the form:</div>' +
+        '<div class="bcr-emailbtns">' +
+          '<button class="btn approve" onclick="bcrApprDecide(\'Approved\')">✓ Approve Change</button>' +
+          '<button class="btn reject" onclick="bcrApprDecide(\'Rejected\')">✗ Reject Change</button>' +
+        '</div></div>' +
+      '<div class="modal-note">"Send for approval" emails the request and marks the decision <em>Awaiting Approval</em> until the recipient responds.</div>';
+    o.querySelector('#bcrApprMsg').value = bcrApprovalBody(rec, role, name);
+    o.classList.add('open');
+  }
+  function bcrApprSend() {
+    const tr = bcrApprRowEl(bcrApprIdx);
+    if (tr) {
+      bcrSetDecision(tr, 'Awaiting Approval');   // also flips the action cell to "Resend"
+      const name = tr.querySelector('[data-f="name"]').value;
+      tpmToast('✓ Approval request emailed to ' + name);
+    }
+    closeBcrAppr();
+  }
+  function bcrToday() {
+    const d = new Date();
+    return String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear();
+  }
+  // Simulates the recipient clicking Approve/Reject in their email
+  function bcrApprDecide(decision) {
+    const tr = bcrApprRowEl(bcrApprIdx);
+    if (tr) {
+      bcrSetDecision(tr, decision);   // received decision removes the Send button
+      tr.querySelector('[data-f="date"]').value = bcrToday();
+      const name = tr.querySelector('[data-f="name"]').value;
+      const id = (document.getElementById('bcr_id') || {}).value || 'the change';
+      tpmToast((decision === 'Approved' ? '✓ ' : '✗ ') + name + ' ' + (decision === 'Approved' ? 'approved ' : 'rejected ') + id);
+    }
+    closeBcrAppr();
   }
 
   /* ---------------------------- Router -------------------------- */
