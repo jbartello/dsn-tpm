@@ -101,6 +101,11 @@
     font-weight: 700;
   }
   .nav-item.active .nav-ico { color: var(--sap-blue); }
+  .nav-parent { cursor: pointer; }
+  .nav-parent .nav-chev { margin-left: auto; font-size: 11px; color: var(--text-muted); transition: transform .15s; }
+  .nav-chev.collapsed { transform: rotate(-90deg); }
+  .nav-sub.collapsed { display: none; }
+  .nav-item.nav-child { padding-left: 40px; font-size: 13px; }
   .sidenav a.nav-item { text-decoration: none; color: var(--text); }
   .nav-item.nav-link { margin-top: auto; border-top: 1px solid var(--panel-border); }
   .nav-item .ext { margin-left: auto; font-size: 12px; color: var(--text-muted); }
@@ -451,6 +456,16 @@
     <!-- Left navigation -->
     <nav class="sidenav">
       <div class="nav-header">Total Program Management</div>
+      <div class="nav-item nav-parent" onclick="toggleBaseline()">
+        <span class="nav-ico">📐</span> Project Baseline <span class="nav-chev" id="baselineChev">▾</span></div>
+      <div class="nav-sub" id="baselineSub">
+        <div class="nav-item nav-child" data-mod="baseline-change" onclick="setModule('baseline-change')">
+          <span class="nav-ico">✎</span> Baseline Change Request</div>
+        <div class="nav-item nav-child" data-mod="baseline-display" onclick="setModule('baseline-display')">
+          <span class="nav-ico">👁️</span> Display Baseline</div>
+      </div>
+      <div class="nav-item" data-mod="eac"      onclick="setModule('eac')">
+        <span class="nav-ico">💰</span> Project EAC</div>
       <div class="nav-item" data-mod="values"   onclick="setModule('values')">
         <span class="nav-ico">📊</span> Project Values</div>
       <div class="nav-item" data-mod="reports"  onclick="setModule('reports')">
@@ -512,6 +527,9 @@
   };
 
   const MODULE_TITLES = {
+    'baseline-change':  'Baseline Change Request',
+    'baseline-display': 'Display Baseline',
+    eac:       'Project EAC',
     values:    'Project Values',
     reports:   'Project Analytics',
     risk:      'Risk Information',
@@ -792,6 +810,27 @@
         ${includeWbs ? card('WBS Filter **', `<select onchange="pvSetFilter('wbs', this.value)">${opts(wbsList, pvState.wbs)}</select>`) : ''}
         ${card('Month End **', `<select onchange="pvSetFilter('period', this.value)">${periodOpts}</select>`)}
       </div>`;
+  }
+
+  function toggleBaseline() {
+    const sub = document.getElementById('baselineSub'), chev = document.getElementById('baselineChev');
+    const collapsed = sub.classList.toggle('collapsed');
+    chev.classList.toggle('collapsed', collapsed);
+  }
+  function renderBaselineChange(p) {
+    return `
+      <p class="module-intro">Baseline Change Requests for <strong>${p.name}</strong>.</p>
+      <div class="placeholder-note">Baseline Change Request view — to be built out (BCR log, requested budget moves, approval status/workflow).</div>`;
+  }
+  function renderBaselineDisplay(p) {
+    return `
+      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${p.name}</strong>.</p>
+      <div class="placeholder-note">Display Baseline view — to be built out (time-phased budget baseline, BCWS by control account, baseline version history).</div>`;
+  }
+  function renderEac(p) {
+    return `
+      <p class="module-intro">Estimate at Completion for <strong>${p.name}</strong>.</p>
+      <div class="placeholder-note">Project EAC view — to be built out (EAC scenarios, VAC, EAC by control account, forecast trends).</div>`;
   }
 
   function renderValues(p) {
@@ -2093,6 +2132,9 @@
     const c = document.getElementById('content');
     document.getElementById('secTitle').textContent = MODULE_TITLES[currentModule];
     switch (currentModule) {
+      case 'baseline-change':  c.innerHTML = renderBaselineChange(p);  break;
+      case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
+      case 'eac':      c.innerHTML = renderEac(p);      break;
       case 'values':   c.innerHTML = renderValues(p);  break;
       case 'reports':  c.innerHTML = renderReports();   break;
       case 'risk':     c.innerHTML = renderRisk(p);     break;
