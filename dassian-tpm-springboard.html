@@ -574,6 +574,8 @@
   .ps-th-lbl { font-weight: 600; white-space: nowrap; }
   .ps-classbar input[disabled] + strong, .ps-classbar label[title]:not([title=""]) input[disabled] { opacity: .5; }
   .ps-block { font-size: 12px; color: var(--bad); font-weight: 600; }
+  .ps-clearbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff8e6; border: 1px solid #f4d77a; border-radius: 6px; padding: 9px 12px; margin-bottom: 14px; }
+  .ps-clearnote { font-size: 12px; color: #7a5c00; }
 </style>
 </head>
 <body>
@@ -1585,48 +1587,72 @@
   function psIsMRUB(w) { const x = psSeed().mrub[w]; return !!(x && (x.mr || x.ub)); }
   function psAncestors(w) { const out = [], p = String(w).split('.'); for (let i = p.length - 1; i > 0; i--) out.push(p.slice(0, i).join('.')); return out; }
   function psDescendants(w) { const map = bdBuild().map, pref = w + '.'; return Object.keys(map).filter(k => k.indexOf(pref) === 0); }
+  const psFindAnc = (w, pred) => psAncestors(w).find(pred);
+  const psFindDesc = (w, pred) => psDescendants(w).find(pred);
   const psCAAbove = w => psAncestors(w).some(psIsCA);
-  const psCABelow = w => psDescendants(w).some(psIsCA);
-  const psWPAbove = w => psAncestors(w).some(psIsWP);
-  const psWPBelow = w => psDescendants(w).some(psIsWP);
-  // Each returns '' if allowed, or a human-readable reason it is blocked.
+  // Expand the tree so a (possibly collapsed) node is visible, and select it.
+  function psExpandTo(w) { const p = String(w).split('.'); for (let i = 1; i < p.length; i++) psState.expanded[p.slice(0, i).join('.')] = true; }
+  // Each returns '' if allowed, else a reason naming the specific offending object.
   function psCanBeCA(w) {
     if (psIsWP(w)) return 'it is already a work package';
     if (psIsMRUB(w)) return 'it is an MR/UB object';
-    if (psCAAbove(w)) return 'a control account already exists above it';
-    if (psCABelow(w)) return 'a control account already exists below it';
-    if (psWPAbove(w)) return 'a work package exists above it';
+    let n;
+    if ((n = psFindAnc(w, psIsCA))) return 'a control account already exists above it (' + n + ')';
+    if ((n = psFindDesc(w, psIsCA))) return 'a control account already exists below it (' + n + ')';
+    if ((n = psFindAnc(w, psIsWP))) return 'a work package exists above it (' + n + ')';
     return '';
   }
   function psCanBeWP(w) {
     if (psIsCA(w)) return 'it is already a control account';
     if (psIsMRUB(w)) return 'it is an MR/UB object';
     if (!psCAAbove(w)) return 'a work package must sit below a control account';
-    if (psWPAbove(w)) return 'a work package already exists above it';
-    if (psWPBelow(w)) return 'a work package already exists below it';
+    let n;
+    if ((n = psFindAnc(w, psIsWP))) return 'a work package exists above it (' + n + ')';
+    if ((n = psFindDesc(w, psIsWP))) return 'a work package already exists below it (' + n + ')';
     return '';
   }
   function psCanBeMRUB(w) {
     if (psIsCA(w)) return 'it is a control account';
     if (psIsWP(w)) return 'it is a work package';
-    if (psCAAbove(w)) return 'a control account exists above it';
-    if (psCABelow(w)) return 'a control account exists below it';
+    let n;
+    if ((n = psFindAnc(w, psIsCA))) return 'a control account exists above it (' + n + ')';
+    if ((n = psFindDesc(w, psIsCA))) return 'a control account exists below it (' + n + ')';
     return '';
   }
+  // On a block caused by a descendant, reveal it so the user can see/clear it.
+  function psBlock(verb, reason, wbs, descPred) {
+    const off = psFindDesc(wbs, descPred);
+    if (off) psExpandTo(off);
+    tpmToast('Cannot set ' + verb + ' — ' + reason);
+    psRerender();
+  }
   function psFlagCA(wbs, on) {
-    if (on) { const r = psCanBeCA(wbs); if (r) { tpmToast('Cannot set Control Account — ' + r); psRerender(); return; } }
+    if (on) { const r = psCanBeCA(wbs); if (r) return psBlock('Control Account', r, wbs, psIsCA); }
+    else { const off = psFindDesc(wbs, psIsWP); if (off) { psExpandTo(off); tpmToast('Cannot unmark Control Account — deselect the work packages below it first (' + off + ')'); psRerender(); return; } }
     psSet('ca', wbs, 'flag', on); psRerender();
   }
   function psFlagWP(wbs, on) {
-    if (on) { const r = psCanBeWP(wbs); if (r) { tpmToast('Cannot set Work Package — ' + r); psRerender(); return; } }
+    if (on) { const r = psCanBeWP(wbs); if (r) return psBlock('Work Package', r, wbs, psIsWP); }
     psSet('wp', wbs, 'flag', on); psRerender();
   }
+  // Helper: deselect every Work Package flag beneath a node (to re-level or unmark a CA).
+  function psClearWPsBelow(wbs) {
+    let n = 0; psDescendants(wbs).forEach(w => { const x = psSeed().wp[w]; if (x && x.flag) { x.flag = false; n++; } });
+    tpmToast(n ? ('Cleared ' + n + ' work-package flag' + (n === 1 ? '' : 's') + ' below ' + wbs) : 'No work packages below to clear');
+    psRerender();
+  }
+  function psClearBar(wbs) {
+    const n = psDescendants(wbs).filter(psIsWP).length;
+    if (!n) return '';
+    return `<div class="ps-clearbar"><button class="btn" onclick="psClearWPsBelow('${wbs}')">⌫ Clear ${n} work-package flag${n === 1 ? '' : 's'} below</button>` +
+      `<span class="ps-clearnote">Work packages exist below this element — clear them to unmark a control account or re-level the structure.</span></div>`;
+  }
   function psFlagMR(wbs, on) {
-    if (on) { const r = psCanBeMRUB(wbs); if (r) { tpmToast('Cannot set Management Reserve — ' + r); psRerender(); return; } }
+    if (on) { const r = psCanBeMRUB(wbs); if (r) return psBlock('Management Reserve', r, wbs, psIsCA); }
     psSet('mrub', wbs, 'mr', on); psRerender();
   }
   function psFlagUB(wbs, on) {
-    if (on) { const r = psCanBeMRUB(wbs); if (r) { tpmToast('Cannot set Undistributed Budget — ' + r); psRerender(); return; } }
+    if (on) { const r = psCanBeMRUB(wbs); if (r) return psBlock('Undistributed Budget', r, wbs, psIsCA); }
     psSet('mrub', wbs, 'ub', on); psRerender();
   }
 
@@ -1682,8 +1708,8 @@
       <label title="${_xml(blk)}"><input type="checkbox" ${on ? 'checked' : ''} ${blk ? 'disabled' : ''} onchange="psFlagCA('${wbs}',this.checked)"> <strong>Control Account</strong></label>
       <label>Type: <select ${on ? '' : 'disabled'} onchange="psSetClass('ca','${wbs}','slpp',this.value==='SLPP')"><option value="CA"${!c.slpp ? ' selected' : ''}>Control Account</option><option value="SLPP"${c.slpp ? ' selected' : ''}>Summary Level Planning Package</option></select></label>
       ${blk ? `<span class="ps-block">⚠ Not allowed — ${_xml(blk)}</span>` : ''}</div>`;
-    if (!on) return `<div class="bcr-sec"><h3>Control Account Assignment</h3><div class="sec-in">${classbar}<div class="bd-tp-note">Check “Control Account” to classify this WBS element and enter its attributes. A control account cannot nest within another, and cannot also be a work package or MR/UB object.</div></div></div>`;
-    return `<div class="bcr-sec"><h3>Control Account Assignment</h3><div class="sec-in">${classbar}<div class="bcr-grid">
+    if (!on) return `<div class="bcr-sec"><h3>Control Account Assignment</h3><div class="sec-in">${classbar}${psClearBar(wbs)}<div class="bd-tp-note">Check “Control Account” to classify this WBS element and enter its attributes. A control account cannot nest within another, and cannot also be a work package or MR/UB object.</div></div></div>`;
+    return `<div class="bcr-sec"><h3>Control Account Assignment</h3><div class="sec-in">${classbar}${psClearBar(wbs)}<div class="bcr-grid">
       ${psSel('ca', wbs, 'Control Account Manager', 'cam', PS_CAMS, c.cam)}
       ${psSel('ca', wbs, 'Analyst', 'analyst', PS_ANALYSTS, c.analyst)}
       ${psFld('ca', wbs, 'Target Value (Project Currency)', 'target', c.target)}
@@ -1702,7 +1728,7 @@
       <label>Type: <select ${on ? '' : 'disabled'} onchange="psSetClass('wp','${wbs}','pp',this.value==='PP')"><option value="WP"${!c.pp ? ' selected' : ''}>Work Package</option><option value="PP"${c.pp ? ' selected' : ''}>Planning Package</option></select></label>
       <label><input type="checkbox" ${on ? '' : 'disabled'} ${c.mfg ? 'checked' : ''} onchange="psSetClass('wp','${wbs}','mfg',this.checked)"> Manufacturing Work Package</label>
       ${blk ? `<span class="ps-block">⚠ Not allowed — ${_xml(blk)}</span>` : ''}</div>`;
-    if (!on) return `<div class="bcr-sec"><h3>Work Package Assignment</h3><div class="sec-in">${classbar}<div class="bd-tp-note">Check “Work Package” to classify this object and set its EV method, dates, and attributes. A work package must sit below a control account, cannot nest within another work package, and cannot also be a control account or MR/UB object.</div></div></div>`;
+    if (!on) return `<div class="bcr-sec"><h3>Work Package Assignment</h3><div class="sec-in">${classbar}${psClearBar(wbs)}<div class="bd-tp-note">Check “Work Package” to classify this object and set its EV method, dates, and attributes. A work package must sit below a control account, cannot nest within another work package, and cannot also be a control account or MR/UB object.</div></div></div>`;
     const rec = `<div class="bcr-fld"><label>Recurring / Non-Recurring</label><div class="bcr-checks">
       <label><input type="radio" name="psrec_${wbs}" ${c.rec === 'Recurring' ? 'checked' : ''} onchange="psSet('wp','${wbs}','rec','Recurring')"> Recurring</label>
       <label><input type="radio" name="psrec_${wbs}" ${c.rec === 'Non-Recurring' ? 'checked' : ''} onchange="psSet('wp','${wbs}','rec','Non-Recurring')"> Non-Recurring</label></div></div>`;
