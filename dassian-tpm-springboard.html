@@ -1179,7 +1179,7 @@
         total = '·';
       }
       const lbl = r.cls === 'labor'
-        ? `${_xml(r.name)} <span class="bd-rate">@ $${r.rate}</span>`
+        ? _xml(r.name)
         : `${_xml(r.name)} <span class="bd-rate">cost</span>`;
       return row(lbl, 'res', cells, total);
     }).join('');
