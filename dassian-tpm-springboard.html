@@ -576,6 +576,22 @@
   .ps-block { font-size: 12px; color: var(--bad); font-weight: 600; }
   .ps-clearbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff8e6; border: 1px solid #f4d77a; border-radius: 6px; padding: 9px 12px; margin-bottom: 14px; }
   .ps-clearnote { font-size: 12px; color: #7a5c00; }
+  /* Project Setup: variance threshold matrix */
+  .ps-th-bar { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 14px; }
+  .ps-th-bar .bcr-fld { max-width: 240px; }
+  .ps-th-wrap { overflow-x: auto; }
+  table.ps-th-tbl { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  table.ps-th-tbl th, table.ps-th-tbl td { border: 1px solid #e6e6e6; padding: 5px 8px; text-align: right; }
+  table.ps-th-tbl thead th { background: #fafafa; text-align: center; font-weight: 700; color: var(--text); }
+  table.ps-th-tbl thead .ps-th-grp { background: #eef3f8; }
+  table.ps-th-tbl thead .ps-th-red { color: var(--bad); }
+  table.ps-th-tbl thead .ps-th-yel { color: var(--warn); }
+  table.ps-th-tbl .ps-th-corner { border: none; background: #fff; }
+  td.ps-th-var { text-align: left; font-weight: 700; background: #f7f9fb; vertical-align: middle; }
+  td.ps-th-lim { text-align: left; color: var(--text-muted); }
+  td.ps-th-empty { background: repeating-linear-gradient(45deg, #f7f7f7, #f7f7f7 5px, #f0f0f0 5px, #f0f0f0 10px); }
+  input.ps-th-in { width: 86px; text-align: right; font-family: inherit; font-size: 12px; font-variant-numeric: tabular-nums; border: 1px solid #cdd8e3; border-radius: 4px; padding: 4px 6px; color: var(--text); }
+  input.ps-th-in:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
 </style>
 </head>
 <body>
@@ -1554,13 +1570,23 @@
     if (mode === 'wp') return { flag: false, pp: false, mfg: false, ev: '', mgr: '', eoc: '', rec: 'Recurring', imsS: '', imsF: '', manS: '', manF: '', sow: '', auth: '', notes: '', assign: '' };
     return { mr: false, ub: false, burden: false, mgr: '', vendor: '' };
   }
+  // Variance thresholds: per variance (vac/sv/cv), per scope (period/cum), per
+  // limit (upper/lower), Red/Yellow value & percent. VAC has no period thresholds.
+  function psDefaultThresh() {
+    const L = (rV, rP, yV, yP) => ({ rVal: String(rV), rPct: String(rP), yVal: String(yV), yPct: String(yP) });
+    const E = () => ({ rVal: '', rPct: '', yVal: '', yPct: '' });
+    return {
+      vac: { period: { upper: E(), lower: E() }, cum: { upper: L(100000, 10, 50000, 5), lower: L(-100000, -10, -50000, -5) } },
+      sv: { period: { upper: L(20000, 10, 10000, 5), lower: L(-20000, -10, -10000, -5) }, cum: { upper: L(50000, 10, 25000, 5), lower: L(-50000, -10, -25000, -5) } },
+      cv: { period: { upper: L(20000, 10, 10000, 5), lower: L(-20000, -10, -10000, -5) }, cum: { upper: L(50000, 10, 25000, 5), lower: L(-50000, -10, -25000, -5) } },
+    };
+  }
   function psSeed() {
     if (psData) return psData;
     const map = bdBuild().map;
     const rows = (window.CAP_TP || { rows: [] }).rows || [];
     psData = {
-      header: { reporting: 'Control Accounts', pm: 'L. Ortiz', pmbVer: PS_PMB_VERSIONS[0], eacVer: PS_EAC_VERSIONS[0], extract: PS_EXTRACT_PROFILES[0], obs: 'Program', threshCtrl: '',
-        thresh: { cv: { yPct: '5', rPct: '10', yVal: '', rVal: '' }, sv: { yPct: '5', rPct: '10', yVal: '', rVal: '' }, vac: { yPct: '5', rPct: '10', yVal: '', rVal: '' } } },
+      header: { reporting: 'Control Accounts', pm: 'L. Ortiz', pmbVer: PS_PMB_VERSIONS[0], eacVer: PS_EAC_VERSIONS[0], extract: PS_EXTRACT_PROFILES[0], obs: 'Program', threshCtrl: '', thresh: psDefaultThresh() },
       ca: {}, wp: {}, mrub: {},
     };
     const caSet = {}, wpSet = {};
@@ -1572,7 +1598,32 @@
   function psSet(mode, wbs, key, val) { const d = psSeed(); if (!d[mode][wbs]) d[mode][wbs] = psDefault(mode); d[mode][wbs][key] = val; }
   function psSetClass(mode, wbs, key, val) { psSet(mode, wbs, key, val); psRerender(); }
   function psSetHeader(k, v) { psSeed().header[k] = v; }
-  function psSetThresh(k, f, v) { psSeed().header.thresh[k][f] = v; }
+  function psSetThresh(v, scope, limit, field, val) { psSeed().header.thresh[v][scope][limit][field] = String(val).replace(/,/g, ''); }
+  function psCopyThresholds() { tpmToast('Copy thresholds from another maintained project (prototype — connect to project list)'); }
+  // Build the Period + Cumulative threshold matrix (matches /DSN/PPCN).
+  function psThreshTable() {
+    const h = psSeed().header;
+    const VARS = [['vac', 'Variance at Complete'], ['sv', 'Schedule Variance'], ['cv', 'Cost Variance']];
+    const cell = (v, scope, limit, field, off) => {
+      if (off) return '<td class="ps-th-empty"></td>';
+      const raw = h.thresh[v][scope][limit][field];
+      const disp = (field === 'rVal' || field === 'yVal') ? addCommas(raw) : raw;
+      return `<td><input class="ps-th-in" value="${_xml(disp)}" onchange="psSetThresh('${v}','${scope}','${limit}','${field}',this.value)"></td>`;
+    };
+    const limRow = (v, limit, vName, lName, off) =>
+      '<tr>' + (limit === 'upper' ? `<td class="ps-th-var" rowspan="2">${vName}</td>` : '') + `<td class="ps-th-lim">${lName}</td>` +
+      cell(v, 'period', limit, 'rVal', off) + cell(v, 'period', limit, 'rPct', off) + cell(v, 'period', limit, 'yVal', off) + cell(v, 'period', limit, 'yPct', off) +
+      cell(v, 'cum', limit, 'rVal') + cell(v, 'cum', limit, 'rPct') + cell(v, 'cum', limit, 'yVal') + cell(v, 'cum', limit, 'yPct') + '</tr>';
+    const body = VARS.map(x => { const off = x[0] === 'vac'; return limRow(x[0], 'upper', x[1], 'Upper Limit', off) + limRow(x[0], 'lower', x[1], 'Lower Limit', off); }).join('');
+    return `<div class="ps-th-wrap"><table class="ps-th-tbl">
+      <thead>
+        <tr><th class="ps-th-corner" colspan="2"></th><th class="ps-th-grp" colspan="4">Period Thresholds</th><th class="ps-th-grp" colspan="4">Cumulative Thresholds</th></tr>
+        <tr><th colspan="2"></th><th class="ps-th-red" colspan="2">● Red</th><th class="ps-th-yel" colspan="2">▲ Yellow</th><th class="ps-th-red" colspan="2">● Red</th><th class="ps-th-yel" colspan="2">▲ Yellow</th></tr>
+        <tr><th colspan="2"></th><th>Value</th><th>Percent</th><th>Value</th><th>Percent</th><th>Value</th><th>Percent</th><th>Value</th><th>Percent</th></tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
   function psRerender() { const c = document.getElementById('content'); if (c) c.innerHTML = renderSetup(prog()); }
   function psSetMode(m) { psState.mode = m; psRerender(); }
   function psSelect(w) { psState.sel = w; psRerender(); }
@@ -1683,7 +1734,6 @@
   function psHeaderForm() {
     const h = psSeed().header;
     const sel = (label, key, list, val) => `<div class="bcr-fld"><label>${label}</label><select onchange="psSetHeader('${key}',this.value)">${list.map(o => { const v = Array.isArray(o) ? o[0] : o, t = Array.isArray(o) ? o[1] : o; return `<option value="${_xml(v)}"${v === val ? ' selected' : ''}>${_xml(t)}</option>`; }).join('')}</select></div>`;
-    const tRow = (lbl, k) => { const t = h.thresh[k]; return `<tr><td class="ps-th-lbl">${lbl}</td>` + ['yPct', 'rPct', 'yVal', 'rVal'].map(f => `<td><input class="num" value="${_xml(t[f])}" onchange="psSetThresh('${k}','${f}',this.value)"></td>`).join('') + '</tr>'; };
     return `
       <div class="bcr-sec"><h3>Project Header Information</h3><div class="sec-in"><div class="bcr-grid">
         ${sel('Reporting Level', 'reporting', PS_REPORTING_LEVELS, h.reporting)}
@@ -1693,11 +1743,10 @@
         ${sel('Extract Profile', 'extract', PS_EXTRACT_PROFILES, h.extract)}
         ${sel('Responsible Org (OBS)', 'obs', PS_OBS, h.obs)}
       </div></div></div>
-      <div class="bcr-sec"><h3>Variance Thresholds (Red / Yellow)</h3><div class="sec-in">
-        <div class="bcr-grid" style="margin-bottom:12px">${sel('Threshold Control', 'threshCtrl', PS_THRESH_CTRL, h.threshCtrl)}</div>
-        <table class="bcr-tbl"><thead><tr><th>Variance</th><th class="num">Yellow %</th><th class="num">Red %</th><th class="num">Yellow Value</th><th class="num">Red Value</th></tr></thead>
-        <tbody>${tRow('Cost Variance (CV)', 'cv')}${tRow('Schedule Variance (SV)', 'sv')}${tRow('Variance at Complete (VAC)', 'vac')}</tbody></table>
-        <div class="bd-tp-note">% thresholds drive each object's Red/Yellow/Green status; value thresholds apply at the reporting level for CPR Format 5. Blank = 0. Red must be ≥ Yellow.</div>
+      <div class="bcr-sec"><h3>Thresholds</h3><div class="sec-in">
+        <div class="ps-th-bar"><button class="btn" onclick="psCopyThresholds()">Copy Thresholds</button>${sel('Threshold Control', 'threshCtrl', PS_THRESH_CTRL, h.threshCtrl)}</div>
+        ${psThreshTable()}
+        <div class="bd-tp-note">Period thresholds apply to the current accounting period; cumulative thresholds apply to project-to-date. Upper/Lower limits bound positive/negative variance; % drives each object's Red/Yellow/Green status, value applies at the reporting level (CPR Format 5). Variance at Complete is cumulative only. Blank = 0.</div>
       </div></div>`;
   }
 
