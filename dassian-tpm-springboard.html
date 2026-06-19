@@ -267,6 +267,23 @@
   table.bd-tp tbody tr:hover td { background: #f7faff; }
   table.bd-tp tbody tr:hover td.lbl { background: #eef4fb; }
   table.bd-tp tbody tr.grand:hover td { background: #e6eef9; }
+  /* Edit Plan: editable resource cells + toolbar */
+  .bd-edit-bar { display: flex; gap: 10px; margin-bottom: 14px; }
+  table.bd-tp td.bd-edit-td { padding: 3px 5px; }
+  table.bd-tp input.bd-edit {
+    width: 78px; text-align: right; font-family: inherit; font-size: 12px;
+    font-variant-numeric: tabular-nums; border: 1px solid #cdd8e3; border-radius: 4px;
+    padding: 5px 6px; color: var(--text); background: #fff;
+  }
+  table.bd-tp input.bd-edit:hover { border-color: var(--sap-blue); }
+  table.bd-tp input.bd-edit:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
+  .bd-sum-note { background: #f7f7f7; border: 1px solid var(--panel-border); border-left: 3px solid var(--text-muted); border-radius: 6px; padding: 9px 13px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+  .bd-add-res { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .bd-add-res label { font-size: 12px; color: var(--text-muted); }
+  .bd-add-res select { font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 6px 8px; background: #fff; color: var(--text); }
+  .bd-add-res .bd-add-none { font-size: 12px; color: var(--text-muted); font-style: italic; }
+  .bd-sub .bd-editable { color: var(--good); font-weight: 700; }
+  .bd-sub .bd-readonly { color: var(--text-muted); font-weight: 700; }
 
   /* ---------- Project Values: KPI / filter strip ---------- */
   .filter-strip {
@@ -559,6 +576,8 @@
           <span class="nav-ico">✎</span> Baseline Change Request</div>
         <div class="nav-item nav-child" data-mod="baseline-display" onclick="setModule('baseline-display')">
           <span class="nav-ico">👁️</span> Display Baseline</div>
+        <div class="nav-item nav-child" data-mod="plan-edit" onclick="setModule('plan-edit')">
+          <span class="nav-ico">📝</span> Edit Plan</div>
       </div>
       <div class="nav-item" data-mod="eac"      onclick="setModule('eac')">
         <span class="nav-ico">💰</span> Project EAC</div>
@@ -626,6 +645,7 @@
   const MODULE_TITLES = {
     'baseline-change':  'Baseline Change Request',
     'baseline-display': 'Display Baseline',
+    'plan-edit':        'Edit Plan',
     eac:       'Project EAC',
     values:    'Project Values',
     reports:   'Project Analytics',
@@ -973,6 +993,13 @@
      show a placeholder. BCWS for a node rolls up every CAP_TP row beneath it. */
   const bdState = { sel: '', expanded: {}, _init: false, measure: 'cost' };
   let _bdTree = null;
+  // Edit Plan overrides: bdEdits[wbs][resId][monthIdx] = dollars. Applied on top
+  // of the derived resource split so the Edit Plan and Display Baseline detail
+  // for a node stay in sync. Empty by default ⇒ identical to the baseline.
+  let bdEdits = {};
+  // Edit Plan: resources manually added to a leaf node so a zero-valued row
+  // appears for editing. bdAdded[wbs] = [resId, ...].
+  let bdAdded = {};
 
   /* Resource model for the time-phased breakout. CAP_TP carries a single
      cost-loaded BCWS line per work package with no resource split, so the
@@ -1082,6 +1109,38 @@
     });
     return byRes;
   }
+  // Is this WBS node a lowest-level (leaf) node? Only leaves are editable in Edit Plan.
+  function bdIsLeaf(wbs) { const node = bdBuild().map[wbs]; return !!node && (!node.children || node.children.length === 0); }
+  // All leaf descendants of a node (the node itself if it is a leaf).
+  function bdLeaves(wbs) {
+    const node = bdBuild().map[wbs];
+    if (!node) return [];
+    if (!node.children || node.children.length === 0) return [wbs];
+    const out = [];
+    node.children.forEach(c => out.push.apply(out, bdLeaves(c)));
+    return out;
+  }
+  // Resource split for a node with Edit Plan overrides applied. Overrides live on
+  // leaf nodes only; a summary node's series is its baseline rollup plus the
+  // (override − baseline) deltas of every edited leaf beneath it — so summaries
+  // always equal the sum of their children, including edits.
+  function bdResSeries(wbs) {
+    const base = bdRollupByResource(wbs);
+    const n = (window.CAP_TP || { months: [] }).months.length;
+    bdLeaves(wbs).forEach(leaf => {
+      const ov = bdEdits[leaf];
+      if (!ov) return;
+      const leafBase = bdRollupByResource(leaf);
+      Object.keys(ov).forEach(resId => {
+        if (!base[resId]) base[resId] = new Array(n).fill(0);
+        Object.keys(ov[resId]).forEach(mi => {
+          const i = +mi, baseVal = (leafBase[resId] && leafBase[resId][i]) || 0;
+          base[resId][i] += (ov[resId][i] - baseVal);
+        });
+      });
+    });
+    return base;
+  }
   const bdMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function bdMonthLabel(s) {
     const p = String(s).split('/');
@@ -1101,10 +1160,15 @@
   }
   const bdUsd = v => '$' + addCommas(Math.round(v));
 
+  // Node BCWS total, override-aware (matches the baseline rollup until edited).
+  function bdNodeBCWS(wbs) {
+    const byRes = bdResSeries(wbs);
+    return Object.keys(byRes).reduce((s, id) => s + byRes[id].reduce((a, b) => a + (b || 0), 0), 0);
+  }
   function bdTreeHtml(wbs, depth) {
     const node = bdBuild().map[wbs];
     const kids = node.children;
-    const roll = bdRollupBCWS(wbs);
+    const total = bdNodeBCWS(wbs);
     const open = !!bdState.expanded[wbs];
     const caret = kids.length
       ? `<span class="bd-caret" onclick="bdToggle('${wbs}')">${open ? '▾' : '▸'}</span>`
@@ -1113,7 +1177,7 @@
     let html = `<div class="bd-row" data-wbs="${wbs}" style="padding-left:${10 + depth * 16}px">${caret}` +
       `<span class="bd-name${active}" onclick="bdSelect('${wbs}')">` +
       `<span class="bd-wid">${_xml(wbs)} · ${_xml(node.desc || '')}</span>` +
-      `<span class="bd-bcws">${roll.total ? bdUsd(roll.total) : '—'}</span></span></div>`;
+      `<span class="bd-bcws">${total ? bdUsd(total) : '—'}</span></span></div>`;
     if (kids.length) {
       html += `<div class="bd-children${open ? ' open' : ''}" data-parent="${wbs}">` +
         kids.map(k => bdTreeHtml(k, depth + 1)).join('') + '</div>';
@@ -1135,9 +1199,19 @@
     const measure = bdState.measure || 'cost';
     const monthCols = months.map(m => `<th>${bdMonthLabel(m)}</th>`).join('');
 
-    // resource breakdown of the rolled BCWS
-    const byRes = bdRollupByResource(wbs);
-    const resList = BD_RES.catalog.filter(r => byRes[r.id] && byRes[r.id].some(v => Math.round(v) !== 0));
+    // resource breakdown of the rolled BCWS (with Edit Plan overrides applied).
+    // Editing is allowed only at the lowest WBS level; summary nodes are display-only.
+    const planMode = currentModule === 'plan-edit';
+    const isLeaf = bdIsLeaf(wbs);
+    const edit = planMode && isLeaf;
+    const byRes = bdResSeries(wbs);
+    const added = (edit && bdAdded[wbs]) ? bdAdded[wbs] : [];
+    added.forEach(id => { if (!byRes[id]) byRes[id] = new Array(months.length).fill(0); });
+    const resList = BD_RES.catalog.filter(r =>
+      (byRes[r.id] && byRes[r.id].some(v => Math.round(v) !== 0)) || added.indexOf(r.id) >= 0);
+    // Node total from the (override-aware) resource series — equals the baseline
+    // rollup when there are no edits, and reflects Edit Plan changes when there are.
+    const nodeTotal = Object.keys(byRes).reduce((s, id) => s + byRes[id].reduce((a, b) => a + (b || 0), 0), 0);
     const workHrs = months.map(m => bdWorkHours(m));
     const totLaborHrs = months.map((_, i) =>
       resList.filter(r => r.cls === 'labor').reduce((s, r) => s + (byRes[r.id][i] || 0) / r.rate, 0));
@@ -1150,24 +1224,28 @@
     const cards =
       bdCard('PMB Start Date', spanS < 0 ? '—' : bdFirstOfMonth(months[spanS])) +
       bdCard('PMB Finish Date', spanS < 0 ? '—' : months[spanF]) +
-      bdCard('Total BCWS', bdUsd(roll.total)) +
+      bdCard('Total BCWS', bdUsd(nodeTotal)) +
       bdCard('Hours', totHours ? addCommas(Math.round(totHours)) : '—');
 
     const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
     const eqp = (h, i) => (workHrs[i] && h / workHrs[i] >= 0.05) ? (h / workHrs[i]).toFixed(1) : '·';
     const row = (label, cls, cells, total) => `<tr class="${cls}"><td class="lbl">${label}</td>${cells}<td class="tot">${total}</td></tr>`;
+    // Editable cell for Edit Plan: stores dollars (cost mode) or hours×rate (hours mode).
+    const editTd = (val, resId, mi, meas, rate) =>
+      `<td class="bd-edit-td"><input class="bd-edit" value="${Math.round(val) || 0}" ` +
+      `onchange="bdEditCell('${wbs}','${resId}',${mi},this.value,'${meas}',${rate || 0})"></td>`;
 
     // one row per resource
     const resRows = resList.map(r => {
       const series = byRes[r.id];
       let cells, total;
       if (measure === 'cost') {
-        cells = series.map(v => `<td>${cents(v)}</td>`).join('');
+        cells = series.map((v, i) => edit ? editTd(v, r.id, i, 'cost', 0) : `<td>${cents(v)}</td>`).join('');
         total = bdUsd(series.reduce((a, b) => a + b, 0));
       } else if (r.cls === 'labor') {
         const hrs = series.map(v => v / r.rate);
         if (measure === 'hours') {
-          cells = hrs.map(h => `<td>${cents(h)}</td>`).join('');
+          cells = hrs.map((h, i) => edit ? editTd(h, r.id, i, 'hours', r.rate) : `<td>${cents(h)}</td>`).join('');
           total = addCommas(Math.round(hrs.reduce((a, b) => a + b, 0)));
         } else {
           cells = hrs.map((h, i) => `<td>${eqp(h, i)}</td>`).join('');
@@ -1188,9 +1266,9 @@
     let totalRow, cumRow = '';
     if (measure === 'cost') {
       const tot = months.map((_, i) => resList.reduce((s, r) => s + (byRes[r.id][i] || 0), 0));
-      totalRow = row('Total BCWS', 'grand', tot.map(v => `<td>${cents(v)}</td>`).join(''), bdUsd(roll.total));
+      totalRow = row('Total BCWS', 'grand', tot.map(v => `<td>${cents(v)}</td>`).join(''), bdUsd(nodeTotal));
       let c = 0; const cum = tot.map(v => { c += v; return `<td>${cents(c)}</td>`; }).join('');
-      cumRow = row('Cumulative', 'cum', cum, bdUsd(roll.total));
+      cumRow = row('Cumulative', 'cum', cum, bdUsd(nodeTotal));
     } else if (measure === 'hours') {
       const tt = totLaborHrs.reduce((a, b) => a + b, 0);
       totalRow = row('Total Hours', 'grand', totLaborHrs.map(h => `<td>${cents(h)}</td>`).join(''), addCommas(Math.round(tt)));
@@ -1207,10 +1285,24 @@
       `<button class="${m === measure ? 'active' : ''}" onclick="bdSetMeasure('${m}')">${lbl}</button>`).join('');
     const lastHdr = measure === 'eqp' ? 'Avg' : 'Total';
 
+    // Edit Plan: summary nodes are display-only; leaf nodes get an "add resource" control.
+    const summaryNote = (planMode && !isLeaf)
+      ? '<div class="bd-sum-note">📋 Summary level — values roll up from the work packages below and are not directly editable. Select a lowest-level WBS element to edit resources.</div>'
+      : '';
+    let addCtrl = '';
+    if (edit) {
+      const avail = BD_RES.catalog.filter(r => resList.indexOf(r) < 0);
+      addCtrl = avail.length
+        ? `<div class="bd-add-res"><label>Add resource to ${_xml(wbs)}:</label>` +
+            `<select id="bdAddSel">${avail.map(r => `<option value="${r.id}">${_xml(r.name)} (${r.cls})</option>`).join('')}</select>` +
+            `<button class="btn" onclick="bdAddResourceFromSel()">＋ Add</button></div>`
+        : '<div class="bd-add-res"><span class="bd-add-none">All catalog resources are on this work package.</span></div>';
+    }
+
     return `
       <div class="bd-head">
         <div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div>
-        <div class="bd-sub">Level ${_xml(node.level || '—')} · CAM ${_xml(node.cam || '—')}</div>
+        <div class="bd-sub">Level ${_xml(node.level || '—')} · CAM ${_xml(node.cam || '—')}${planMode ? (isLeaf ? ' · <span class="bd-editable">Editable (lowest level)</span>' : ' · <span class="bd-readonly">Summary — display only</span>') : ''}</div>
       </div>
       <div class="kpi-strip bd-kpis">${cards}</div>
       <div class="bd-tp-head">
@@ -1218,12 +1310,14 @@
         <span class="bd-measure">${toggle}</span>
       </div>
       <div class="bd-tp-note">Resource split, hours, and EQP are derived from the cost-loaded BCWS — per-resource rates; EQP = period hours ÷ working hours that month (business days × 8). Resource allocation is demo data.</div>
+      ${summaryNote}
       <div class="bd-tp-wrap">
         <table class="bd-tp">
           <thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">${lastHdr}</th></tr></thead>
           <tbody>${resRows}${totalRow}${cumRow}</tbody>
         </table>
-      </div>`;
+      </div>
+      ${addCtrl}`;
   }
   function bdSetMeasure(m) {
     bdState.measure = m;
@@ -1248,12 +1342,8 @@
     if (d) d.innerHTML = bdDetailHtml(wbs);
   }
 
-  function renderBaselineDisplay(p) {
-    if (!p.projects.includes('JTB001')) {
-      return `
-        <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong>.</p>
-        <div class="placeholder-note">Baseline not yet loaded for this project. The time-phased WBS baseline is currently available for the <strong>Demo</strong> program (project JTB001 · PPC/SIS Demo 1).</div>`;
-    }
+  // Shared WBS-tree + baseline-detail layout used by both Display Baseline and Edit Plan.
+  function bdMasterDetailHtml() {
     const { map, roots } = bdBuild();
     if (!bdState.sel || !map[bdState.sel]) bdState.sel = roots[0];
     if (!bdState._init) {   // default: expand the top three id levels (down to the CA rows)
@@ -1262,11 +1352,68 @@
     }
     const tree = roots.map(r => bdTreeHtml(r, 0)).join('');
     return `
-      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong> — project JTB001 · PPC/SIS Demo 1. Select a WBS element to view its baseline detail.</p>
       <div class="bd-wrap">
         <div class="bd-tree">${tree}</div>
         <div class="bd-detail" id="bdDetail">${bdDetailHtml(bdState.sel)}</div>
       </div>`;
+  }
+  function bdNotLoaded(p, what) {
+    return `
+      <p class="module-intro">${what} for <strong>${_xml(p.name)}</strong>.</p>
+      <div class="placeholder-note">Baseline not yet loaded for this project. The time-phased WBS baseline is currently available for the <strong>Demo</strong> program (project JTB001 · PPC/SIS Demo 1).</div>`;
+  }
+  function renderBaselineDisplay(p) {
+    if (!p.projects.includes('JTB001')) return bdNotLoaded(p, 'Performance Measurement Baseline (PMB)');
+    return `
+      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong> — project JTB001 · PPC/SIS Demo 1. Select a WBS element to view its baseline detail.</p>
+      ${bdMasterDetailHtml()}`;
+  }
+  function renderPlanEdit(p) {
+    if (!p.projects.includes('JTB001')) return bdNotLoaded(p, 'Edit Plan');
+    return `
+      <p class="module-intro">Edit Plan for <strong>${_xml(p.name)}</strong> — project JTB001 · PPC/SIS Demo 1. Select a WBS element, then edit the time-phased resource values (Cost or Hours). Totals recompute live; edits persist for this session.</p>
+      <div class="bd-edit-bar">
+        <button class="btn primary" onclick="bdSavePlan()">Save Plan</button>
+        <button class="btn" onclick="bdResetPlan()">Reset to baseline</button>
+      </div>
+      ${bdMasterDetailHtml()}`;
+  }
+  // Record a resource cell edit (dollars in cost mode; hours×rate in hours mode) and re-render the detail.
+  function bdEditCell(wbs, resId, mi, raw, measure, rate) {
+    let dollars = parseFloat(String(raw).replace(/[, $]/g, '')) || 0;
+    if (measure === 'hours') dollars = dollars * (rate || 0);
+    if (!bdEdits[wbs]) bdEdits[wbs] = {};
+    if (!bdEdits[wbs][resId]) bdEdits[wbs][resId] = {};
+    bdEdits[wbs][resId][mi] = dollars;
+    const d = document.getElementById('bdDetail');
+    if (d) d.innerHTML = bdDetailHtml(wbs);
+    bdRenderTree();   // re-total the edited leaf and every summary above it
+  }
+  function bdRenderTree() {
+    const treeEl = document.querySelector('.bd-tree');
+    if (treeEl) treeEl.innerHTML = bdBuild().roots.map(r => bdTreeHtml(r, 0)).join('');
+  }
+  function bdAddResourceFromSel() {
+    const sel = document.getElementById('bdAddSel');
+    const wbs = bdState.sel;
+    if (!sel || !sel.value || !bdIsLeaf(wbs)) return;
+    if (!bdAdded[wbs]) bdAdded[wbs] = [];
+    if (bdAdded[wbs].indexOf(sel.value) < 0) bdAdded[wbs].push(sel.value);
+    const d = document.getElementById('bdDetail');
+    if (d) d.innerHTML = bdDetailHtml(wbs);
+    tpmToast('Resource added — enter values to plan it');
+  }
+  function bdSavePlan() {
+    const n = Object.keys(bdEdits).reduce((s, w) => s + Object.keys(bdEdits[w]).reduce((t, r) => t + Object.keys(bdEdits[w][r]).length, 0), 0);
+    tpmToast(n ? '✓ Plan saved — ' + n + ' resource value' + (n === 1 ? '' : 's') + ' updated' : 'No changes to save');
+  }
+  function bdResetPlan() {
+    bdEdits = {};
+    bdAdded = {};
+    const d = document.getElementById('bdDetail');
+    if (d) d.innerHTML = bdDetailHtml(bdState.sel);
+    bdRenderTree();
+    tpmToast('Plan reset to baseline');
   }
   function renderEac(p) {
     return `
@@ -3108,6 +3255,7 @@
     switch (currentModule) {
       case 'baseline-change':  c.innerHTML = renderBaselineChange(p);  break;
       case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
+      case 'plan-edit':        c.innerHTML = renderPlanEdit(p);        break;
       case 'eac':      c.innerHTML = renderEac(p);      break;
       case 'values':   c.innerHTML = renderValues(p);  break;
       case 'reports':  c.innerHTML = renderReports();   break;
