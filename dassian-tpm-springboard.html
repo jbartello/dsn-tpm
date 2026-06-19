@@ -555,6 +555,25 @@
   .btn.reject:hover { background: #fbe5e5; }
   .bcr-emailwrap { border: 1px solid var(--panel-border); border-radius: 6px; padding: 12px 14px; background: #fafafa; margin-top: 6px; }
   .bcr-emailwrap .em-hd { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  /* ---------- Project Setup (/DSN/PPCN) ---------- */
+  .ps-modebar { display: inline-flex; border: 1px solid var(--sap-blue); border-radius: 6px; overflow: hidden; margin-bottom: 18px; }
+  .ps-modebar button { border: none; background: #fff; color: var(--sap-blue); padding: 8px 18px; font-size: 13px; font-family: inherit; cursor: pointer; }
+  .ps-modebar button + button { border-left: 1px solid var(--sap-blue); }
+  .ps-modebar button.active { background: var(--sap-blue); color: #fff; }
+  .ps-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .ps-ca   { background: #e7eef9; color: var(--sap-blue); }
+  .ps-wp   { background: #e3f4ea; color: var(--good); }
+  .ps-slpp { background: #eadcf8; color: #7b3fb3; }
+  .ps-pp   { background: #fef3d6; color: #9a7400; }
+  .ps-mfg  { background: #e0e7ee; color: #4a6072; }
+  .ps-mr   { background: #fbe5e5; color: var(--bad); }
+  .ps-ub   { background: #fcefe3; color: var(--warn); }
+  .ps-classbar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 4px 0 14px; border-bottom: 1px solid #ededed; margin-bottom: 14px; }
+  .ps-classbar label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+  .ps-classbar select { font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 5px 8px; }
+  .ps-th-lbl { font-weight: 600; white-space: nowrap; }
+  .ps-classbar input[disabled] + strong, .ps-classbar label[title]:not([title=""]) input[disabled] { opacity: .5; }
+  .ps-block { font-size: 12px; color: var(--bad); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -1509,10 +1528,238 @@
       <p class="module-intro">Estimate at Completion for <strong>${p.name}</strong>.</p>
       <div class="placeholder-note">Project EAC view — to be built out (EAC scenarios, VAC, EAC by control account, forecast trends).</div>`;
   }
-  function renderSetup(p) {
+  /* ===================== Project Setup (/DSN/PPCN) =====================
+     Maintain Control Accounts & Work Packages: a mode selector (Project
+     Header / Control Accounts / Work Packages / MR-UB) over the JTB001 WBS
+     tree, each with the attribute set from the Dassian PPCN transaction.
+     Demo-only (JTB001); state is in-memory and seeded from CAP_TP + WBS_DICT. */
+  const PS_REPORTING_LEVELS = ['Control Accounts', 'Work Packages', 'WBS Level', 'Manual Selection'];
+  const PS_THRESH_CTRL = [['', 'Either (worst of % / value)'], ['B', 'Both (best of % / value)'], ['P', '% only'], ['V', 'Value only']];
+  const PS_EV_METHODS = ['0/100', '25/75', '50/50', '% Complete', 'Milestone (Weighted)', 'Level of Effort (LOE)', 'Apportioned Effort', 'Earned Standards (EST)', 'Units Complete'];
+  const PS_EOC = ['Labor', 'Material', 'ODC', 'Subcontract', 'Travel', 'Other'];
+  const PS_PMB_VERSIONS = ['PMB-BL3 (Current)', 'PMB-BL2', 'PMB-BL1'];
+  const PS_EAC_VERSIONS = ['EAC-Working', 'EAC-Approved', 'EAC-CBB'];
+  const PS_EXTRACT_PROFILES = ['CPR-STD', 'IPMDAR-STD', 'INTERNAL'];
+  const PS_CAMS = ['Jason Bartello', 'Allen Ytzen', 'EHAYES', 'Richard Reed', 'Tim LaRue', 'L. Ortiz'];
+  const PS_ANALYSTS = ['Jason Bartello', 'P. Nguyen', 'M. Cole'];
+  const PS_OBS = ['Avionics IPT', 'Production', 'Test & Eval', 'Data IPT', 'Training IPT', 'Site Activation', 'Program'];
+
+  const psState = { mode: 'header', sel: '', expanded: {}, _init: false };
+  let psData = null;
+
+  function psDefault(mode) {
+    if (mode === 'ca') return { flag: false, slpp: false, cam: '', analyst: '', target: '', mod: '', alt: '', sow: '', auth: '', notes: '' };
+    if (mode === 'wp') return { flag: false, pp: false, mfg: false, ev: '', mgr: '', eoc: '', rec: 'Recurring', imsS: '', imsF: '', manS: '', manF: '', sow: '', auth: '', notes: '', assign: '' };
+    return { mr: false, ub: false, burden: false, mgr: '', vendor: '' };
+  }
+  function psSeed() {
+    if (psData) return psData;
+    const map = bdBuild().map;
+    const rows = (window.CAP_TP || { rows: [] }).rows || [];
+    psData = {
+      header: { reporting: 'Control Accounts', pm: 'L. Ortiz', pmbVer: PS_PMB_VERSIONS[0], eacVer: PS_EAC_VERSIONS[0], extract: PS_EXTRACT_PROFILES[0], obs: 'Program', threshCtrl: '',
+        thresh: { cv: { yPct: '5', rPct: '10', yVal: '', rVal: '' }, sv: { yPct: '5', rPct: '10', yVal: '', rVal: '' }, vac: { yPct: '5', rPct: '10', yVal: '', rVal: '' } } },
+      ca: {}, wp: {}, mrub: {},
+    };
+    const caSet = {}, wpSet = {};
+    rows.forEach(r => { if (r.type === 'BCWS') { if (r.ca && map[r.ca]) caSet[r.ca] = true; if (r.wp && map[r.wp]) wpSet[r.wp] = true; } });
+    Object.keys(caSet).forEach(w => { const d = psDefault('ca'); d.flag = true; d.cam = (map[w] && map[w].cam) || ''; psData.ca[w] = d; });
+    Object.keys(wpSet).forEach(w => { const d = psDefault('wp'); d.flag = true; d.ev = (map[w] && map[w].ev) || ''; d.mgr = (map[w] && map[w].cam) || ''; d.imsS = (map[w] && map[w].imsBS) || ''; d.imsF = (map[w] && map[w].imsBF) || ''; psData.wp[w] = d; });
+    return psData;
+  }
+  function psSet(mode, wbs, key, val) { const d = psSeed(); if (!d[mode][wbs]) d[mode][wbs] = psDefault(mode); d[mode][wbs][key] = val; }
+  function psSetClass(mode, wbs, key, val) { psSet(mode, wbs, key, val); psRerender(); }
+  function psSetHeader(k, v) { psSeed().header[k] = v; }
+  function psSetThresh(k, f, v) { psSeed().header.thresh[k][f] = v; }
+  function psRerender() { const c = document.getElementById('content'); if (c) c.innerHTML = renderSetup(prog()); }
+  function psSetMode(m) { psState.mode = m; psRerender(); }
+  function psSelect(w) { psState.sel = w; psRerender(); }
+  function psToggle(w) { psState.expanded[w] = !psState.expanded[w]; psRerender(); }
+
+  /* ---- EVM structural rules (EIA-748): enforce valid CA / WP / MR-UB relationships ----
+     A WBS object can be only one of CA, WP, or MR/UB. A work package must sit below a
+     control account; control accounts and work packages cannot nest within their own
+     kind; MR/UB cannot live anywhere in the control-account hierarchy. */
+  function psIsCA(w) { const x = psSeed().ca[w]; return !!(x && x.flag); }
+  function psIsWP(w) { const x = psSeed().wp[w]; return !!(x && x.flag); }
+  function psIsMRUB(w) { const x = psSeed().mrub[w]; return !!(x && (x.mr || x.ub)); }
+  function psAncestors(w) { const out = [], p = String(w).split('.'); for (let i = p.length - 1; i > 0; i--) out.push(p.slice(0, i).join('.')); return out; }
+  function psDescendants(w) { const map = bdBuild().map, pref = w + '.'; return Object.keys(map).filter(k => k.indexOf(pref) === 0); }
+  const psCAAbove = w => psAncestors(w).some(psIsCA);
+  const psCABelow = w => psDescendants(w).some(psIsCA);
+  const psWPAbove = w => psAncestors(w).some(psIsWP);
+  const psWPBelow = w => psDescendants(w).some(psIsWP);
+  // Each returns '' if allowed, or a human-readable reason it is blocked.
+  function psCanBeCA(w) {
+    if (psIsWP(w)) return 'it is already a work package';
+    if (psIsMRUB(w)) return 'it is an MR/UB object';
+    if (psCAAbove(w)) return 'a control account already exists above it';
+    if (psCABelow(w)) return 'a control account already exists below it';
+    if (psWPAbove(w)) return 'a work package exists above it';
+    return '';
+  }
+  function psCanBeWP(w) {
+    if (psIsCA(w)) return 'it is already a control account';
+    if (psIsMRUB(w)) return 'it is an MR/UB object';
+    if (!psCAAbove(w)) return 'a work package must sit below a control account';
+    if (psWPAbove(w)) return 'a work package already exists above it';
+    if (psWPBelow(w)) return 'a work package already exists below it';
+    return '';
+  }
+  function psCanBeMRUB(w) {
+    if (psIsCA(w)) return 'it is a control account';
+    if (psIsWP(w)) return 'it is a work package';
+    if (psCAAbove(w)) return 'a control account exists above it';
+    if (psCABelow(w)) return 'a control account exists below it';
+    return '';
+  }
+  function psFlagCA(wbs, on) {
+    if (on) { const r = psCanBeCA(wbs); if (r) { tpmToast('Cannot set Control Account — ' + r); psRerender(); return; } }
+    psSet('ca', wbs, 'flag', on); psRerender();
+  }
+  function psFlagWP(wbs, on) {
+    if (on) { const r = psCanBeWP(wbs); if (r) { tpmToast('Cannot set Work Package — ' + r); psRerender(); return; } }
+    psSet('wp', wbs, 'flag', on); psRerender();
+  }
+  function psFlagMR(wbs, on) {
+    if (on) { const r = psCanBeMRUB(wbs); if (r) { tpmToast('Cannot set Management Reserve — ' + r); psRerender(); return; } }
+    psSet('mrub', wbs, 'mr', on); psRerender();
+  }
+  function psFlagUB(wbs, on) {
+    if (on) { const r = psCanBeMRUB(wbs); if (r) { tpmToast('Cannot set Undistributed Budget — ' + r); psRerender(); return; } }
+    psSet('mrub', wbs, 'ub', on); psRerender();
+  }
+
+  function psBadge(wbs) {
+    const d = psSeed(), c = d.ca[wbs], w = d.wp[wbs], m = d.mrub[wbs], t = [];
+    if (c && c.flag) t.push(c.slpp ? ['SLPP', 'slpp'] : ['CA', 'ca']);
+    if (w && w.flag) { t.push(w.pp ? ['PP', 'pp'] : ['WP', 'wp']); if (w.mfg) t.push(['MFG', 'mfg']); }
+    if (m && m.mr) t.push(['MR', 'mr']);
+    if (m && m.ub) t.push(['UB', 'ub']);
+    return t.map(x => `<span class="ps-badge ps-${x[1]}">${x[0]}</span>`).join('');
+  }
+  function psTreeHtml(wbs, depth) {
+    const node = bdBuild().map[wbs], kids = node.children, open = !!psState.expanded[wbs];
+    const caret = kids.length ? `<span class="bd-caret" onclick="psToggle('${wbs}')">${open ? '▾' : '▸'}</span>` : '<span class="bd-caret"></span>';
+    const active = psState.sel === wbs ? ' active' : '';
+    let html = `<div class="bd-row" data-pswbs="${wbs}" style="padding-left:${10 + depth * 16}px">${caret}` +
+      `<span class="bd-name${active}" onclick="psSelect('${wbs}')"><span class="bd-wid">${_xml(wbs)} · ${_xml(node.desc || '')}</span>${psBadge(wbs)}</span></div>`;
+    if (kids.length) html += `<div class="bd-children${open ? ' open' : ''}" data-psparent="${wbs}">` + kids.map(k => psTreeHtml(k, depth + 1)).join('') + '</div>';
+    return html;
+  }
+
+  // shared form-field builders for the attribute panels
+  const psFld = (mode, wbs, label, key, val, wide) => `<div class="bcr-fld${wide ? ' wide' : ''}"><label>${label}</label><input value="${_xml(val)}" onchange="psSet('${mode}','${wbs}','${key}',this.value)"></div>`;
+  const psDate = (mode, wbs, label, key, val) => `<div class="bcr-fld"><label>${label}</label><input value="${_xml(val)}" placeholder="MM/DD/YYYY" onchange="psSet('${mode}','${wbs}','${key}',this.value)"></div>`;
+  const psSel = (mode, wbs, label, key, list, val) => `<div class="bcr-fld"><label>${label}</label><select onchange="psSet('${mode}','${wbs}','${key}',this.value)"><option value=""></option>${list.map(o => `<option${o === val ? ' selected' : ''}>${_xml(o)}</option>`).join('')}</select></div>`;
+  const psTxt = (mode, wbs, label, key, val) => `<div class="bcr-fld wide"><label>${label}</label><textarea onchange="psSet('${mode}','${wbs}','${key}',this.value)">${_xml(val)}</textarea></div>`;
+
+  function psHeaderForm() {
+    const h = psSeed().header;
+    const sel = (label, key, list, val) => `<div class="bcr-fld"><label>${label}</label><select onchange="psSetHeader('${key}',this.value)">${list.map(o => { const v = Array.isArray(o) ? o[0] : o, t = Array.isArray(o) ? o[1] : o; return `<option value="${_xml(v)}"${v === val ? ' selected' : ''}>${_xml(t)}</option>`; }).join('')}</select></div>`;
+    const tRow = (lbl, k) => { const t = h.thresh[k]; return `<tr><td class="ps-th-lbl">${lbl}</td>` + ['yPct', 'rPct', 'yVal', 'rVal'].map(f => `<td><input class="num" value="${_xml(t[f])}" onchange="psSetThresh('${k}','${f}',this.value)"></td>`).join('') + '</tr>'; };
     return `
-      <p class="module-intro">Project Setup for <strong>${p.name}</strong>.</p>
-      <div class="placeholder-note">Project Setup view — to be built out (project definition, WBS &amp; OBS structure, calendars, rate/resource catalog, control-account assignments, baseline options).</div>`;
+      <div class="bcr-sec"><h3>Project Header Information</h3><div class="sec-in"><div class="bcr-grid">
+        ${sel('Reporting Level', 'reporting', PS_REPORTING_LEVELS, h.reporting)}
+        ${sel('Program Manager', 'pm', PS_CAMS, h.pm)}
+        ${sel('PMB Version', 'pmbVer', PS_PMB_VERSIONS, h.pmbVer)}
+        ${sel('EAC Version', 'eacVer', PS_EAC_VERSIONS, h.eacVer)}
+        ${sel('Extract Profile', 'extract', PS_EXTRACT_PROFILES, h.extract)}
+        ${sel('Responsible Org (OBS)', 'obs', PS_OBS, h.obs)}
+      </div></div></div>
+      <div class="bcr-sec"><h3>Variance Thresholds (Red / Yellow)</h3><div class="sec-in">
+        <div class="bcr-grid" style="margin-bottom:12px">${sel('Threshold Control', 'threshCtrl', PS_THRESH_CTRL, h.threshCtrl)}</div>
+        <table class="bcr-tbl"><thead><tr><th>Variance</th><th class="num">Yellow %</th><th class="num">Red %</th><th class="num">Yellow Value</th><th class="num">Red Value</th></tr></thead>
+        <tbody>${tRow('Cost Variance (CV)', 'cv')}${tRow('Schedule Variance (SV)', 'sv')}${tRow('Variance at Complete (VAC)', 'vac')}</tbody></table>
+        <div class="bd-tp-note">% thresholds drive each object's Red/Yellow/Green status; value thresholds apply at the reporting level for CPR Format 5. Blank = 0. Red must be ≥ Yellow.</div>
+      </div></div>`;
+  }
+
+  function psCADetail(wbs) {
+    const c = psSeed().ca[wbs] || psDefault('ca'), on = !!c.flag;
+    const blk = on ? '' : psCanBeCA(wbs);
+    const classbar = `<div class="ps-classbar">
+      <label title="${_xml(blk)}"><input type="checkbox" ${on ? 'checked' : ''} ${blk ? 'disabled' : ''} onchange="psFlagCA('${wbs}',this.checked)"> <strong>Control Account</strong></label>
+      <label>Type: <select ${on ? '' : 'disabled'} onchange="psSetClass('ca','${wbs}','slpp',this.value==='SLPP')"><option value="CA"${!c.slpp ? ' selected' : ''}>Control Account</option><option value="SLPP"${c.slpp ? ' selected' : ''}>Summary Level Planning Package</option></select></label>
+      ${blk ? `<span class="ps-block">⚠ Not allowed — ${_xml(blk)}</span>` : ''}</div>`;
+    if (!on) return `<div class="bcr-sec"><h3>Control Account Assignment</h3><div class="sec-in">${classbar}<div class="bd-tp-note">Check “Control Account” to classify this WBS element and enter its attributes. A control account cannot nest within another, and cannot also be a work package or MR/UB object.</div></div></div>`;
+    return `<div class="bcr-sec"><h3>Control Account Assignment</h3><div class="sec-in">${classbar}<div class="bcr-grid">
+      ${psSel('ca', wbs, 'Control Account Manager', 'cam', PS_CAMS, c.cam)}
+      ${psSel('ca', wbs, 'Analyst', 'analyst', PS_ANALYSTS, c.analyst)}
+      ${psFld('ca', wbs, 'Target Value (Project Currency)', 'target', c.target)}
+      ${psFld('ca', wbs, 'Modification Number', 'mod', c.mod)}
+      ${psFld('ca', wbs, 'CAM Alternates', 'alt', c.alt, true)}
+      ${psTxt('ca', wbs, 'Scope of Work (SOW)', 'sow', c.sow)}
+      ${psTxt('ca', wbs, 'Authorization Information', 'auth', c.auth)}
+      ${psTxt('ca', wbs, 'General Notes', 'notes', c.notes)}
+    </div></div></div>`;
+  }
+  function psWPDetail(wbs) {
+    const c = psSeed().wp[wbs] || psDefault('wp'), on = !!c.flag;
+    const blk = on ? '' : psCanBeWP(wbs);
+    const classbar = `<div class="ps-classbar">
+      <label title="${_xml(blk)}"><input type="checkbox" ${on ? 'checked' : ''} ${blk ? 'disabled' : ''} onchange="psFlagWP('${wbs}',this.checked)"> <strong>Work Package</strong></label>
+      <label>Type: <select ${on ? '' : 'disabled'} onchange="psSetClass('wp','${wbs}','pp',this.value==='PP')"><option value="WP"${!c.pp ? ' selected' : ''}>Work Package</option><option value="PP"${c.pp ? ' selected' : ''}>Planning Package</option></select></label>
+      <label><input type="checkbox" ${on ? '' : 'disabled'} ${c.mfg ? 'checked' : ''} onchange="psSetClass('wp','${wbs}','mfg',this.checked)"> Manufacturing Work Package</label>
+      ${blk ? `<span class="ps-block">⚠ Not allowed — ${_xml(blk)}</span>` : ''}</div>`;
+    if (!on) return `<div class="bcr-sec"><h3>Work Package Assignment</h3><div class="sec-in">${classbar}<div class="bd-tp-note">Check “Work Package” to classify this object and set its EV method, dates, and attributes. A work package must sit below a control account, cannot nest within another work package, and cannot also be a control account or MR/UB object.</div></div></div>`;
+    const rec = `<div class="bcr-fld"><label>Recurring / Non-Recurring</label><div class="bcr-checks">
+      <label><input type="radio" name="psrec_${wbs}" ${c.rec === 'Recurring' ? 'checked' : ''} onchange="psSet('wp','${wbs}','rec','Recurring')"> Recurring</label>
+      <label><input type="radio" name="psrec_${wbs}" ${c.rec === 'Non-Recurring' ? 'checked' : ''} onchange="psSet('wp','${wbs}','rec','Non-Recurring')"> Non-Recurring</label></div></div>`;
+    return `<div class="bcr-sec"><h3>Work Package Assignment</h3><div class="sec-in">${classbar}<div class="bcr-grid">
+      ${psSel('wp', wbs, 'Default EV Method', 'ev', PS_EV_METHODS, c.ev)}
+      ${psSel('wp', wbs, 'WP Manager', 'mgr', PS_CAMS, c.mgr)}
+      ${psSel('wp', wbs, 'Cost Type (EOC)', 'eoc', PS_EOC, c.eoc)}
+      ${rec}
+      ${psDate('wp', wbs, 'IMS Start Date', 'imsS', c.imsS)}
+      ${psDate('wp', wbs, 'IMS Finish Date', 'imsF', c.imsF)}
+      ${psDate('wp', wbs, 'Manual Start Date', 'manS', c.manS)}
+      ${psDate('wp', wbs, 'Manual Finish Date', 'manF', c.manF)}
+      ${psFld('wp', wbs, 'Work Package Assignments (Assigned To)', 'assign', c.assign, true)}
+      ${psTxt('wp', wbs, 'Scope of Work (SOW)', 'sow', c.sow)}
+      ${psTxt('wp', wbs, 'Authorization Information', 'auth', c.auth)}
+      ${psTxt('wp', wbs, 'General Notes', 'notes', c.notes)}
+    </div></div></div>`;
+  }
+  function psMRUBDetail(wbs) {
+    const m = psSeed().mrub[wbs] || psDefault('mrub'), any = m.mr || m.ub;
+    const mrBlk = m.mr ? '' : psCanBeMRUB(wbs);
+    const ubBlk = m.ub ? '' : psCanBeMRUB(wbs);
+    const classbar = `<div class="ps-classbar">
+      <label title="${_xml(mrBlk)}"><input type="checkbox" ${m.mr ? 'checked' : ''} ${mrBlk ? 'disabled' : ''} onchange="psFlagMR('${wbs}',this.checked)"> <strong>Management Reserve</strong></label>
+      <label title="${_xml(ubBlk)}"><input type="checkbox" ${m.ub ? 'checked' : ''} ${ubBlk ? 'disabled' : ''} onchange="psFlagUB('${wbs}',this.checked)"> <strong>Undistributed Budget</strong></label>
+      <label><input type="checkbox" ${m.burden ? 'checked' : ''} ${any ? '' : 'disabled'} onchange="psSet('mrub','${wbs}','burden',this.checked)"> Burden Indicator</label>
+      ${(mrBlk && ubBlk) ? `<span class="ps-block">⚠ Not allowed — ${_xml(mrBlk)}</span>` : ''}</div>`;
+    const attrs = any ? `<div class="bcr-grid">
+      ${psSel('mrub', wbs, 'Account Manager', 'mgr', PS_CAMS, m.mgr)}
+      ${psFld('mrub', wbs, 'Vendor', 'vendor', m.vendor)}
+    </div>` : `<div class="bd-tp-note">Flag this WBS element for Management Reserve and/or Undistributed Budget. MR/UB cannot sit inside the control-account hierarchy (no control account above or below it) and cannot also be a control account or work package.</div>`;
+    return `<div class="bcr-sec"><h3>Management Reserve / Undistributed Budget</h3><div class="sec-in">${classbar}${attrs}</div></div>`;
+  }
+  function psDetail() {
+    const wbs = psState.sel, node = wbs && bdBuild().map[wbs];
+    if (!node) return '<div class="bd-tp-note">Select a WBS element from the tree.</div>';
+    const head = `<div class="bd-head"><div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div><div class="bd-sub">Level ${_xml(node.level || '—')} · WBS CAM ${_xml(node.cam || '—')}</div></div>`;
+    const body = psState.mode === 'ca' ? psCADetail(wbs) : psState.mode === 'wp' ? psWPDetail(wbs) : psMRUBDetail(wbs);
+    return head + body;
+  }
+
+  function renderSetup(p) {
+    if (!p.projects.includes('JTB001')) {
+      return `
+        <p class="module-intro">Project Setup for <strong>${_xml(p.name)}</strong>.</p>
+        <div class="placeholder-note">Project Setup (Maintain Control Accounts &amp; Work Packages) is available for the <strong>Demo</strong> program (project JTB001 · PPC/SIS Demo 1).</div>`;
+    }
+    psSeed();
+    const modes = [['header', 'Project Header'], ['ca', 'Control Accounts'], ['wp', 'Work Packages'], ['mrub', 'MR / UB']];
+    const toggle = modes.map(m => `<button class="${m[0] === psState.mode ? 'active' : ''}" onclick="psSetMode('${m[0]}')">${m[1]}</button>`).join('');
+    const intro = `<p class="module-intro">Project Setup for <strong>${_xml(p.name)}</strong> — maintain control accounts &amp; work packages (modeled on Dassian <code>/DSN/PPCN</code>). Changes save automatically for this session.</p><div class="ps-modebar">${toggle}</div>`;
+    if (psState.mode === 'header') return intro + psHeaderForm();
+    const { map, roots } = bdBuild();
+    if (!psState.sel || !map[psState.sel]) psState.sel = roots[0];
+    if (!psState._init) { Object.keys(map).forEach(w => { if (w.split('.').length <= 3) psState.expanded[w] = true; }); psState._init = true; }
+    const tree = roots.map(r => psTreeHtml(r, 0)).join('');
+    return intro + `<div class="bd-wrap"><div class="bd-tree" id="psTree">${tree}</div><div class="bd-detail" id="psDetail">${psDetail()}</div></div>`;
   }
 
   function renderValues(p) {
