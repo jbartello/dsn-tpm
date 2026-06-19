@@ -284,6 +284,11 @@
   .bd-add-res .bd-add-none { font-size: 12px; color: var(--text-muted); font-style: italic; }
   .bd-sub .bd-editable { color: var(--good); font-weight: 700; }
   .bd-sub .bd-readonly { color: var(--text-muted); font-weight: 700; }
+  table.bd-tp td.bd-lock { background: repeating-linear-gradient(45deg, #f4f5f7, #f4f5f7 6px, #eef0f2 6px, #eef0f2 12px); color: #b0b4b9; }
+  .bd-res-dates { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-weight: 400; }
+  .bd-res-dates label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+  input.bd-date { font-family: inherit; font-size: 11px; border: 1px solid #cdd8e3; border-radius: 4px; padding: 3px 5px; background: #fff; color: var(--text); width: 84px; }
+  input.bd-date:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
 
   /* ---------- Project Values: KPI / filter strip ---------- */
   .filter-strip {
@@ -569,6 +574,8 @@
     <!-- Left navigation -->
     <nav class="sidenav">
       <div class="nav-header">Total Program Management</div>
+      <div class="nav-item" data-mod="setup" onclick="setModule('setup')">
+        <span class="nav-ico">⚙️</span> Project Setup</div>
       <div class="nav-item nav-parent" onclick="toggleBaseline()">
         <span class="nav-ico">📐</span> Project Baseline <span class="nav-chev" id="baselineChev">▾</span></div>
       <div class="nav-sub" id="baselineSub">
@@ -643,6 +650,7 @@
   };
 
   const MODULE_TITLES = {
+    setup:     'Project Setup',
     'baseline-change':  'Baseline Change Request',
     'baseline-display': 'Display Baseline',
     'plan-edit':        'Edit Plan',
@@ -1000,6 +1008,10 @@
   // Edit Plan: resources manually added to a leaf node so a zero-valued row
   // appears for editing. bdAdded[wbs] = [resId, ...].
   let bdAdded = {};
+  // Edit Plan: per-resource active window (month indices). Only periods within
+  // [s, f] are editable. bdDates[wbs][resId] = { s, f }. Defaults to the
+  // resource's own active span (or the node span for added resources).
+  let bdDates = {};
 
   /* Resource model for the time-phased breakout. CAP_TP carries a single
      cost-loaded BCWS line per work package with no resource split, so the
@@ -1059,7 +1071,9 @@
     }
     return A.length - B.length;
   }
-  // Build the WBS tree once from WBS_DICT (static JTB001 data).
+  // Build the WBS tree once from WBS_DICT (static JTB001 data). The tree goes all
+  // the way down to the work-package leaves; leaves are the editable lowest level,
+  // and any node with children is a display-only summary that rolls them up.
   function bdBuild() {
     if (_bdTree) return _bdTree;
     const dict = window.WBS_DICT || { rows: [] };
@@ -1221,9 +1235,10 @@
     const totHours = totLaborHrs.reduce((a, b) => a + b, 0);
     let spanS = -1, spanF = -1;
     roll.vals.forEach((v, i) => { if (v > 0.005) { if (spanS < 0) spanS = i; spanF = i; } });
+    const pmb = bdPmbRange(wbs);
     const cards =
-      bdCard('PMB Start Date', spanS < 0 ? '—' : bdFirstOfMonth(months[spanS])) +
-      bdCard('PMB Finish Date', spanS < 0 ? '—' : months[spanF]) +
+      bdCard('PMB Start Date', pmb.start || '—') +
+      bdCard('PMB Finish Date', pmb.end || '—') +
       bdCard('Total BCWS', bdUsd(nodeTotal)) +
       bdCard('Hours', totHours ? addCommas(Math.round(totHours)) : '—');
 
@@ -1235,17 +1250,32 @@
       `<td class="bd-edit-td"><input class="bd-edit" value="${Math.round(val) || 0}" ` +
       `onchange="bdEditCell('${wbs}','${resId}',${mi},this.value,'${meas}',${rate || 0})"></td>`;
 
+    // Locked (out-of-window) cell: shown but not editable.
+    const lockTd = v => `<td class="bd-lock" title="Outside this resource's start/end dates">${cents(v)}</td>`;
+    // MM/DD/YYYY start/end inputs shown in the resource label when editing.
+    const dateInput = (resId, which, val) =>
+      `<input class="bd-date" value="${_xml(val)}" placeholder="MM/DD/YYYY" ` +
+      `onchange="bdSetResDate('${wbs}','${resId}','${which}',this.value)">`;
+    // A period (month-end months[i]) is editable if its month overlaps [start, end].
+    const periodIn = (d, i) => {
+      const sNum = bdDateNum(d.start), eNum = bdDateNum(d.end);
+      if (!sNum || !eNum) return false;
+      return sNum <= bdDateNum(months[i]) && eNum >= bdDateNum(bdFirstOfMonth(months[i]));
+    };
+
     // one row per resource
     const resRows = resList.map(r => {
       const series = byRes[r.id];
+      const d = edit ? bdResWindowDates(wbs, r.id, series, spanS, spanF) : null;
+      const inWin = i => !!d && periodIn(d, i);
       let cells, total;
       if (measure === 'cost') {
-        cells = series.map((v, i) => edit ? editTd(v, r.id, i, 'cost', 0) : `<td>${cents(v)}</td>`).join('');
+        cells = series.map((v, i) => !edit ? `<td>${cents(v)}</td>` : (inWin(i) ? editTd(v, r.id, i, 'cost', 0) : lockTd(v))).join('');
         total = bdUsd(series.reduce((a, b) => a + b, 0));
       } else if (r.cls === 'labor') {
         const hrs = series.map(v => v / r.rate);
         if (measure === 'hours') {
-          cells = hrs.map((h, i) => edit ? editTd(h, r.id, i, 'hours', r.rate) : `<td>${cents(h)}</td>`).join('');
+          cells = hrs.map((h, i) => !edit ? `<td>${cents(h)}</td>` : (inWin(i) ? editTd(h, r.id, i, 'hours', r.rate) : lockTd(h))).join('');
           total = addCommas(Math.round(hrs.reduce((a, b) => a + b, 0)));
         } else {
           cells = hrs.map((h, i) => `<td>${eqp(h, i)}</td>`).join('');
@@ -1256,9 +1286,9 @@
         cells = months.map(() => '<td>·</td>').join('');
         total = '·';
       }
-      const lbl = r.cls === 'labor'
-        ? _xml(r.name)
-        : `${_xml(r.name)} <span class="bd-rate">cost</span>`;
+      let lbl = r.cls === 'labor' ? _xml(r.name) : `${_xml(r.name)} <span class="bd-rate">cost</span>`;
+      if (edit) lbl += `<div class="bd-res-dates"><label>Start</label>${dateInput(r.id, 'start', d.start)}` +
+        `<label>End</label>${dateInput(r.id, 'end', d.end)}</div>`;
       return row(lbl, 'res', cells, total);
     }).join('');
 
@@ -1393,6 +1423,64 @@
     const treeEl = document.querySelector('.bd-tree');
     if (treeEl) treeEl.innerHTML = bdBuild().roots.map(r => bdTreeHtml(r, 0)).join('');
   }
+  // MM/DD/YYYY → comparable YYYYMMDD integer (0 if unparseable).
+  function bdDateNum(s) { const p = String(s || '').split('/'); return p.length < 3 ? 0 : (+p[2]) * 10000 + (+p[0]) * 100 + (+p[1]); }
+  // Validate/normalize a typed date to MM/DD/YYYY; '' if invalid (change ignored).
+  function bdNormDate(v) {
+    const m = String(v || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return '';
+    const mm = Math.min(12, Math.max(1, +m[1])), dd = Math.min(31, Math.max(1, +m[2]));
+    return String(mm).padStart(2, '0') + '/' + String(dd).padStart(2, '0') + '/' + m[3];
+  }
+  // Active month-index span of a node's baseline BCWS.
+  function bdNodeSpan(wbs) {
+    const roll = bdRollupBCWS(wbs); let s = -1, f = -1;
+    (roll.vals || []).forEach((v, i) => { if (v > 0.005) { if (s < 0) s = i; f = i; } });
+    return { s, f };
+  }
+  // Resolve (and lazily default) a resource's start/end dates (MM/DD/YYYY).
+  // Default = the resource's own active span (month start → month end); for an
+  // empty/added resource, the node's span.
+  function bdResWindowDates(wbs, resId, series, nodeS, nodeF) {
+    if (!bdDates[wbs]) bdDates[wbs] = {};
+    if (!bdDates[wbs][resId]) {
+      const months = (window.CAP_TP || { months: [] }).months;
+      let s = -1, f = -1;
+      (series || []).forEach((v, i) => { if (Math.round(v) !== 0) { if (s < 0) s = i; f = i; } });
+      if (s < 0) { s = nodeS >= 0 ? nodeS : 0; f = nodeF >= 0 ? nodeF : (months.length - 1); }
+      bdDates[wbs][resId] = months.length
+        ? { start: bdFirstOfMonth(months[s]), end: months[f] }
+        : { start: '', end: '' };
+    }
+    return bdDates[wbs][resId];
+  }
+  function bdSetResDate(wbs, resId, which, val) {
+    const norm = bdNormDate(val);
+    if (!bdDates[wbs]) bdDates[wbs] = {};
+    if (!bdDates[wbs][resId]) bdDates[wbs][resId] = { start: '', end: '' };
+    const d = bdDates[wbs][resId];
+    if (norm) d[which] = norm;
+    if (d.start && d.end && bdDateNum(d.start) > bdDateNum(d.end)) { if (which === 'start') d.end = d.start; else d.start = d.end; }
+    const det = document.getElementById('bdDetail');
+    if (det) det.innerHTML = bdDetailHtml(wbs);   // re-lock cells + refresh PMB cards
+  }
+  // PMB Start/End for any WBS node: earliest start / latest end across every
+  // planning object (resource) under it — rolls up through all descendant leaves.
+  function bdPmbRange(wbs) {
+    let minStart = null, maxEnd = null;
+    bdLeaves(wbs).forEach(leaf => {
+      const span = bdNodeSpan(leaf), series = bdResSeries(leaf), added = bdAdded[leaf] || [];
+      BD_RES.catalog.forEach(rc => {
+        const ser = series[rc.id];
+        const present = (ser && ser.some(v => Math.round(v) !== 0)) || added.indexOf(rc.id) >= 0;
+        if (!present) return;
+        const d = bdResWindowDates(leaf, rc.id, ser || [], span.s, span.f);
+        if (d.start && (minStart === null || bdDateNum(d.start) < bdDateNum(minStart))) minStart = d.start;
+        if (d.end && (maxEnd === null || bdDateNum(d.end) > bdDateNum(maxEnd))) maxEnd = d.end;
+      });
+    });
+    return { start: minStart, end: maxEnd };
+  }
   function bdAddResourceFromSel() {
     const sel = document.getElementById('bdAddSel');
     const wbs = bdState.sel;
@@ -1410,6 +1498,7 @@
   function bdResetPlan() {
     bdEdits = {};
     bdAdded = {};
+    bdDates = {};
     const d = document.getElementById('bdDetail');
     if (d) d.innerHTML = bdDetailHtml(bdState.sel);
     bdRenderTree();
@@ -1419,6 +1508,11 @@
     return `
       <p class="module-intro">Estimate at Completion for <strong>${p.name}</strong>.</p>
       <div class="placeholder-note">Project EAC view — to be built out (EAC scenarios, VAC, EAC by control account, forecast trends).</div>`;
+  }
+  function renderSetup(p) {
+    return `
+      <p class="module-intro">Project Setup for <strong>${p.name}</strong>.</p>
+      <div class="placeholder-note">Project Setup view — to be built out (project definition, WBS &amp; OBS structure, calendars, rate/resource catalog, control-account assignments, baseline options).</div>`;
   }
 
   function renderValues(p) {
@@ -3253,6 +3347,7 @@
     const c = document.getElementById('content');
     document.getElementById('secTitle').textContent = MODULE_TITLES[currentModule];
     switch (currentModule) {
+      case 'setup':    c.innerHTML = renderSetup(p);    break;
       case 'baseline-change':  c.innerHTML = renderBaselineChange(p);  break;
       case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
       case 'plan-edit':        c.innerHTML = renderPlanEdit(p);        break;
