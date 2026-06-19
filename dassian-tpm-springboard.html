@@ -2235,9 +2235,38 @@
   }
 
   /* ===================== Project Analysis: variance trend + narrative ===================== */
-  // Tolerance bands on variance % (unfavorable = negative): watch beyond -5%, out beyond -10%.
-  const TOL_WATCH = -5, TOL_OUT = -10;
-  function tol(pct) { return pct <= TOL_OUT ? 'out' : pct <= TOL_WATCH ? 'watch' : 'ok'; }
+  // R/Y/G status is driven by the Project Setup variance thresholds (the same
+  // psData.header.thresh maintained on the Project Header). Per EVM standards an
+  // object's status uses the PERCENTAGE thresholds; value thresholds apply at the
+  // reporting level (program rollup) and combine with % per the Threshold Control.
+  function psThreshNum(s) { const n = parseFloat(String(s == null ? '' : s).replace(/,/g, '')); return isNaN(n) ? null : n; }
+  function thBand(variance, scope, x, kind) {
+    const grp = (psSeed().header.thresh[variance] || {})[scope]; if (!grp) return 'ok';
+    const rU = psThreshNum(grp.upper['r' + kind]), yU = psThreshNum(grp.upper['y' + kind]);
+    const rL = psThreshNum(grp.lower['r' + kind]), yL = psThreshNum(grp.lower['y' + kind]);
+    if ((rU != null && x >= rU) || (rL != null && x <= rL)) return 'out';
+    if ((yU != null && x >= yU) || (yL != null && x <= yL)) return 'watch';
+    return 'ok';
+  }
+  const TH_RANK = { ok: 0, watch: 1, out: 2 }, TH_UNRANK = ['ok', 'watch', 'out'];
+  function thCombine(pStatus, vStatus) {
+    const ctrl = psSeed().header.threshCtrl;
+    if (ctrl === 'P') return pStatus;
+    if (ctrl === 'V') return vStatus;
+    if (ctrl === 'B') return TH_UNRANK[Math.min(TH_RANK[pStatus], TH_RANK[vStatus])];   // best of % / value
+    return TH_UNRANK[Math.max(TH_RANK[pStatus], TH_RANK[vStatus])];                      // '' = Either (worst)
+  }
+  // Per control account: percentage thresholds, current period.
+  function varStatus(variance, pct) { return thBand(variance, 'period', pct, 'Pct'); }
+  // Reporting-level rollup: combine % and value per the Threshold Control.
+  function varStatusAgg(variance, pct, val) { return thCombine(thBand(variance, 'period', pct, 'Pct'), thBand(variance, 'period', val, 'Val')); }
+  // Human-readable period tolerance for the unfavorable (lower) side, e.g. "5% / 10%".
+  function thTolText(variance) {
+    const lo = psSeed().header.thresh[variance].period.lower;
+    const y = psThreshNum(lo.yPct), r = psThreshNum(lo.rPct);
+    const f = n => n == null ? '—' : Math.abs(n) + '%';
+    return f(y) + ' watch · ' + f(r) + ' out';
+  }
   const pctClass = st => st === 'out' ? 'bad' : st === 'watch' ? 'warn' : 'good';
 
   // Per-WBS variance + trend for the current selection. Current variance/CPI are
@@ -2261,14 +2290,14 @@
       const priorSVpct = svBase + svDrift * (s - 1);
       const degradingCV = cvDrift < -0.05;
       const degradingSV = svDrift < -0.05;
-      const cvStatus = tol(cvPct), svStatus = tol(svPct);
+      const cvStatus = varStatus('cv', cvPct), svStatus = varStatus('sv', svPct);
       return {
         wbs, desc, cam, bac,
         cvPct, svPct, priorCVpct, priorSVpct, degradingCV, degradingSV, cvStatus, svStatus,
         cpi: 1 + cvPct / 100, spi: 1 + svPct / 100,
         cv$: (cvPct / 100) * bac, sv$: (svPct / 100) * bac,
-        flagCV: degradingCV && cvStatus !== 'ok',
-        flagSV: degradingSV && svStatus !== 'ok',
+        flagCV: cvStatus !== 'ok',   // breach of the Project Setup threshold ⇒ requires variance analysis
+        flagSV: svStatus !== 'ok',
       };
     });
   }
@@ -2276,8 +2305,11 @@
   function narrative(a) {
     const seg = (label, pct, prior, status, cpiName, cpiVal) => {
       const where = status === 'out' ? 'is <strong>out of tolerance</strong>' : 'is <strong>approaching the tolerance limit</strong>';
-      const swing = (prior - pct).toFixed(1);
-      return `${label} ${where} at ${pct.toFixed(1)}% (${cpiName} ${cpiVal.toFixed(2)}), degraded from ${prior.toFixed(1)}% last period — an unfavorable swing of ${swing} pts.`;
+      const worsened = pct < prior, swing = Math.abs(pct - prior).toFixed(1);
+      const trend = worsened
+        ? `degraded from ${prior.toFixed(1)}% last period — an unfavorable swing of ${swing} pts`
+        : `improved from ${prior.toFixed(1)}% last period (+${swing} pts) but remains beyond tolerance`;
+      return `${label} ${where} at ${pct.toFixed(1)}% (${cpiName} ${cpiVal.toFixed(2)}), ${trend}.`;
     };
     const parts = [];
     if (a.flagCV) parts.push(seg('Cost variance', a.cvPct, a.priorCVpct, a.cvStatus, 'CPI', a.cpi));
@@ -2306,10 +2338,10 @@
 
     const summary = `
       <div class="tile-grid" style="margin-bottom:20px">
-        ${tile('Cost Performance (CPI)', wCPI.toFixed(2), wCPI >= 1 ? 'good' : pctClass(tol(cvPctAgg)), wCPI >= 1 ? 'Favorable' : 'Unfavorable')}
-        ${tile('Schedule Performance (SPI)', wSPI.toFixed(2), wSPI >= 1 ? 'good' : pctClass(tol(svPctAgg)), wSPI >= 1 ? 'On / ahead' : 'Behind')}
-        ${tile('Cost Variance', mfmt(totCV) + ' (' + cvPctAgg.toFixed(1) + '%)', pctClass(tol(cvPctAgg)), 'Program rollup')}
-        ${tile('Schedule Variance', mfmt(totSV) + ' (' + svPctAgg.toFixed(1) + '%)', pctClass(tol(svPctAgg)), 'Program rollup')}
+        ${tile('Cost Performance (CPI)', wCPI.toFixed(2), wCPI >= 1 ? 'good' : pctClass(varStatusAgg('cv', cvPctAgg, totCV)), wCPI >= 1 ? 'Favorable' : 'Unfavorable')}
+        ${tile('Schedule Performance (SPI)', wSPI.toFixed(2), wSPI >= 1 ? 'good' : pctClass(varStatusAgg('sv', svPctAgg, totSV)), wSPI >= 1 ? 'On / ahead' : 'Behind')}
+        ${tile('Cost Variance', mfmt(totCV) + ' (' + cvPctAgg.toFixed(1) + '%)', pctClass(varStatusAgg('cv', cvPctAgg, totCV)), 'Program rollup')}
+        ${tile('Schedule Variance', mfmt(totSV) + ' (' + svPctAgg.toFixed(1) + '%)', pctClass(varStatusAgg('sv', svPctAgg, totSV)), 'Program rollup')}
         ${tile('Variance Alerts', String(alerts.length), alerts.length ? 'bad' : 'good', alerts.length ? 'Need attention' : 'All in tolerance')}
       </div>`;
 
@@ -2341,10 +2373,10 @@
 
     return `
       ${renderFilterBar(false)}
-      <p class="module-intro">Earned-value variance analysis for <strong>${p.name}</strong> — status <strong>${period}</strong>. Tolerance: <strong>±5%</strong> watch · <strong>±10%</strong> out. Illustrative trend data.</p>
+      <p class="module-intro">Earned-value variance analysis for <strong>${p.name}</strong> — status <strong>${period}</strong>. Period tolerance from Project Setup — CV: <strong>${thTolText('cv')}</strong> · SV: <strong>${thTolText('sv')}</strong>. Illustrative trend data.</p>
       ${summary}
       <div class="card">
-        <div class="card-head"><span class="ch-title">Variance Narrative — degrading &amp; out-of-tolerance WBS</span></div>
+        <div class="card-head"><span class="ch-title">Variance Narrative — out-of-tolerance WBS</span></div>
         <div class="card-body">${alertHtml}</div>
       </div>
       <div class="card">
