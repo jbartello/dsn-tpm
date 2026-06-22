@@ -1062,6 +1062,11 @@
   // [s, f] are editable. bdDates[wbs][resId] = { s, f }. Defaults to the
   // resource's own active span (or the node span for added resources).
   let bdDates = {};
+  // Schedule layer: every work package owns cost-loaded subtasks (activities)
+  // that carry the monthly resource grid AND the schedule. WP/CA/summary cost &
+  // span roll up from subtasks. Seeded once from the baseline (one subtask/WP).
+  let schedData = null;
+  let schedSel = { task: '' };   // currently-open subtask id (within bdState.sel WP)
 
   /* Resource model for the time-phased breakout. CAP_TP carries a single
      cost-loaded BCWS line per work package with no resource split, so the
@@ -1173,6 +1178,40 @@
     });
     return byRes;
   }
+  /* ----- Schedule: cost-loaded subtasks (one default subtask migrated per WP) ----- */
+  function schedSeed() {
+    if (schedData) return schedData;
+    schedData = { tasks: {} };
+    const months = (window.CAP_TP || { months: [] }).months;
+    const map = bdBuild().map;
+    const walk = w => { const n = map[w]; if (!n) return; if (n.children.length) n.children.forEach(walk); else migrate(w); };
+    bdBuild().roots.forEach(walk);
+    function migrate(wp) {
+      const byRes = bdRollupByResource(wp);
+      const ids = Object.keys(byRes).filter(id => byRes[id].some(v => Math.round(v) !== 0));
+      if (!ids.length) { schedData.tasks[wp] = []; return; }   // empty WP — add subtasks manually
+      const span = bdNodeSpan(wp), res = {};
+      ids.forEach(id => { res[id] = byRes[id].slice(); });
+      schedData.tasks[wp] = [{
+        id: wp + '.T1', name: (map[wp].desc || 'Task 1'),
+        start: months.length && span.s >= 0 ? bdFirstOfMonth(months[span.s]) : '',
+        finish: months.length && span.f >= 0 ? months[span.f] : '',
+        preds: [], res: res, added: [],
+      }];
+    }
+    return schedData;
+  }
+  function schedTasks(wp) { const d = schedSeed(); if (!d.tasks[wp]) d.tasks[wp] = []; return d.tasks[wp]; }
+  function schedTask(wp, id) { return schedTasks(wp).find(t => t.id === id); }
+  // Sum a WP's subtasks into a {resId: monthly[]} series.
+  function bdWpSeries(wp) {
+    const n = (window.CAP_TP || { months: [] }).months.length, agg = {};
+    schedTasks(wp).forEach(t => Object.keys(t.res || {}).forEach(rid => {
+      if (!agg[rid]) agg[rid] = new Array(n).fill(0);
+      (t.res[rid] || []).forEach((v, i) => { agg[rid][i] += (v || 0); });
+    }));
+    return agg;
+  }
   // Is this WBS node a lowest-level (leaf) node? Only leaves are editable in Edit Plan.
   function bdIsLeaf(wbs) { const node = bdBuild().map[wbs]; return !!node && (!node.children || node.children.length === 0); }
   // All leaf descendants of a node (the node itself if it is a leaf).
@@ -1188,22 +1227,11 @@
   // leaf nodes only; a summary node's series is its baseline rollup plus the
   // (override − baseline) deltas of every edited leaf beneath it — so summaries
   // always equal the sum of their children, including edits.
+  // Resource series for any node = sum of its descendant work packages' subtasks.
   function bdResSeries(wbs) {
-    const base = bdRollupByResource(wbs);
-    const n = (window.CAP_TP || { months: [] }).months.length;
-    bdLeaves(wbs).forEach(leaf => {
-      const ov = bdEdits[leaf];
-      if (!ov) return;
-      const leafBase = bdRollupByResource(leaf);
-      Object.keys(ov).forEach(resId => {
-        if (!base[resId]) base[resId] = new Array(n).fill(0);
-        Object.keys(ov[resId]).forEach(mi => {
-          const i = +mi, baseVal = (leafBase[resId] && leafBase[resId][i]) || 0;
-          base[resId][i] += (ov[resId][i] - baseVal);
-        });
-      });
-    });
-    return base;
+    const n = (window.CAP_TP || { months: [] }).months.length, agg = {};
+    bdLeaves(wbs).forEach(wp => { const s = bdWpSeries(wp); Object.keys(s).forEach(rid => { if (!agg[rid]) agg[rid] = new Array(n).fill(0); s[rid].forEach((v, i) => { agg[rid][i] += (v || 0); }); }); });
+    return agg;
   }
   const bdMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function bdMonthLabel(s) {
@@ -1562,21 +1590,14 @@
     if (det) det.innerHTML = bdDetailHtml(wbs);   // re-lock cells + refresh PMB cards
     bdRenderGantt();                              // reshape the Gantt bars
   }
-  // PMB Start/End for any WBS node: earliest start / latest end across every
-  // planning object (resource) under it — rolls up through all descendant leaves.
+  // PMB Start/End for any WBS node: earliest subtask start / latest subtask
+  // finish across every work package beneath it.
   function bdPmbRange(wbs) {
     let minStart = null, maxEnd = null;
-    bdLeaves(wbs).forEach(leaf => {
-      const span = bdNodeSpan(leaf), series = bdResSeries(leaf), added = bdAdded[leaf] || [];
-      BD_RES.catalog.forEach(rc => {
-        const ser = series[rc.id];
-        const present = (ser && ser.some(v => Math.round(v) !== 0)) || added.indexOf(rc.id) >= 0;
-        if (!present) return;
-        const d = bdResWindowDates(leaf, rc.id, ser || [], span.s, span.f);
-        if (d.start && (minStart === null || bdDateNum(d.start) < bdDateNum(minStart))) minStart = d.start;
-        if (d.end && (maxEnd === null || bdDateNum(d.end) > bdDateNum(maxEnd))) maxEnd = d.end;
-      });
-    });
+    bdLeaves(wbs).forEach(wp => schedTasks(wp).forEach(t => {
+      if (t.start && (minStart === null || bdDateNum(t.start) < bdDateNum(minStart))) minStart = t.start;
+      if (t.finish && (maxEnd === null || bdDateNum(t.finish) > bdDateNum(maxEnd))) maxEnd = t.finish;
+    }));
     return { start: minStart, end: maxEnd };
   }
   function bdAddResourceFromSel() {
