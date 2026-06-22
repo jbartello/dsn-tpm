@@ -1212,6 +1212,76 @@
     }));
     return agg;
   }
+
+  /* ----- CPM engine: working-day calendar + critical path ----- */
+  function bdParseDate(s) { const p = String(s || '').split('/'); return p.length < 3 ? null : new Date(+p[2], +p[0] - 1, +p[1]); }
+  function bdFmtDate(d) { return String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear(); }
+  function bdIsWD(d) { const x = d.getDay(); return x !== 0 && x !== 6; }
+  function bdSnapWD(d) { const r = new Date(d); while (!bdIsWD(r)) r.setDate(r.getDate() + 1); return r; }       // forward to a workday
+  function bdSnapWDback(d) { const r = new Date(d); while (!bdIsWD(r)) r.setDate(r.getDate() - 1); return r; }   // back to a workday
+  function bdShiftWD(d, n) { const r = new Date(d); if (!n) return r; const step = n > 0 ? 1 : -1; let need = Math.abs(n), c = 0; while (c < need) { r.setDate(r.getDate() + step); if (bdIsWD(r)) c++; } return r; }
+  function bdWorkdaysBetween(a, b) { let s = bdParseDate(a), e = bdParseDate(b); if (!s || !e) return 0; if (e < s) { const t = s; s = e; e = t; } let c = 0; const d = new Date(s); while (d <= e) { if (bdIsWD(d)) c++; d.setDate(d.getDate() + 1); } return c; }
+  function schedDuration(t) { return Math.max(1, bdWorkdaysBetween(t.start, t.finish)); }
+  function schedTopo(tasks) {
+    const byId = {}; tasks.forEach(t => byId[t.id] = t);
+    const seen = {}, temp = {}, out = [];
+    const visit = t => { if (!t || seen[t.id] || temp[t.id]) return; temp[t.id] = 1; (t.preds || []).forEach(p => visit(byId[p.id])); temp[t.id] = 0; seen[t.id] = 1; out.push(t); };
+    tasks.forEach(visit); return out;
+  }
+  // Slack in working days between earliest-start es and latest-start ls (Dates).
+  function schedFloatDays(es, ls) { return ls >= es ? bdWorkdaysBetween(bdFmtDate(es), bdFmtDate(ls)) - 1 : -(bdWorkdaysBetween(bdFmtDate(ls), bdFmtDate(es)) - 1); }
+  // CPM forward/backward pass → per-task {es,ef,ls,lf,float,critical} (dates MM/DD/YYYY).
+  function schedCompute(wp) {
+    const tasks = schedTasks(wp); if (!tasks.length) return {};
+    const byId = {}; tasks.forEach(t => byId[t.id] = t);
+    const order = schedTopo(tasks), R = {};
+    order.forEach(t => {
+      const d = schedDuration(t);
+      let es = bdSnapWD(bdParseDate(t.start) || new Date(2022, 0, 1));
+      (t.preds || []).forEach(p => {
+        const r = R[p.id]; if (!r) return; const lag = +p.lag || 0; let cand;
+        if (p.type === 'SS') cand = bdShiftWD(r.es, lag);
+        else if (p.type === 'FF') cand = bdShiftWD(bdShiftWD(r.ef, lag), -(d - 1));
+        else if (p.type === 'SF') cand = bdShiftWD(bdShiftWD(r.es, lag), -(d - 1));
+        else cand = bdShiftWD(r.ef, 1 + lag);   // FS
+        cand = bdSnapWD(cand); if (cand > es) es = cand;
+      });
+      R[t.id] = { es: es, ef: bdShiftWD(es, d - 1), d: d };
+    });
+    let PF = null; order.forEach(t => { if (!PF || R[t.id].ef > PF) PF = R[t.id].ef; });
+    const succ = {}; tasks.forEach(t => (t.preds || []).forEach(p => { (succ[p.id] = succ[p.id] || []).push({ sid: t.id, type: p.type, lag: +p.lag || 0 }); }));
+    order.slice().reverse().forEach(t => {
+      const r = R[t.id], d = r.d; let lf = PF;
+      (succ[t.id] || []).forEach(s => {
+        const sr = R[s.sid]; if (!sr) return; const lag = s.lag; let cand;
+        if (s.type === 'SS') cand = bdShiftWD(bdShiftWD(sr.ls, -lag), d - 1);
+        else if (s.type === 'FF') cand = bdShiftWD(sr.lf, -lag);
+        else if (s.type === 'SF') cand = bdShiftWD(bdShiftWD(sr.lf, -lag), d - 1);
+        else cand = bdShiftWD(sr.ls, -(1 + lag));   // FS
+        cand = bdSnapWDback(cand); if (cand < lf) lf = cand;
+      });
+      r.lf = lf; r.ls = bdShiftWD(lf, -(d - 1));
+    });
+    const out = {};
+    order.forEach(t => { const r = R[t.id], fl = schedFloatDays(r.es, r.ls); out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: fl, critical: fl <= 0 }; });
+    return out;
+  }
+  // Month bucket index of a date relative to the timeline start.
+  function bdMonthIndexOf(s) {
+    const months = (window.CAP_TP || { months: [] }).months; if (!months.length) return 0;
+    const key = d => { const p = String(d).split('/'); return p.length < 3 ? null : (+p[2]) * 12 + (+p[0] - 1); };
+    const k = key(s); return k == null ? 0 : k - key(months[0]);
+  }
+  // Shift a subtask's monthly cost by k month-buckets (cost travels with the schedule).
+  function schedShiftRes(t, k) {
+    if (!k) return; const n = (window.CAP_TP || { months: [] }).months.length;
+    Object.keys(t.res || {}).forEach(rid => { const old = t.res[rid] || [], nw = new Array(n).fill(0); for (let i = 0; i < n; i++) { const j = i - k; if (j >= 0 && j < n) nw[i] = old[j] || 0; } t.res[rid] = nw; });
+  }
+  // Reschedule a WP's subtasks from predecessors: apply CPM dates and shift cost with them.
+  function schedReschedule(wp) {
+    const r = schedCompute(wp), tasks = schedTasks(wp);
+    tasks.forEach(t => { const c = r[t.id]; if (!c) return; schedShiftRes(t, bdMonthIndexOf(c.es) - bdMonthIndexOf(t.start)); t.start = c.es; t.finish = c.ef; });
+  }
   // Is this WBS node a lowest-level (leaf) node? Only leaves are editable in Edit Plan.
   function bdIsLeaf(wbs) { const node = bdBuild().map[wbs]; return !!node && (!node.children || node.children.length === 0); }
   // All leaf descendants of a node (the node itself if it is a leaf).
