@@ -291,6 +291,8 @@
   .bd-g-bar.task { background: var(--sap-blue); }
   .bd-g-bar.summary { background: #5b738b; height: 7px; top: 9px; border-radius: 2px; }
   .bd-g-bar.crit { background: var(--bad); }
+  .bd-g-label.bd-g-sub { font-style: italic; color: var(--text-muted); }
+  .bd-g-pred { font-size: 10px; color: #9aa0a6; font-style: normal; }
   /* Edit Plan — subtask (activity) table */
   .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
   table.st-tbl { border-collapse: collapse; width: 100%; font-size: 12px; white-space: nowrap; }
@@ -1282,8 +1284,8 @@
       });
       r.lf = lf; r.ls = bdShiftWD(lf, -(d - 1));
     });
-    const out = {};
-    order.forEach(t => { const r = R[t.id], fl = schedFloatDays(r.es, r.ls); out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: fl, critical: fl <= 0 }; });
+    const out = {}, hasNetwork = order.length > 1;   // a lone task has no meaningful critical path
+    order.forEach(t => { const r = R[t.id], fl = schedFloatDays(r.es, r.ls); out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: fl, critical: hasNetwork && fl <= 0 }; });
     return out;
   }
   // Month bucket index of a date relative to the timeline start.
@@ -1683,9 +1685,14 @@
      Rows mirror the tree (respecting expand/collapse); each bar spans the
      node's start→finish from bdPmbRange (the dates set per resource). ---- */
   function bdGanttRows() {
+    const planMode = currentModule === 'plan-edit';
     const out = [], rec = (wbs, depth) => {
-      const n = bdBuild().map[wbs]; out.push({ wbs, depth, node: n });
-      if (n.children.length && bdState.expanded[wbs]) n.children.forEach(k => rec(k, depth + 1));
+      const n = bdBuild().map[wbs]; out.push({ kind: 'wbs', wbs, depth, node: n });
+      if (n.children.length) { if (bdState.expanded[wbs]) n.children.forEach(k => rec(k, depth + 1)); }
+      else if (planMode) {   // leaf work package: nest its subtask activities (Edit Plan only)
+        const cpm = schedCompute(wbs);
+        schedTasks(wbs).forEach(t => out.push({ kind: 'task', wbs, depth: depth + 1, task: t, cpm: cpm[t.id] || {} }));
+      }
     };
     bdBuild().roots.forEach(r => rec(r, 0));
     return out;
@@ -1703,13 +1710,23 @@
     months.forEach((m, i) => { const y = m.split('/')[2], g = groups[groups.length - 1]; if (g && g.y === y) g.n++; else groups.push({ y: y, n: 1, start: i }); });
     const yearLabels = groups.map(g => `<div class="bd-g-year" style="left:${g.start * PXM}px;width:${g.n * PXM}px">${g.y}</div>`).join('');
     const head = `<div class="bd-gantt-row bd-g-head"><div class="bd-g-label">WBS Element</div><div class="bd-g-axis" style="width:${W}px">${yearLabels}</div></div>`;
+    const barDiv = (a, b, cls, tip) => {
+      if (!a || !b || off(a) == null || off(b) == null) return '';
+      const s = clamp(off(a)), f = clamp(off(b));
+      return `<div class="bd-g-bar ${cls}" style="left:${s * PXM}px;width:${Math.max(PXM, (f - s + 1) * PXM)}px" title="${tip}"></div>`;
+    };
     const rows = bdGanttRows().map(r => {
-      const isSum = r.node.children.length > 0, rng = bdPmbRange(r.wbs);
-      let bar = '';
-      if (rng.start && rng.end && off(rng.start) != null && off(rng.end) != null) {
-        const s = clamp(off(rng.start)), f = clamp(off(rng.end)), left = s * PXM, w = Math.max(PXM, (f - s + 1) * PXM);
-        bar = `<div class="bd-g-bar ${isSum ? 'summary' : 'task'}" style="left:${left}px;width:${w}px" title="${_xml(rng.start)} – ${_xml(rng.end)}"></div>`;
+      if (r.kind === 'task') {
+        const t = r.task, c = r.cpm || {};
+        const bar = barDiv(t.start, t.finish, c.critical ? 'crit' : 'task', _xml(t.start) + ' – ' + _xml(t.finish) + (c.float != null ? ' · float ' + c.float + 'd' : ''));
+        const preds = (t.preds && t.preds.length) ? ` <span class="bd-g-pred">⟵ ${_xml(schedPredsStr(t.preds))}</span>` : '';
+        const active = (r.wbs === bdState.sel && schedSel.task === t.id) ? ' active' : '';
+        const lbl = _xml(t.id) + ' · ' + _xml(t.name);
+        return `<div class="bd-gantt-row${active}"><div class="bd-g-label bd-g-sub" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="schedSelectTask('${r.wbs}','${t.id}');bdSelect('${r.wbs}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${bar}</div></div>`;
       }
+      const isSum = r.node.children.length > 0 || (bdIsLeaf(r.wbs) && schedTasks(r.wbs).length > 0);
+      const rng = bdPmbRange(r.wbs);
+      const bar = barDiv(rng.start, rng.end, isSum ? 'summary' : 'task', _xml(rng.start || '') + ' – ' + _xml(rng.end || ''));
       const active = r.wbs === bdState.sel ? ' active' : '';
       const lbl = _xml(r.wbs) + ' · ' + _xml(r.node.desc || '');
       return `<div class="bd-gantt-row${active}"><div class="bd-g-label" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="bdSelect('${r.wbs}')">${lbl}</div><div class="bd-g-track" style="width:${W}px">${bar}</div></div>`;
