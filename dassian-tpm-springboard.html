@@ -290,6 +290,26 @@
   .bd-g-bar { position: absolute; top: 7px; height: 12px; border-radius: 3px; }
   .bd-g-bar.task { background: var(--sap-blue); }
   .bd-g-bar.summary { background: #5b738b; height: 7px; top: 9px; border-radius: 2px; }
+  .bd-g-bar.crit { background: var(--bad); }
+  /* Edit Plan — subtask (activity) table */
+  .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
+  table.st-tbl { border-collapse: collapse; width: 100%; font-size: 12px; white-space: nowrap; }
+  table.st-tbl th { text-align: left; font-weight: 700; color: var(--text-muted); background: #fafafa; padding: 7px 8px; border-bottom: 1px solid var(--panel-border); position: sticky; top: 0; }
+  table.st-tbl th.num, table.st-tbl td.num { text-align: right; }
+  table.st-tbl td { padding: 3px 6px; border-bottom: 1px solid #f0f0f0; }
+  table.st-tbl tr.st-row { cursor: pointer; }
+  table.st-tbl tr.st-row:hover td { background: #f7faff; }
+  table.st-tbl tr.st-row.active td { background: #eaf2fb; }
+  table.st-tbl tr.st-crit td.st-id, table.st-tbl tr.st-crit .st-critflag { color: var(--bad); }
+  table.st-tbl td.st-id { font-weight: 700; color: var(--sap-blue); text-align: center; }
+  .st-critflag { font-size: 11px; font-weight: 700; }
+  input.st-in { width: 100%; min-width: 90px; border: 1px solid transparent; border-radius: 4px; padding: 5px 6px; font-family: inherit; font-size: 12px; background: transparent; color: var(--text); }
+  input.st-in:hover { border-color: #d2d2d2; }
+  input.st-in:focus { outline: none; border-color: var(--sap-blue); background: #fff; box-shadow: 0 0 0 2px #d6e6f8; }
+  input.st-in.st-date { width: 96px; min-width: 96px; text-align: center; }
+  input.st-in.st-pred { min-width: 130px; }
+  .st-del { border: none; background: transparent; color: #b0b4b9; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px; }
+  .st-del:hover { background: #fbe5e5; color: var(--bad); }
   .bd-sum-note { background: #f7f7f7; border: 1px solid var(--panel-border); border-left: 3px solid var(--text-muted); border-radius: 6px; padding: 9px 13px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
   .bd-add-res { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   .bd-add-res label { font-size: 12px; color: var(--text-muted); }
@@ -1193,7 +1213,7 @@
       const span = bdNodeSpan(wp), res = {};
       ids.forEach(id => { res[id] = byRes[id].slice(); });
       schedData.tasks[wp] = [{
-        id: wp + '.T1', name: (map[wp].desc || 'Task 1'),
+        id: '1', name: (map[wp].desc || 'Task 1'),
         start: months.length && span.s >= 0 ? bdFirstOfMonth(months[span.s]) : '',
         finish: months.length && span.f >= 0 ? months[span.f] : '',
         preds: [], res: res, added: [],
@@ -1280,7 +1300,122 @@
   // Reschedule a WP's subtasks from predecessors: apply CPM dates and shift cost with them.
   function schedReschedule(wp) {
     const r = schedCompute(wp), tasks = schedTasks(wp);
-    tasks.forEach(t => { const c = r[t.id]; if (!c) return; schedShiftRes(t, bdMonthIndexOf(c.es) - bdMonthIndexOf(t.start)); t.start = c.es; t.finish = c.ef; });
+    tasks.forEach(t => { const c = r[t.id]; if (!c) return; schedShiftRes(t, bdMonthIndexOf(c.es) - bdMonthIndexOf(t.start)); t.start = c.es; t.finish = c.ef; schedClampRes(t); });
+  }
+  // Zero any cost outside the subtask's [start, finish] (no baseline beyond the dates).
+  function schedClampRes(t) {
+    const months = (window.CAP_TP || { months: [] }).months, sN = bdDateNum(t.start), eN = bdDateNum(t.finish);
+    Object.keys(t.res || {}).forEach(rid => { t.res[rid] = (t.res[rid] || []).map((v, i) => (sN && eN && sN <= bdDateNum(months[i]) && eN >= bdDateNum(bdFirstOfMonth(months[i]))) ? v : 0); });
+  }
+  function schedPredsStr(preds) { return (preds || []).map(p => p.id + ' ' + (p.type || 'FS') + (p.lag ? (p.lag > 0 ? '+' + p.lag : '' + p.lag) : '')).join(', '); }
+  function schedParsePreds(str) {
+    return String(str || '').split(',').map(s => s.trim()).filter(Boolean).map(tok => {
+      const m = tok.match(/^(\S+?)\s*(FS|SS|FF|SF)?\s*([+-]\s*\d+)?$/i);
+      return m ? { id: m[1], type: (m[2] || 'FS').toUpperCase(), lag: m[3] ? parseInt(m[3].replace(/\s/g, ''), 10) : 0 } : null;
+    }).filter(Boolean);
+  }
+  function schedNextId(wp) { let m = 0; schedTasks(wp).forEach(t => { const k = parseInt(t.id, 10); if (!isNaN(k) && k > m) m = k; }); return String(m + 1); }
+  function schedRender() { const d = document.getElementById('bdDetail'); if (d) d.innerHTML = bdDetailHtml(bdState.sel); bdRenderTree(); bdRenderGantt(); }
+  function schedAddTask(wp) {
+    const tasks = schedTasks(wp), months = (window.CAP_TP || { months: [] }).months, span = bdNodeSpan(wp), id = schedNextId(wp);
+    tasks.push({ id: id, name: 'New subtask ' + id, start: months.length ? (span.s >= 0 ? bdFirstOfMonth(months[span.s]) : months[0]) : '', finish: months.length ? (span.f >= 0 ? months[span.f] : months[months.length - 1]) : '', preds: [], res: {}, added: [] });
+    schedSel.task = id; schedRender();
+  }
+  function schedDelTask(wp, id) { const tasks = schedTasks(wp), i = tasks.findIndex(t => t.id === id); if (i >= 0) tasks.splice(i, 1); if (schedSel.task === id) schedSel.task = tasks.length ? tasks[0].id : ''; schedRender(); }
+  function schedSelectTask(wp, id) { schedSel.task = id; schedRender(); }
+  function schedSetField(wp, id, field, val) {
+    const t = schedTask(wp, id); if (!t) return;
+    if (field === 'preds') t.preds = schedParsePreds(val);
+    else if (field === 'start' || field === 'finish') {
+      const norm = bdNormDate(val); if (!norm) { schedRender(); return; }
+      if (field === 'start') { schedShiftRes(t, bdMonthIndexOf(norm) - bdMonthIndexOf(t.start)); t.start = norm; if (bdDateNum(t.finish) < bdDateNum(t.start)) t.finish = t.start; }
+      else { t.finish = norm; if (bdDateNum(t.finish) < bdDateNum(t.start)) t.start = t.finish; }
+      schedClampRes(t);
+    } else t[field] = val;
+    schedRender();
+  }
+  function schedEditCell(wp, id, resId, mi, raw, measure, rate) {
+    const t = schedTask(wp, id); if (!t) return; const n = (window.CAP_TP || { months: [] }).months.length;
+    if (!t.res[resId]) t.res[resId] = new Array(n).fill(0);
+    let dollars = parseFloat(String(raw).replace(/[, $]/g, '')) || 0; if (measure === 'hours') dollars *= (rate || 0);
+    t.res[resId][mi] = dollars; schedRender();
+  }
+  function schedAddRes(wp, id) { const sel = document.getElementById('bdAddSel'), t = schedTask(wp, id); if (!sel || !sel.value || !t) return; if (!t.added) t.added = []; if (t.added.indexOf(sel.value) < 0) t.added.push(sel.value); if (!t.res[sel.value]) t.res[sel.value] = new Array((window.CAP_TP || { months: [] }).months.length).fill(0); schedRender(); }
+  function schedDoReschedule(wp) { schedReschedule(wp); schedRender(); tpmToast('Rescheduled from predecessors — cost shifted with the dates'); }
+
+  // The subtask table + the selected subtask's resource grid (shown when a WP is selected in Edit Plan).
+  function bdSubtaskSection(wp) {
+    const tasks = schedTasks(wp);
+    if (!schedTask(wp, schedSel.task)) schedSel.task = tasks.length ? tasks[0].id : '';
+    const cpm = schedCompute(wp);
+    const bar = `<div class="bd-edit-bar" style="margin:4px 0 12px">
+      <button class="btn primary" onclick="schedAddTask('${wp}')">＋ Add subtask</button>
+      <button class="btn" onclick="schedDoReschedule('${wp}')">⟲ Reschedule from predecessors</button></div>`;
+    if (!tasks.length) return bar + '<div class="bd-tp-note">No subtasks yet — add one to plan cost and schedule for this work package.</div>';
+    const rows = tasks.map(t => {
+      const c = cpm[t.id] || {}, sel = schedSel.task === t.id ? ' active' : '', dur = schedDuration(t);
+      const stop = 'onclick="event.stopPropagation()"';
+      return `<tr class="st-row${sel}${c.critical ? ' st-crit' : ''}" onclick="schedSelectTask('${wp}','${t.id}')">
+        <td class="st-id">${_xml(t.id)}</td>
+        <td><input class="st-in" value="${_xml(t.name)}" ${stop} onchange="schedSetField('${wp}','${t.id}','name',this.value)"></td>
+        <td><input class="st-in st-date" value="${_xml(t.start)}" ${stop} onchange="schedSetField('${wp}','${t.id}','start',this.value)"></td>
+        <td><input class="st-in st-date" value="${_xml(t.finish)}" ${stop} onchange="schedSetField('${wp}','${t.id}','finish',this.value)"></td>
+        <td class="num">${dur}d</td>
+        <td><input class="st-in st-pred" value="${_xml(schedPredsStr(t.preds))}" placeholder="e.g. 1 FS+5" ${stop} onchange="schedSetField('${wp}','${t.id}','preds',this.value)"></td>
+        <td class="num">${c.float == null ? '—' : c.float + 'd'}</td>
+        <td>${c.critical ? '<span class="st-critflag">● Critical</span>' : ''}</td>
+        <td><button class="st-del" onclick="event.stopPropagation();schedDelTask('${wp}','${t.id}')" title="Delete subtask">✕</button></td>
+      </tr>`;
+    }).join('');
+    const table = `<div class="bd-tp-head"><span class="bd-tp-title">Subtasks (Activities)</span></div>
+      <div class="st-wrap"><table class="st-tbl">
+        <thead><tr><th>ID</th><th>Task Name</th><th>Start</th><th>Finish</th><th class="num">Dur</th><th>Predecessors</th><th class="num">Float</th><th>Critical</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    const grid = (schedSel.task && schedTask(wp, schedSel.task)) ? bdSubtaskGrid(wp, schedSel.task)
+      : '<div class="bd-tp-note" style="margin-top:12px">Select a subtask above to edit its resource cost grid.</div>';
+    return bar + table + grid;
+  }
+  // Resource cost grid for one subtask (editable within the task's start/finish window).
+  function bdSubtaskGrid(wp, taskId) {
+    const t = schedTask(wp, taskId); if (!t) return '';
+    const months = (window.CAP_TP || { months: [] }).months, measure = bdState.measure || 'cost';
+    const monthCols = months.map(m => `<th>${bdMonthLabel(m)}</th>`).join('');
+    const workHrs = months.map(m => bdWorkHours(m));
+    const sN = bdDateNum(t.start), eN = bdDateNum(t.finish);
+    const inWin = i => !!(sN && eN) && sN <= bdDateNum(months[i]) && eN >= bdDateNum(bdFirstOfMonth(months[i]));
+    const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const eqp = (h, i) => (workHrs[i] && h / workHrs[i] >= 0.05) ? (h / workHrs[i]).toFixed(1) : '·';
+    const added = t.added || [];
+    const resList = BD_RES.catalog.filter(r => (t.res[r.id] && t.res[r.id].some(v => Math.round(v) !== 0)) || added.indexOf(r.id) >= 0);
+    resList.forEach(r => { if (!t.res[r.id]) t.res[r.id] = new Array(months.length).fill(0); });
+    const row = (label, cls, cells, total) => `<tr class="${cls}"><td class="lbl">${label}</td>${cells}<td class="tot">${total}</td></tr>`;
+    const editTd = (val, resId, mi, meas, rate) => `<td class="bd-edit-td"><input class="bd-edit" value="${Math.round(val) || 0}" onchange="schedEditCell('${wp}','${taskId}','${resId}',${mi},this.value,'${meas}',${rate || 0})"></td>`;
+    const lockTd = v => `<td class="bd-lock" title="Outside the subtask's start/finish">${cents(v)}</td>`;
+    const resRows = resList.map(r => {
+      const series = t.res[r.id]; let cells, total;
+      if (measure === 'cost') { cells = series.map((v, i) => inWin(i) ? editTd(v, r.id, i, 'cost', 0) : lockTd(v)).join(''); total = bdUsd(series.reduce((a, b) => a + b, 0)); }
+      else if (r.cls === 'labor') {
+        const hrs = series.map(v => v / r.rate);
+        if (measure === 'hours') { cells = hrs.map((h, i) => inWin(i) ? editTd(h, r.id, i, 'hours', r.rate) : lockTd(h)).join(''); total = addCommas(Math.round(hrs.reduce((a, b) => a + b, 0))); }
+        else { cells = hrs.map((h, i) => `<td>${eqp(h, i)}</td>`).join(''); let sh = 0, sw = 0; hrs.forEach((h, i) => { if (h > 1e-4) { sh += h; sw += workHrs[i]; } }); total = sw ? (sh / sw).toFixed(1) : '·'; }
+      } else { cells = months.map(() => '<td>·</td>').join(''); total = '·'; }
+      const lbl = r.cls === 'labor' ? _xml(r.name) : `${_xml(r.name)} <span class="bd-rate">cost</span>`;
+      return row(lbl, 'res', cells, total);
+    }).join('');
+    let totalRow, cumRow = '';
+    if (measure === 'cost') { const tot = months.map((_, i) => resList.reduce((s, r) => s + (t.res[r.id][i] || 0), 0)), gt = tot.reduce((a, b) => a + b, 0); totalRow = row('Total', 'grand', tot.map(v => `<td>${cents(v)}</td>`).join(''), bdUsd(gt)); let c = 0; cumRow = row('Cumulative', 'cum', tot.map(v => { c += v; return `<td>${cents(c)}</td>`; }).join(''), bdUsd(gt)); }
+    else if (measure === 'hours') { const th = months.map((_, i) => resList.filter(r => r.cls === 'labor').reduce((s, r) => s + (t.res[r.id][i] || 0) / r.rate, 0)), tt = th.reduce((a, b) => a + b, 0); totalRow = row('Total Hours', 'grand', th.map(h => `<td>${cents(h)}</td>`).join(''), addCommas(Math.round(tt))); let c = 0; cumRow = row('Cumulative', 'cum', th.map(h => { c += h; return `<td>${cents(c)}</td>`; }).join(''), addCommas(Math.round(tt))); }
+    else { const th = months.map((_, i) => resList.filter(r => r.cls === 'labor').reduce((s, r) => s + (t.res[r.id][i] || 0) / r.rate, 0)); const cells = th.map((h, i) => `<td>${eqp(h, i)}</td>`).join(''); let sh = 0, sw = 0; th.forEach((h, i) => { if (h > 1e-4) { sh += h; sw += workHrs[i]; } }); totalRow = row('Total EQP', 'grand', cells, sw ? (sh / sw).toFixed(1) : '·'); }
+    const toggle = [['cost', 'Cost'], ['hours', 'Hours'], ['eqp', 'EQP']].map(m => `<button class="${m[0] === measure ? 'active' : ''}" onclick="bdSetMeasure('${m[0]}')">${m[1]}</button>`).join('');
+    const lastHdr = measure === 'eqp' ? 'Avg' : 'Total';
+    const avail = BD_RES.catalog.filter(r => resList.indexOf(r) < 0);
+    const addCtrl = avail.length
+      ? `<div class="bd-add-res"><label>Add resource:</label><select id="bdAddSel">${avail.map(r => `<option value="${r.id}">${_xml(r.name)} (${r.cls})</option>`).join('')}</select><button class="btn" onclick="schedAddRes('${wp}','${taskId}')">＋ Add</button></div>`
+      : '<div class="bd-add-res"><span class="bd-add-none">All catalog resources are on this subtask.</span></div>';
+    return `<div class="bd-tp-head" style="margin-top:14px"><span class="bd-tp-title">Cost — ${_xml(t.name)} <span class="bd-rate">within ${_xml(t.start)}–${_xml(t.finish)}</span></span><span class="bd-measure">${toggle}</span></div>
+      <div class="bd-tp-note">Cells editable only within the subtask's start/finish; cost rolls up to the work package and above.</div>
+      <div class="bd-tp-wrap"><table class="bd-tp"><thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">${lastHdr}</th></tr></thead><tbody>${resRows}${totalRow}${cumRow}</tbody></table></div>
+      ${addCtrl}`;
   }
   // Is this WBS node a lowest-level (leaf) node? Only leaves are editable in Edit Plan.
   function bdIsLeaf(wbs) { const node = bdBuild().map[wbs]; return !!node && (!node.children || node.children.length === 0); }
@@ -1390,6 +1525,13 @@
       bdCard('Total BCWS', bdUsd(nodeTotal)) +
       bdCard('Hours', totHours ? addCommas(Math.round(totHours)) : '—');
 
+    const headHtml =
+      `<div class="bd-head"><div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div>` +
+      `<div class="bd-sub">Level ${_xml(node.level || '—')} · CAM ${_xml(node.cam || '—')}${planMode ? (isLeaf ? ' · <span class="bd-editable">Editable (lowest level)</span>' : ' · <span class="bd-readonly">Summary — display only</span>') : ''}</div></div>` +
+      `<div class="kpi-strip bd-kpis">${cards}</div>`;
+    // Edit Plan + work package ⇒ subtask (activity) table + the selected subtask's cost grid.
+    if (planMode && isLeaf) return headHtml + bdSubtaskSection(wbs);
+
     const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
     const eqp = (h, i) => (workHrs[i] && h / workHrs[i] >= 0.05) ? (h / workHrs[i]).toFixed(1) : '·';
     const row = (label, cls, cells, total) => `<tr class="${cls}"><td class="lbl">${label}</td>${cells}<td class="tot">${total}</td></tr>`;
@@ -1477,12 +1619,7 @@
         : '<div class="bd-add-res"><span class="bd-add-none">All catalog resources are on this work package.</span></div>';
     }
 
-    return `
-      <div class="bd-head">
-        <div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div>
-        <div class="bd-sub">Level ${_xml(node.level || '—')} · CAM ${_xml(node.cam || '—')}${planMode ? (isLeaf ? ' · <span class="bd-editable">Editable (lowest level)</span>' : ' · <span class="bd-readonly">Summary — display only</span>') : ''}</div>
-      </div>
-      <div class="kpi-strip bd-kpis">${cards}</div>
+    return headHtml + `
       <div class="bd-tp-head">
         <span class="bd-tp-title">Time-Phased BCWS (Baseline) — by Resource</span>
         <span class="bd-measure">${toggle}</span>
