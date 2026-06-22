@@ -277,6 +277,19 @@
   }
   table.bd-tp input.bd-edit:hover { border-color: var(--sap-blue); }
   table.bd-tp input.bd-edit:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
+  /* Edit Plan — schedule Gantt */
+  .bd-gantt-wrap { overflow: auto; max-height: 440px; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; }
+  .bd-gantt-row { display: flex; align-items: center; height: 26px; border-bottom: 1px solid #f3f3f3; }
+  .bd-gantt-row.active .bd-g-label { background: #eaf2fb; color: var(--sap-blue); font-weight: 700; }
+  .bd-g-head { position: sticky; top: 0; z-index: 3; height: 30px; background: #fafafa; border-bottom: 1px solid var(--panel-border); }
+  .bd-g-label { width: 330px; min-width: 330px; position: sticky; left: 0; z-index: 2; background: #fff; font-size: 12px; line-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #e6e6e6; padding-right: 8px; cursor: pointer; }
+  .bd-g-head .bd-g-label { background: #fafafa; line-height: 30px; font-weight: 700; cursor: default; }
+  .bd-g-track { position: relative; height: 100%; flex: 0 0 auto; background: repeating-linear-gradient(90deg, transparent, transparent 15px, #f0f0f0 15px, #f0f0f0 16px); }
+  .bd-g-axis { position: relative; height: 100%; flex: 0 0 auto; }
+  .bd-g-year { position: absolute; top: 0; height: 30px; line-height: 30px; font-size: 11px; color: var(--text-muted); border-left: 1px solid #d2d2d2; padding-left: 5px; box-sizing: border-box; overflow: hidden; }
+  .bd-g-bar { position: absolute; top: 7px; height: 12px; border-radius: 3px; }
+  .bd-g-bar.task { background: var(--sap-blue); }
+  .bd-g-bar.summary { background: #5b738b; height: 7px; top: 9px; border-radius: 2px; }
   .bd-sum-note { background: #f7f7f7; border: 1px solid var(--panel-border); border-left: 3px solid var(--text-muted); border-radius: 6px; padding: 9px 13px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
   .bd-add-res { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   .bd-add-res label { font-size: 12px; color: var(--text-muted); }
@@ -1399,6 +1412,7 @@
     if (kids) kids.classList.toggle('open', open);
     const caret = document.querySelector('.bd-row[data-wbs="' + wbs + '"] .bd-caret');
     if (caret) caret.textContent = open ? '▾' : '▸';
+    bdRenderGantt();   // keep the Gantt rows in sync with the tree's expand/collapse
   }
   function bdSelect(wbs) {
     bdState.sel = wbs;
@@ -1407,6 +1421,7 @@
     if (nm) nm.classList.add('active');
     const d = document.getElementById('bdDetail');
     if (d) d.innerHTML = bdDetailHtml(wbs);
+    bdRenderGantt();   // move the Gantt row highlight
   }
 
   // Shared WBS-tree + baseline-detail layout used by both Display Baseline and Edit Plan.
@@ -1429,6 +1444,44 @@
       <p class="module-intro">${what} for <strong>${_xml(p.name)}</strong>.</p>
       <div class="placeholder-note">Baseline not yet loaded for this project. The time-phased WBS baseline is currently available for the <strong>Demo</strong> program (project JTB001 · PPC/SIS Demo 1).</div>`;
   }
+  /* ---- Edit Plan schedule: MS-Project-style Gantt of the WBS time-phasing.
+     Rows mirror the tree (respecting expand/collapse); each bar spans the
+     node's start→finish from bdPmbRange (the dates set per resource). ---- */
+  function bdGanttRows() {
+    const out = [], rec = (wbs, depth) => {
+      const n = bdBuild().map[wbs]; out.push({ wbs, depth, node: n });
+      if (n.children.length && bdState.expanded[wbs]) n.children.forEach(k => rec(k, depth + 1));
+    };
+    bdBuild().roots.forEach(r => rec(r, 0));
+    return out;
+  }
+  function bdGanttHtml() {
+    const months = (window.CAP_TP || { months: [] }).months;
+    if (!months.length) return '';
+    const PXM = 16, W = months.length * PXM;
+    const mkey = d => { const p = String(d).split('/'); return p.length < 3 ? null : (+p[2]) * 12 + (+p[0] - 1); };
+    const base = mkey(months[0]);
+    const off = d => { const k = mkey(d); return k == null ? null : k - base; };
+    const clamp = i => Math.max(0, Math.min(months.length - 1, i));
+    // year header groups
+    const groups = [];
+    months.forEach((m, i) => { const y = m.split('/')[2], g = groups[groups.length - 1]; if (g && g.y === y) g.n++; else groups.push({ y: y, n: 1, start: i }); });
+    const yearLabels = groups.map(g => `<div class="bd-g-year" style="left:${g.start * PXM}px;width:${g.n * PXM}px">${g.y}</div>`).join('');
+    const head = `<div class="bd-gantt-row bd-g-head"><div class="bd-g-label">WBS Element</div><div class="bd-g-axis" style="width:${W}px">${yearLabels}</div></div>`;
+    const rows = bdGanttRows().map(r => {
+      const isSum = r.node.children.length > 0, rng = bdPmbRange(r.wbs);
+      let bar = '';
+      if (rng.start && rng.end && off(rng.start) != null && off(rng.end) != null) {
+        const s = clamp(off(rng.start)), f = clamp(off(rng.end)), left = s * PXM, w = Math.max(PXM, (f - s + 1) * PXM);
+        bar = `<div class="bd-g-bar ${isSum ? 'summary' : 'task'}" style="left:${left}px;width:${w}px" title="${_xml(rng.start)} – ${_xml(rng.end)}"></div>`;
+      }
+      const active = r.wbs === bdState.sel ? ' active' : '';
+      const lbl = _xml(r.wbs) + ' · ' + _xml(r.node.desc || '');
+      return `<div class="bd-gantt-row${active}"><div class="bd-g-label" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="bdSelect('${r.wbs}')">${lbl}</div><div class="bd-g-track" style="width:${W}px">${bar}</div></div>`;
+    }).join('');
+    return head + rows;
+  }
+  function bdRenderGantt() { const g = document.getElementById('bdGantt'); if (g) g.innerHTML = bdGanttHtml(); }
   function renderBaselineDisplay(p) {
     if (!p.projects.includes('JTB001')) return bdNotLoaded(p, 'Performance Measurement Baseline (PMB)');
     return `
@@ -1443,7 +1496,14 @@
         <button class="btn primary" onclick="bdSavePlan()">Save Plan</button>
         <button class="btn" onclick="bdResetPlan()">Reset to baseline</button>
       </div>
-      ${bdMasterDetailHtml()}`;
+      ${bdMasterDetailHtml()}
+      <div class="card" style="margin-top:18px">
+        <div class="card-head"><span class="ch-title">Schedule — Time-Phased Gantt</span></div>
+        <div class="card-body" style="padding:12px">
+          <div class="bd-tp-note" style="margin-bottom:10px">WBS schedule from each element's resource start/finish dates (summary bars roll up their children). Edit dates in the panel above to reshape the bars.</div>
+          <div class="bd-gantt-wrap" id="bdGantt">${bdGanttHtml()}</div>
+        </div>
+      </div>`;
   }
   // Record a resource cell edit (dollars in cost mode; hours×rate in hours mode) and re-render the detail.
   function bdEditCell(wbs, resId, mi, raw, measure, rate) {
@@ -1500,6 +1560,7 @@
     if (d.start && d.end && bdDateNum(d.start) > bdDateNum(d.end)) { if (which === 'start') d.end = d.start; else d.start = d.end; }
     const det = document.getElementById('bdDetail');
     if (det) det.innerHTML = bdDetailHtml(wbs);   // re-lock cells + refresh PMB cards
+    bdRenderGantt();                              // reshape the Gantt bars
   }
   // PMB Start/End for any WBS node: earliest start / latest end across every
   // planning object (resource) under it — rolls up through all descendant leaves.
@@ -1526,6 +1587,7 @@
     if (bdAdded[wbs].indexOf(sel.value) < 0) bdAdded[wbs].push(sel.value);
     const d = document.getElementById('bdDetail');
     if (d) d.innerHTML = bdDetailHtml(wbs);
+    bdRenderGantt();
     tpmToast('Resource added — enter values to plan it');
   }
   function bdSavePlan() {
@@ -1539,6 +1601,7 @@
     const d = document.getElementById('bdDetail');
     if (d) d.innerHTML = bdDetailHtml(bdState.sel);
     bdRenderTree();
+    bdRenderGantt();
     tpmToast('Plan reset to baseline');
   }
   function renderEac(p) {
