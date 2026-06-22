@@ -310,6 +310,7 @@
   input.st-in:focus { outline: none; border-color: var(--sap-blue); background: #fff; box-shadow: 0 0 0 2px #d6e6f8; }
   input.st-in.st-date { width: 96px; min-width: 96px; text-align: center; }
   input.st-in.st-pred { min-width: 130px; }
+  input.st-in.st-dur { width: 48px; min-width: 48px; text-align: right; }
   .st-del { border: none; background: transparent; color: #b0b4b9; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px; }
   .st-del:hover { background: #fbe5e5; color: var(--bad); }
   td.st-predcol { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
@@ -1358,7 +1359,10 @@
   function schedSelectTask(wp, id) { schedSel.task = id; schedRender(); }
   function schedSetField(wp, id, field, val) {
     const t = schedTask(wp, id); if (!t) return;
-    if (field === 'start' || field === 'finish') {
+    if (field === 'dur') {                       // duration (working days) drives the finish date
+      const days = Math.max(1, parseInt(String(val).replace(/[^\d]/g, ''), 10) || 1);
+      const s = bdParseDate(t.start); if (s) { t.finish = bdFmtDate(bdShiftWD(bdSnapWD(s), days - 1)); schedClampRes(t); }
+    } else if (field === 'start' || field === 'finish') {
       const norm = bdNormDate(val); if (!norm) { schedRender(); return; }
       if (field === 'start') { schedShiftRes(t, bdMonthIndexOf(norm) - bdMonthIndexOf(t.start)); t.start = norm; if (bdDateNum(t.finish) < bdDateNum(t.start)) t.finish = t.start; }
       else { t.finish = norm; if (bdDateNum(t.finish) < bdDateNum(t.start)) t.start = t.finish; }
@@ -1410,7 +1414,7 @@
         <td><input class="st-in" value="${_xml(t.name)}" ${stop} onchange="schedSetField('${wp}','${t.id}','name',this.value)"></td>
         <td><input class="st-in st-date" value="${_xml(t.start)}" ${stop} onchange="schedSetField('${wp}','${t.id}','start',this.value)"></td>
         <td><input class="st-in st-date" value="${_xml(t.finish)}" ${stop} onchange="schedSetField('${wp}','${t.id}','finish',this.value)"></td>
-        <td class="num">${dur}d</td>
+        <td class="num"><input class="st-in st-dur" value="${dur}" ${stop} onchange="schedSetField('${wp}','${t.id}','dur',this.value)"> d</td>
         <td class="st-predcol">${schedPredsStr(t.preds) ? _xml(schedPredsStr(t.preds)) : '<span class="bd-add-none">—</span>'}</td>
         <td class="num">${c.float == null ? '—' : c.float + 'd'}</td>
         <td>${c.critical ? '<span class="st-critflag">● Critical</span>' : ''}</td>
