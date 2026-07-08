@@ -708,6 +708,7 @@
 <script src="tripwire-data.js"></script>
 <script src="control-log-data.js"></script>
 <script src="bcr-data.js"></script>
+<script src="mfg-data.js"></script>
 <script>
   /* ---------------------------------------------------------------
      Demo program data. All placeholder figures — swap for real
@@ -749,10 +750,30 @@
   function progId() { return document.getElementById('progSelect').value; }
   function prog() { return PROGRAMS[progId()]; }
 
-  // Program changed: project/CAM lists differ per program, so clear the
-  // in-module filters and sort before re-rendering.
+  // Each program has its own complete dataset. DEMO = the real JTB001 exports
+  // (loaded into window.*); MFG = synthetic data derived from its DD control
+  // accounts (mfg-data.js). Switching programs swaps every screen's data source.
+  const PROG_DATA = {
+    DEMO: { WBS_DICT: window.WBS_DICT, CAP_TP: window.CAP_TP, CAP_SUMMARY: window.CAP_SUMMARY, RAM_DICT: window.RAM_DICT, TRIPWIRE: window.TRIPWIRE, CONTROL_LOG: window.CONTROL_LOG },
+    MFG:  { WBS_DICT: window.MFG_WBS_DICT, CAP_TP: window.MFG_CAP_TP, CAP_SUMMARY: window.MFG_CAP_SUMMARY, RAM_DICT: window.MFG_RAM_DICT, TRIPWIRE: window.MFG_TRIPWIRE, CONTROL_LOG: window.MFG_CONTROL_LOG },
+  };
+  function applyProgramData(id) {
+    const d = PROG_DATA[id] || PROG_DATA.DEMO;
+    window.WBS_DICT = d.WBS_DICT; window.CAP_TP = d.CAP_TP; window.CAP_SUMMARY = d.CAP_SUMMARY;
+    window.RAM_DICT = d.RAM_DICT; window.TRIPWIRE = d.TRIPWIRE; window.CONTROL_LOG = d.CONTROL_LOG;
+    // invalidate per-program caches/state so screens rebuild for this program
+    _bdTree = null; psData = null; schedData = null;
+    bdEdits = {}; bdAdded = {}; bdDates = {};
+    bdState.sel = ''; bdState.expanded = {}; bdState._init = false;
+    psState.sel = ''; psState.expanded = {}; psState._init = false;
+    schedSel.task = '';
+    Object.keys(chartHidden).forEach(k => delete chartHidden[k]);
+  }
+
+  // Program changed: swap datasets, clear the in-module filters/sort, re-render.
   function onProgramChange() {
-    pvState.project = ''; pvState.cam = ''; pvState.sortCol = null; pvState.sortDir = 1;
+    applyProgramData(progId());
+    pvState.project = ''; pvState.cam = ''; pvState.wbs = ''; pvState.sortCol = null; pvState.sortDir = 1;
     render();
   }
   const money = n => '$' + n.toFixed(2) + 'M';
@@ -1165,10 +1186,11 @@
     if (_bdTree) return _bdTree;
     const dict = window.WBS_DICT || { rows: [] };
     const map = {}, roots = [];
-    // Scope to the JTB001 PMB tree; WBS_DICT also carries a few stray SAP
-    // network-activity rows (e.g. "5000480 0010") that aren't part of it.
+    // Scope to the current program's PMB tree (its project roots); WBS_DICT may
+    // also carry stray SAP network-activity rows that aren't part of the PMB.
+    const projRoots = (prog().projects) || [];
     (dict.rows || [])
-      .filter(r => r.wbs === 'JTB001' || (r.wbs && r.wbs.indexOf('JTB001.') === 0))
+      .filter(r => r.wbs && projRoots.some(pr => r.wbs === pr || r.wbs.indexOf(pr + '.') === 0))
       .forEach(r => { map[r.wbs] = Object.assign({}, r, { children: [] }); });
     Object.keys(map).forEach(wbs => {
       const par = bdParent(wbs, map);
@@ -1806,15 +1828,15 @@
   }
   function bdRenderGantt() { const g = document.getElementById('bdGantt'); if (g) g.innerHTML = bdGanttHtml(); }
   function renderBaselineDisplay(p) {
-    if (!p.projects.includes('JTB001')) return bdNotLoaded(p, 'Performance Measurement Baseline (PMB)');
+    if (!bdBuild().roots.length) return bdNotLoaded(p, 'Performance Measurement Baseline (PMB)');
     return `
-      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong> — project JTB001 · PPC/SIS Demo 1. Select a WBS element to view its baseline detail.</p>
+      <p class="module-intro">Performance Measurement Baseline (PMB) for <strong>${_xml(p.name)}</strong>. Select a WBS element to view its baseline detail.</p>
       ${bdMasterDetailHtml()}`;
   }
   function renderPlanEdit(p) {
-    if (!p.projects.includes('JTB001')) return bdNotLoaded(p, 'Edit Plan');
+    if (!bdBuild().roots.length) return bdNotLoaded(p, 'Edit Plan');
     return `
-      <p class="module-intro">Edit Plan for <strong>${_xml(p.name)}</strong> — project JTB001 · PPC/SIS Demo 1. Select a WBS element, then edit the time-phased resource values (Cost or Hours). Totals recompute live; edits persist for this session.</p>
+      <p class="module-intro">Edit Plan for <strong>${_xml(p.name)}</strong>. Select a WBS element, then edit the time-phased resource values (Cost or Hours). Totals recompute live; edits persist for this session.</p>
       <div class="bd-edit-bar">
         <button class="btn primary" onclick="bdSavePlan()">Save Plan</button>
         <button class="btn" onclick="bdResetPlan()">Reset to baseline</button>
@@ -2199,11 +2221,6 @@
   }
 
   function renderSetup(p) {
-    if (!p.projects.includes('JTB001')) {
-      return `
-        <p class="module-intro">Project Setup for <strong>${_xml(p.name)}</strong>.</p>
-        <div class="placeholder-note">Project Setup (Maintain Control Accounts &amp; Work Packages) is available for the <strong>Demo</strong> program (project JTB001 · PPC/SIS Demo 1).</div>`;
-    }
     psSeed();
     const modes = [['header', 'Project Header'], ['ca', 'Control Accounts'], ['wp', 'Work Packages'], ['mrub', 'MR / UB']];
     const toggle = modes.map(m => `<button class="${m[0] === psState.mode ? 'active' : ''}" onclick="psSetMode('${m[0]}')">${m[1]}</button>`).join('');
@@ -4123,6 +4140,7 @@
   }
 
   initChartTip();
+  applyProgramData(progId());   // load the default program's dataset into the globals
   setModule('values');
 </script>
 </body>
