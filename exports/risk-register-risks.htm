@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dassian Program Risk Register — Prototype</title>
+<style>
+  :root {
+    --sap-blue: #0a6ed1;
+    --sap-blue-dark: #085caf;
+    --shell-bg: #354a5f;
+    --panel-border: #d9d9d9;
+    --text: #32363a;
+    --text-muted: #6a6d70;
+    --section-bg: #f7f7f7;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background: #fff;
+    font-size: 14px;
+  }
+
+  /* ---------- Shell header bar ---------- */
+  .shellbar {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    background: var(--shell-bg);
+    color: #fff;
+    padding: 0 12px;
+    gap: 14px;
+  }
+  .shellbar .back { font-size: 18px; opacity: .85; cursor: pointer; }
+  .sap-logo {
+    font-weight: 700;
+    font-style: italic;
+    letter-spacing: 1px;
+    background: #1a73c0;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 16px;
+  }
+  .shellbar .title {
+    font-size: 15px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .shellbar .title .chev { font-size: 11px; opacity: .8; }
+  .shellbar .spacer { flex: 1; }
+  .shellbar .icon { font-size: 16px; opacity: .9; cursor: pointer; }
+  .shellbar .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--sap-blue);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,.4);
+  }
+
+  /* ---------- Body layout ---------- */
+  .layout { display: flex; height: calc(100vh - 44px); }
+  .sidebar {
+    width: 370px;
+    min-width: 370px;
+    border-right: 1px solid var(--panel-border);
+    display: flex; flex-direction: column;
+    background: #fff;
+  }
+  .panel-header {
+    text-align: center;
+    padding: 10px;
+    font-size: 15px;
+    color: var(--text);
+    border-bottom: 1px solid var(--panel-border);
+    background: #fff;
+  }
+  .program-list { overflow-y: auto; flex: 1; }
+  .program-card {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ededed;
+    cursor: pointer;
+  }
+  .program-card:hover { background: #f5f8fc; }
+  .program-card.active { background: #eaf2fb; border-left: 3px solid var(--sap-blue); }
+  .program-card .pid { font-size: 13px; color: var(--text); }
+  .program-card .pname { font-size: 15px; color: var(--text); margin: 2px 0 8px; }
+  .program-card .meta { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ---------- Main content ---------- */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-left: 3px solid var(--sap-blue); }
+  .section-bar {
+    display: flex; align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--panel-border);
+    background: #fff;
+  }
+  .section-bar .sec-title { flex: 1; text-align: center; font-size: 15px; }
+  .section-bar .actions { display: flex; align-items: center; gap: 14px; color: var(--sap-blue); }
+  .btn-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--sap-blue);
+    color: var(--sap-blue);
+    background: #fff;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .section-bar .icon-btn { color: var(--sap-blue); cursor: pointer; font-size: 16px; }
+  .section-bar .icon-btn.close { color: #5b738b; }
+
+  .content { flex: 1; overflow-y: auto; padding: 18px 28px; }
+
+  .content-top {
+    display: flex; align-items: center; margin-bottom: 8px;
+  }
+  .program-title { font-size: 18px; font-weight: 400; flex: 1; }
+
+  /* ---------- Segmented toggle ---------- */
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--sap-blue);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .segmented button {
+    border: none;
+    background: #fff;
+    color: var(--sap-blue);
+    padding: 7px 22px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .segmented button + button { border-left: 1px solid var(--sap-blue); }
+  .segmented button.active { background: var(--sap-blue); color: #fff; }
+  .segmented.opps button { border-color: #6b4ba8; color: #6b4ba8; }
+  .segmented.opps button + button { border-left-color: #6b4ba8; }
+  .segmented.opps button.active { background: #6b4ba8; color: #fff; }
+
+  /* ---------- Heat map ---------- */
+  .heat-wrap {
+    display: flex;
+    margin: 18px 0 6px;
+  }
+  .y-title {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding-right: 6px;
+    align-self: center;
+  }
+  .row-labels {
+    display: flex; flex-direction: column;
+    width: 86px;
+  }
+  .row-labels .rl {
+    flex: 1;
+    display: flex; align-items: center; justify-content: flex-end;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding-right: 10px;
+  }
+  .row-labels .rl span { transform: rotate(-30deg); transform-origin: right center; white-space: nowrap; }
+
+  .matrix-area { flex: 1; }
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .cell {
+    height: 66px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    font-weight: 400;
+    color: #1d1d1d;
+  }
+  .col-labels {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+    height: 46px;
+  }
+  .col-labels .cl {
+    display: flex; align-items: flex-start; justify-content: center;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .col-labels .cl span { transform: rotate(-30deg); transform-origin: center top; white-space: nowrap; }
+  .x-title {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 8px 0 4px;
+    /* offset to align with matrix center (account for y-title + row-labels width) */
+    padding-left: 100px;
+  }
+
+  /* ---------- Risk table ---------- */
+  .table-head-row {
+    display: flex; align-items: center;
+    margin: 26px 0 4px;
+  }
+  .table-head-row .tbl-title { font-size: 16px; font-weight: 400; flex: 1; }
+  .table-toolbar { display: flex; align-items: center; gap: 14px; color: var(--sap-blue); }
+  .table-toolbar .ti { cursor: pointer; font-size: 15px; }
+  .table-toolbar .search {
+    display: flex; align-items: center;
+    border: 1px solid #c4c4c4; border-radius: 4px;
+    padding: 3px 8px; color: var(--text-muted);
+  }
+  .table-toolbar .search input { border: none; outline: none; font-family: inherit; font-size: 13px; width: 150px; }
+
+  table.risk { width: 100%; border-collapse: collapse; }
+  table.risk th {
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  table.risk td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #ededed;
+    font-size: 13px;
+  }
+  td.score-bad { color: #c0271a; }
+  td.score-opp { color: #6b4ba8; }
+  td.score-good { color: #107e3e; }
+
+  /* ---------- Risk detail slide-out ---------- */
+  table.risk tbody tr { cursor: pointer; }
+  table.risk tbody tr:hover td { background: #f5f8fc; }
+  body.detail-open .sidebar { display: none; }
+
+  .detail-drawer {
+    position: absolute; top: 44px; right: 0; bottom: 0;
+    width: min(640px, 62%);
+    background: #f7f7f7; border-left: 1px solid var(--panel-border);
+    box-shadow: -6px 0 18px rgba(0,0,0,.14);
+    transform: translateX(101%); transition: transform .25s ease;
+    display: flex; flex-direction: column; z-index: 50;
+  }
+  .detail-drawer.open { transform: translateX(0); }
+  .dd-header { background: #eaf1f8; padding: 14px 18px; border-bottom: 1px solid var(--panel-border); display: flex; align-items: flex-start; gap: 14px; }
+  .dd-icon { width: 46px; height: 46px; border-radius: 50%; background: var(--sap-blue); color: #fff; font-weight: 700; font-size: 26px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .dd-htext { flex: 1; }
+  .dd-title { font-size: 19px; font-weight: 400; color: var(--text); }
+  .dd-sub { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+  .dd-close { cursor: pointer; font-size: 18px; color: #5b738b; }
+  .dd-tabs { display: flex; background: #eaf1f8; border-bottom: 1px solid var(--panel-border); padding: 0 10px; overflow-x: auto; }
+  .dd-tab { padding: 10px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; color: var(--text); }
+  .dd-tab.active { border-bottom-color: var(--sap-blue); color: var(--sap-blue); font-weight: 700; }
+  .dd-body { overflow-y: auto; flex: 1; padding: 18px 22px; }
+  .dd-section { margin-bottom: 30px; }
+  .dd-section h3 { font-size: 16px; font-weight: 400; margin: 0 0 14px; border-bottom: 1px solid #ededed; padding-bottom: 6px; }
+  .dd-field { display: flex; align-items: flex-start; margin-bottom: 10px; }
+  .dd-field label { width: 180px; min-width: 180px; text-align: right; padding-right: 14px; padding-top: 7px; color: var(--text); font-size: 13px; }
+  .dd-field .val { flex: 1; border: 1px solid #c4c4c4; border-radius: 4px; padding: 7px 10px; font-size: 13px; background: #fff; }
+  .dd-field .val.ro { background: #f2f2f2; color: var(--text-muted); }
+  .dd-suffix { margin-left: 8px; padding-top: 7px; color: var(--text-muted); font-size: 13px; }
+  table.dd-tasks { width: 100%; border-collapse: collapse; }
+  table.dd-tasks th { text-align: left; font-weight: 700; font-size: 12px; padding: 9px 10px; border-bottom: 1px solid var(--panel-border); }
+  table.dd-tasks td { padding: 9px 10px; border-bottom: 1px solid #ededed; font-size: 13px; }
+  .dd-empty { color: var(--text-muted); font-size: 13px; }
+  svg.wf { width: 100%; height: auto; display: block; }
+  .wf-legend { display: flex; gap: 22px; justify-content: center; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+  .wf-legend .ln { display: inline-block; width: 20px; height: 3px; vertical-align: middle; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+  <!-- Shell bar -->
+  <div class="shellbar">
+    <span class="back">‹</span>
+    <span class="sap-logo">SAP</span>
+    <span class="title">Dassian Program Risk Register <span class="chev">▾</span></span>
+    <span class="spacer"></span>
+    <span class="icon">🔍</span>
+    <span class="icon">🔔</span>
+    <span class="avatar">JB</span>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar: program list -->
+    <aside class="sidebar">
+      <div class="panel-header" id="panelHeader">Demo — Projects</div>
+      <div class="program-list" id="programList"><div class="program-card active"><div class="pid">JTB001</div><div class="pname">PPC/SIS Demo 1</div><div class="meta">Controlling Area: A000<br>Plant: 1710</div></div></div>
+    </aside>
+
+    <!-- Main content -->
+    <section class="main">
+      <div class="section-bar">
+        <div class="actions" style="visibility:hidden">x</div>
+        <div class="sec-title" id="secTitle">Program Risks</div>
+        <div class="actions">
+          <span class="btn-link">⧉ To Project Burndown</span>
+          <span class="icon-btn">⤢</span>
+          <span class="icon-btn close">✕</span>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="content-top">
+          <div class="program-title">PPC/SIS Demo 1 (JTB001)</div>
+          <div class="segmented" id="segmented">
+            <button id="btnRisks" class="active" onclick="setView('risks')">Risks</button>
+            <button id="btnOpps" onclick="setView('opportunities')">Opportunities</button>
+          </div>
+        </div>
+
+        <!-- Heat map -->
+        <div class="heat-wrap">
+          <div class="y-title" id="yTitle">Risk Probability</div>
+          <div class="row-labels" id="rowLabels"><div class="rl"><span>Near Certain</span></div><div class="rl"><span>Highly Likely</span></div><div class="rl"><span>Likely</span></div><div class="rl"><span>Unlikely</span></div><div class="rl"><span>Remote</span></div></div>
+          <div class="matrix-area">
+            <div class="matrix" id="matrix"><div class="cell" style="background: rgb(226, 223, 30); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(239, 138, 43); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(239, 138, 43); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(225, 34, 25); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(225, 34, 25); color: rgb(29, 29, 29);">2</div><div class="cell" style="background: rgb(140, 198, 62); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(226, 223, 30); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(239, 138, 43); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(225, 34, 25); color: rgb(29, 29, 29);">1</div><div class="cell" style="background: rgb(225, 34, 25); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(46, 125, 14); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(140, 198, 62); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(226, 223, 30); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(239, 138, 43); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(225, 34, 25); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(46, 125, 14); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(46, 125, 14); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(140, 198, 62); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(226, 223, 30); color: rgb(29, 29, 29);">1</div><div class="cell" style="background: rgb(239, 138, 43); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(46, 125, 14); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(46, 125, 14); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(140, 198, 62); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(140, 198, 62); color: rgb(29, 29, 29);">0</div><div class="cell" style="background: rgb(226, 223, 30); color: rgb(29, 29, 29);">0</div></div>
+            <div class="col-labels" id="colLabels"><div class="cl"><span>Insignificant</span></div><div class="cl"><span>Modest</span></div><div class="cl"><span>Moderate</span></div><div class="cl"><span>Significant</span></div><div class="cl"><span>Unacceptable</span></div></div>
+          </div>
+        </div>
+        <div class="x-title" id="xTitle">Risk Impact</div>
+
+        <!-- Table -->
+        <div class="table-head-row">
+          <div class="tbl-title" id="tblTitle">Risks(4/4)</div>
+          <div class="table-toolbar">
+            <span class="ti">⇅</span>
+            <span class="ti">▽</span>
+            <span class="ti">⊟</span>
+            <span class="ti">⧨</span>
+            <span class="search"><input type="text" placeholder="Search"> 🔍</span>
+          </div>
+        </div>
+        <table class="risk">
+          <thead>
+            <tr id="tblHead"><th>Risk Description</th><th>Date Raised</th><th>Owner</th><th>Status</th><th>Original Score</th><th>Current Score</th><th>Target Score</th></tr>
+          </thead>
+          <tbody id="tblBody"><tr><td>Risk 1</td><td>10/20/2022</td><td>Jason Bartello</td><td>In Process</td><td class="score-bad">0.64</td><td class="score-bad">0.64</td><td class="score-good">0.09</td></tr><tr><td>Risk 2</td><td>11/03/2022</td><td>Jason Bartello</td><td>New</td><td class="score-bad">0.90</td><td class="score-bad">0.90</td><td class="score-good">0.01</td></tr><tr><td>Risk 3</td><td>02/24/2026</td><td>Jason Bartello</td><td>New</td><td class="score-bad">0.90</td><td class="score-bad">0.90</td><td class="score-good">0.15</td></tr><tr><td>Risk 4</td><td>03/10/2026</td><td>Jason Bartello</td><td>New</td><td class="score-bad">0.24</td><td class="score-bad">0.24</td><td class="score-good">0.05</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Risk detail slide-out (filled by JS on row click) -->
+  <div class="detail-drawer" id="detailDrawer"></div>
+
+
+
+
+</body></html>
