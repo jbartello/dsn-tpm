@@ -1383,6 +1383,9 @@
     }).filter(Boolean);
   }
   function schedRender() { const d = document.getElementById('bdDetail'); if (d) d.innerHTML = bdDetailHtml(bdState.sel); bdRenderTree(); bdRenderGantt(); }
+  // Auto-schedule: recompute the project from predecessors and apply, then render.
+  // So a new link / date / duration change is reflected immediately (no manual reschedule).
+  function schedApply() { schedInvalidate(); schedRescheduleAll(); schedRender(); }
   function schedAddTask(wp) {
     const tasks = schedTasks(wp), months = (window.CAP_TP || { months: [] }).months, span = bdNodeSpan(wp), id = schedNextId();
     tasks.push({ id: id, name: 'New subtask ' + id, start: months.length ? (span.s >= 0 ? bdFirstOfMonth(months[span.s]) : months[0]) : '', finish: months.length ? (span.f >= 0 ? months[span.f] : months[months.length - 1]) : '', preds: [], res: {}, added: [] });
@@ -1391,7 +1394,7 @@
   function schedDelTask(wp, id) {
     const tasks = schedTasks(wp), i = tasks.findIndex(t => t.id === id); if (i >= 0) tasks.splice(i, 1);
     schedAllTasks().forEach(x => { x.task.preds = (x.task.preds || []).filter(p => p.id !== id); });   // drop dangling links
-    if (schedSel.task === id) schedSel.task = tasks.length ? tasks[0].id : ''; schedInvalidate(); schedRender();
+    if (schedSel.task === id) schedSel.task = tasks.length ? tasks[0].id : ''; schedApply();
   }
   function schedSelectTask(wp, id) { schedSel.task = id; schedRender(); }
   function schedSetField(wp, id, field, val) {
@@ -1404,8 +1407,8 @@
       if (field === 'start') { schedShiftRes(t, bdMonthIndexOf(norm) - bdMonthIndexOf(t.start)); t.start = norm; if (bdDateNum(t.finish) < bdDateNum(t.start)) t.finish = t.start; }
       else { t.finish = norm; if (bdDateNum(t.finish) < bdDateNum(t.start)) t.start = t.finish; }
       schedClampRes(t);
-    } else t[field] = val;
-    schedInvalidate(); schedRender();
+    } else { t[field] = val; schedRender(); return; }   // name change — no reschedule
+    schedApply();   // date/duration change cascades to successors
   }
   function schedEditCell(wp, id, resId, mi, raw, measure, rate) {
     const t = schedTask(wp, id); if (!t) return; const n = (window.CAP_TP || { months: [] }).months.length;
@@ -1430,9 +1433,9 @@
     if (t.preds.some(p => p.id === ps.value)) { tpmToast('That predecessor is already linked'); return; }
     t.preds.push({ id: ps.value, type: (ty && ty.value) || 'FS', lag: (lg && parseInt(lg.value, 10)) || 0 });
     if (schedHasCycle()) { t.preds.pop(); tpmToast('That link would create a circular dependency'); return; }
-    schedInvalidate(); schedRender();
+    schedApply(); tpmToast('Predecessor linked — schedule updated');
   }
-  function schedDelPred(wp, id, pid) { const t = schedTask(wp, id); if (!t) return; t.preds = (t.preds || []).filter(p => p.id !== pid); schedInvalidate(); schedRender(); }
+  function schedDelPred(wp, id, pid) { const t = schedTask(wp, id); if (!t) return; t.preds = (t.preds || []).filter(p => p.id !== pid); schedApply(); }
 
   // The subtask table + predecessor picker + the selected subtask's resource grid.
   function bdSubtaskSection(wp) {
