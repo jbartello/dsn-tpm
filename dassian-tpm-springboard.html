@@ -619,6 +619,28 @@
   .ps-th-lbl { font-weight: 600; white-space: nowrap; }
   .ps-classbar input[disabled] + strong, .ps-classbar label[title]:not([title=""]) input[disabled] { opacity: .5; }
   .ps-block { font-size: 12px; color: var(--bad); font-weight: 600; }
+  /* Earned Value Status */
+  .ev-dd { margin-left: 12px; font-size: 13px; color: var(--text-muted); }
+  .ev-dd select { font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 3px 6px; margin-left: 4px; }
+  .ev-wrap { overflow-x: auto; }
+  table.ev-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.ev-tbl th { text-align: left; font-weight: 700; color: var(--text); background: #fafafa; padding: 9px 12px; border-bottom: 1px solid var(--panel-border); position: sticky; top: 0; }
+  table.ev-tbl th.num, table.ev-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.ev-tbl td { padding: 5px 12px; border-bottom: 1px solid #f0f0f0; }
+  table.ev-tbl td.ev-name { white-space: nowrap; }
+  table.ev-tbl tr.ev-wbs td { background: #fff; }
+  table.ev-tbl tr.ev-wbs.ev-wp td { background: #f7faff; font-weight: 600; }
+  table.ev-tbl tr.ev-wbs td .ev-wid { color: var(--sap-blue); font-weight: 700; }
+  table.ev-tbl tr.ev-task td { background: #fff; color: var(--text); }
+  table.ev-tbl tr.ev-task td.ev-name { color: var(--text-muted); font-style: italic; }
+  table.ev-tbl tr:hover td { background: #eef4fb; }
+  .ev-wpm { font-size: 12px; color: var(--text-muted); }
+  .ev-loe { color: #7b3fb3; font-weight: 700; }
+  select.ev-msel { font-family: inherit; font-size: 12px; border: 1px solid #cdd8e3; border-radius: 4px; padding: 4px 6px; max-width: 210px; }
+  input.ev-pc { width: 60px; text-align: right; font-family: inherit; font-size: 12px; border: 1px solid #cdd8e3; border-radius: 4px; padding: 4px 6px; }
+  select.ev-sel { font-family: inherit; font-size: 12px; border: 1px solid #cdd8e3; border-radius: 4px; padding: 4px 6px; }
+  .ev-chk { font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+  input.ev-pc:focus, select.ev-msel:focus, select.ev-sel:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
   .ps-clearbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff8e6; border: 1px solid #f4d77a; border-radius: 6px; padding: 9px 12px; margin-bottom: 14px; }
   .ps-clearnote { font-size: 12px; color: #7a5c00; }
   /* Project Setup: variance threshold matrix */
@@ -1968,10 +1990,106 @@
       <p class="module-intro">Estimate at Completion for <strong>${p.name}</strong>.</p>
       <div class="placeholder-note">Project EAC view — to be built out (EAC scenarios, VAC, EAC by control account, forecast trends).</div>`;
   }
+  /* ===================== Earned Value Status =====================
+     WBS structure + WP EV method (from Project Setup) + subtasks with an
+     editable EV method and method-aware % complete, budget-weighted up the WBS.
+     LOE tasks are time-based (data date = Month-End selector), read-only. */
+  const evState = { expanded: {}, _init: false };
+  function evNormMethod(raw) {
+    const r = String(raw || '').toUpperCase();
+    if (r.indexOf('LOE') >= 0 || r.indexOf('LEVEL OF EFFORT') >= 0) return 'Level of Effort (LOE)';
+    if (r.indexOf('MLST') >= 0 || r.indexOf('MILESTONE') >= 0) return 'Milestone (Weighted)';
+    if (r.indexOf('EST') >= 0 || r.indexOf('EARNED STANDARD') >= 0) return 'Earned Standards (EST)';
+    if (r === '0/100') return '0/100';
+    if (r === '50/50') return '50/50';
+    if (r === '25/75') return '25/75';
+    if (r.indexOf('APPORTION') >= 0) return 'Apportioned Effort';
+    if (r.indexOf('UNIT') >= 0) return 'Units Complete';
+    return '% Complete';
+  }
+  function evMethodOf(wp) { const ps = psSeed().wp[wp]; return evNormMethod(ps ? ps.ev : (bdBuild().map[wp] || {}).ev); }
+  function isLOE(m) { return m === 'Level of Effort (LOE)'; }
+  function taskEvm(wp, t) { return t.evm || evMethodOf(wp); }
+  function taskBAC(t) { let s = 0; Object.keys(t.res || {}).forEach(rid => (t.res[rid] || []).forEach(v => s += (v || 0))); return s; }
+  // LOE fraction complete = cumulative task budget through the data-date month ÷ total.
+  function evLoeFrac(t) {
+    const months = (window.CAP_TP || { months: [] }).months, p = String(pvState.period).split('-');
+    const key = p.length < 2 ? Infinity : (+p[0]) * 12 + (+p[1] - 1);
+    let cum = 0, tot = 0;
+    Object.keys(t.res || {}).forEach(rid => (t.res[rid] || []).forEach((v, i) => {
+      tot += (v || 0); const mp = String(months[i]).split('/'); const mk = (+mp[2]) * 12 + (+mp[0] - 1);
+      if (mk <= key) cum += (v || 0);
+    }));
+    return tot ? cum / tot : 0;
+  }
+  function taskPC(wp, t) { return isLOE(taskEvm(wp, t)) ? evLoeFrac(t) * 100 : (+t.pc || 0); }
+  function taskBCWP(wp, t) { return taskPC(wp, t) / 100 * taskBAC(t); }
+  // Budget-weighted roll-up for any node: sum descendant WP tasks.
+  function evNode(wbs) {
+    let bac = 0, bcwp = 0;
+    bdLeaves(wbs).forEach(wp => schedTasks(wp).forEach(t => { bac += taskBAC(t); bcwp += taskBCWP(wp, t); }));
+    return { bac: bac, bcwp: bcwp, pc: bac ? bcwp / bac * 100 : 0 };
+  }
+  function evSetMethod(wp, id, val) { const t = schedTask(wp, id); if (t) { t.evm = val; evRender(); } }
+  function evSetPC(wp, id, val) { const t = schedTask(wp, id); if (t) { t.pc = Math.max(0, Math.min(100, parseFloat(val) || 0)); evRender(); } }
+  function evSetPeriod(v) { pvState.period = v; evRender(); }
+  function evToggle(wbs) { evState.expanded[wbs] = !evState.expanded[wbs]; evRender(); }
+  function evRender() { const c = document.getElementById('content'); if (c) c.innerHTML = renderEvStatus(prog()); }
+  function evRows() {
+    const out = [], rec = (wbs, depth) => {
+      const n = bdBuild().map[wbs]; out.push({ kind: 'wbs', wbs, depth, node: n });
+      if (n.children.length) { if (evState.expanded[wbs]) n.children.forEach(k => rec(k, depth + 1)); }
+      else if (evState.expanded[wbs]) schedTasks(wbs).forEach(t => out.push({ kind: 'task', wbs, depth: depth + 1, task: t }));
+    };
+    bdBuild().roots.forEach(r => rec(r, 0));
+    return out;
+  }
+  function evPcCell(wp, t, method, pc) {
+    if (isLOE(method)) return `<span class="ev-loe" title="Level of Effort — time-based, calculated">${pc.toFixed(0)}%</span>`;
+    if (method === '0/100') return `<label class="ev-chk"><input type="checkbox" ${pc >= 100 ? 'checked' : ''} onchange="evSetPC('${wp}','${t.id}',this.checked?100:0)"> ${pc >= 100 ? '100%' : '0%'}</label>`;
+    if (method === '50/50' || method === '25/75') {
+      const mid = method === '50/50' ? 50 : 25;
+      return `<select class="ev-sel" onchange="evSetPC('${wp}','${t.id}',this.value)"><option value="0"${pc < mid ? ' selected' : ''}>0%</option><option value="${mid}"${(pc >= mid && pc < 100) ? ' selected' : ''}>${mid}%</option><option value="100"${pc >= 100 ? ' selected' : ''}>100%</option></select>`;
+    }
+    return `<input class="ev-pc" type="number" min="0" max="100" value="${Math.round(pc)}" onchange="evSetPC('${wp}','${t.id}',this.value)">`;
+  }
   function renderEvStatus(p) {
+    if (!p.projects.includes('JTB001')) {
+      return `<p class="module-intro">Earned Value Status for <strong>${_xml(p.name)}</strong>.</p>
+        <div class="placeholder-note">Earned Value Status uses the cost-loaded schedule, available for the <strong>Demo</strong> program (project JTB001).</div>`;
+    }
+    schedSeed(); psSeed();
+    const map = bdBuild().map;
+    if (!evState._init) { Object.keys(map).forEach(w => { if (w.split('.').length <= 3) evState.expanded[w] = true; }); evState._init = true; }
+    const tot = bdBuild().roots.reduce((a, r) => { const n = evNode(r); return { bac: a.bac + n.bac, bcwp: a.bcwp + n.bcwp }; }, { bac: 0, bcwp: 0 });
+    const totPc = tot.bac ? tot.bcwp / tot.bac * 100 : 0;
+    const tile = (label, val, sub) => `<div class="tile"><div class="t-label">${label}</div><div class="t-value">${val}</div><div class="t-sub">${sub}</div></div>`;
+    const dd = `<span class="ev-dd">Data date: <select onchange="evSetPeriod(this.value)">${PERIODS.map(pd => `<option value="${pd.id}"${pd.id === pvState.period ? ' selected' : ''}>${pd.label}</option>`).join('')}</select></span>`;
+    const rows = evRows().map(r => {
+      if (r.kind === 'task') {
+        const wp = r.wbs, t = r.task, method = taskEvm(wp, t), bac = taskBAC(t), pc = taskPC(wp, t), bcwp = pc / 100 * bac;
+        const msel = `<select class="ev-msel" onchange="evSetMethod('${wp}','${t.id}',this.value)">${PS_EV_METHODS.map(m => `<option${m === method ? ' selected' : ''}>${_xml(m)}</option>`).join('')}</select>`;
+        return `<tr class="ev-task"><td class="ev-name" style="padding-left:${8 + r.depth * 16}px">${_xml(t.id)} · ${_xml(t.name)}</td><td>${msel}</td><td class="num">${bdUsd(bac)}</td><td class="num">${evPcCell(wp, t, method, pc)}</td><td class="num">${bdUsd(bcwp)}</td></tr>`;
+      }
+      const isWP = bdIsLeaf(r.wbs), roll = evNode(r.wbs);
+      const hasKids = r.node.children.length > 0 || (isWP && schedTasks(r.wbs).length > 0);
+      const open = !!evState.expanded[r.wbs];
+      const caret = hasKids ? `<span class="bd-caret" onclick="evToggle('${r.wbs}')">${open ? '▾' : '▸'}</span>` : '<span class="bd-caret"></span>';
+      const methodCol = isWP ? `<span class="ev-wpm${isLOE(evMethodOf(r.wbs)) ? ' ev-loe' : ''}">${_xml(evMethodOf(r.wbs))}</span>` : '';
+      return `<tr class="ev-wbs${isWP ? ' ev-wp' : ''}"><td class="ev-name" style="padding-left:${8 + r.depth * 16}px">${caret}<span class="ev-wid">${_xml(r.wbs)}</span> · ${_xml(r.node.desc || '')}</td><td>${methodCol}</td><td class="num">${roll.bac ? bdUsd(roll.bac) : '—'}</td><td class="num">${roll.pc.toFixed(0)}%</td><td class="num">${roll.bcwp ? bdUsd(roll.bcwp) : '—'}</td></tr>`;
+    }).join('');
     return `
-      <p class="module-intro">Earned Value Status for <strong>${p.name}</strong>.</p>
-      <div class="placeholder-note">Earned Value Status view — to be built out (current-period &amp; cumulative BCWS/BCWP/ACWP, CPI/SPI/CV/SV, %complete, and status vs. baseline by control account).</div>`;
+      <p class="module-intro">Earned Value Status for <strong>${_xml(p.name)}</strong> — project JTB001. Set each task's EV method &amp; % complete; the work package %C rolls up budget-weighted (BCWP ÷ BAC). LOE is time-based from the data date. ${dd}</p>
+      <div class="tile-grid" style="margin-bottom:18px">
+        ${tile('Budget at Complete', bdUsd(tot.bac), 'Σ task BAC')}
+        ${tile('Earned Value (BCWP)', bdUsd(tot.bcwp), 'Σ %C × BAC')}
+        ${tile('% Complete', totPc.toFixed(1) + '%', 'Budget-weighted')}
+        ${tile('Data Date', PERIOD_MAP[pvState.period] ? PERIOD_MAP[pvState.period].label : '—', 'LOE basis')}
+      </div>
+      <div class="card"><div class="card-head"><span class="ch-title">WBS · Work Packages · Tasks</span></div>
+        <div class="card-body" style="padding:0"><div class="ev-wrap"><table class="ev-tbl">
+          <thead><tr><th>WBS / Task</th><th>EV Method</th><th class="num">BAC</th><th class="num">% Complete</th><th class="num">BCWP</th></tr></thead>
+          <tbody>${rows}</tbody></table></div></div></div>`;
   }
   /* ===================== Project Setup (/DSN/PPCN) =====================
      Maintain Control Accounts & Work Packages: a mode selector (Project
