@@ -2805,11 +2805,79 @@
   }
 
   /* ===================== Project Artifacts (own module) ===================== */
+  /* ===================== DCMA 14-Point Schedule Assessment =====================
+     Runs the 14 DCMA schedule-health metrics against the schedule built in Edit
+     Plan (schedData subtasks + CPM). Thresholds per the DCMA standard. Metrics
+     that need execution/progress data (Missed Tasks, BEI) are marked N/A for a
+     baseline plan. */
+  function sched14Compute() {
+    const all = schedAllTasks().map(x => x.task);
+    const cpm = schedComputeAll();
+    const n = all.length || 1;
+    const rels = []; all.forEach(t => (t.preds || []).forEach(p => rels.push(p)));
+    const R = rels.length;
+    const hasSucc = {}; all.forEach(t => (t.preds || []).forEach(p => hasSucc[p.id] = true));
+    const hasPred = t => !!(t.preds && t.preds.length);
+    const pct = (k, d) => d ? (100 * k / d) : 0;
+    const fl = t => { const c = cpm[t.id]; return c ? c.float : 0; };
+    const res = [];
+    const add = (num, name, val, thresh, pass, detail) => res.push({ num, name, val, thresh, status: pass == null ? 'N/A' : (pass ? 'Pass' : 'Fail'), detail });
+
+    const noLogic = all.filter(t => !hasPred(t) || !hasSucc[t.id]);
+    add(1, 'Logic', noLogic.length + ' / ' + all.length + ' (' + pct(noLogic.length, n).toFixed(0) + '%)', '≤ 5% missing a predecessor/successor', pct(noLogic.length, n) <= 5, 'Activities lacking a predecessor and/or successor link.');
+    const leads = rels.filter(p => (+p.lag || 0) < 0).length;
+    add(2, 'Leads', leads + ' relationship' + (leads === 1 ? '' : 's'), '0 leads (negative lag)', leads === 0, 'Leads (negative lag) distort the critical path.');
+    const lags = rels.filter(p => (+p.lag || 0) > 0).length;
+    add(3, 'Lags', lags + ' / ' + R + ' (' + pct(lags, R).toFixed(0) + '%)', '≤ 5% of relationships', R ? pct(lags, R) <= 5 : true, 'Relationships that use a positive lag.');
+    const fs = rels.filter(p => (p.type || 'FS') === 'FS').length;
+    add(4, 'Relationship Types', R ? pct(fs, R).toFixed(0) + '% FS' : '—', '≥ 90% Finish-to-Start', R ? pct(fs, R) >= 90 : true, 'Share of Finish-to-Start relationships.');
+    add(5, 'Hard Constraints', '0 / ' + all.length + ' (0%)', '≤ 5% of tasks', true, 'No hard date constraints are used in this model.');
+    const hf = all.filter(t => fl(t) > 44);
+    add(6, 'High Float', hf.length + ' / ' + all.length + ' (' + pct(hf.length, n).toFixed(0) + '%)', '≤ 5% with total float > 44 days', pct(hf.length, n) <= 5, 'High float often signals missing successor logic.');
+    const nf = all.filter(t => fl(t) < 0);
+    add(7, 'Negative Float', nf.length + ' task' + (nf.length === 1 ? '' : 's'), '0 tasks with total float < 0', nf.length === 0, 'Negative float means the plan is behind its logic-driven need dates.');
+    const hd = all.filter(t => schedDuration(t) > 44);
+    add(8, 'High Duration', hd.length + ' / ' + all.length + ' (' + pct(hd.length, n).toFixed(0) + '%)', '≤ 5% with duration > 44 days', pct(hd.length, n) <= 5, 'Long activities should be broken into shorter tasks.');
+    const inv = all.filter(t => bdDateNum(t.finish) < bdDateNum(t.start));
+    add(9, 'Invalid Dates', inv.length + ' task' + (inv.length === 1 ? '' : 's'), '0 invalid (finish before start)', inv.length === 0, 'No status date on this baseline plan; checks finish ≥ start.');
+    const noRes = all.filter(t => !Object.keys(t.res || {}).some(rid => (t.res[rid] || []).some(v => Math.round(v) !== 0)));
+    add(10, 'Resources', noRes.length + ' / ' + all.length + ' unloaded (' + pct(noRes.length, n).toFixed(0) + '%)', '0% of tasks without cost/resources', noRes.length === 0, 'Cost-loaded activities are required for EVM.');
+    add(11, 'Missed Tasks', 'N/A', '≤ 5% slipped from baseline', null, 'Requires actual progress vs baseline (execution data).');
+    const drive = all.reduce((best, t) => { const c = cpm[t.id]; if (!c) return best; if (!best) return t; return bdDateNum(c.ef) > bdDateNum(cpm[best.id].ef) ? t : best; }, null);
+    const cptPass = !!(drive && cpm[drive.id] && cpm[drive.id].float <= 0 && drive.preds && drive.preds.length);
+    add(12, 'Critical Path Test', cptPass ? 'Valid' : 'Broken', 'Continuous critical path to finish', cptPass, cptPass ? 'The finish-driving activity lies on a zero-float logic chain.' : 'No continuous zero-float path drives the finish — add logic links.');
+    const ps = all.reduce((m, t) => (!m || bdDateNum(t.start) < bdDateNum(m)) ? t.start : m, null);
+    const pf = all.reduce((m, t) => (!m || bdDateNum(t.finish) > bdDateNum(m)) ? t.finish : m, null);
+    const cpl = ps && pf ? bdWorkdaysBetween(ps, pf) : 0;
+    const projFloat = drive ? Math.max(0, cpm[drive.id].float) : 0;
+    const cpli = cpl ? (cpl + projFloat) / cpl : 1;
+    add(13, 'Critical Path Length Index (CPLI)', cpli.toFixed(2), '≥ 0.95', cpli >= 0.95, 'CPLI = (CP length + total float) ÷ CP length. No contract finish set ⇒ total float ≈ 0.');
+    add(14, 'Baseline Execution Index (BEI)', 'N/A', '≥ 0.95', null, 'Requires completed-vs-baseline task counts (execution data).');
+    return res;
+  }
+  function ensureS14Drawer() { let d = document.getElementById('s14Drawer'); if (!d) { d = document.createElement('div'); d.id = 's14Drawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); } return d; }
+  function closeSchedule14() { const d = document.getElementById('s14Drawer'); if (d) d.classList.remove('open'); }
+  function openSchedule14() {
+    const rows = sched14Compute();
+    const pass = rows.filter(r => r.status === 'Pass').length, fail = rows.filter(r => r.status === 'Fail').length, na = rows.filter(r => r.status === 'N/A').length;
+    const pill = s => s === 'Pass' ? '<span class="pill good">Pass</span>' : s === 'Fail' ? '<span class="pill bad">Fail</span>' : '<span class="pill warn">N/A</span>';
+    const body = rows.map(r => `<tr><td class="num">${r.num}</td><td>${_xml(r.name)}</td><td class="num">${_xml(r.val)}</td><td>${_xml(r.thresh)}</td><td>${pill(r.status)}</td><td class="wrap">${_xml(r.detail)}</td></tr>`).join('');
+    const d = ensureS14Drawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">Schedule 14-Point Assessment</div>' +
+      '<div class="t2">DCMA schedule-health metrics · ' + schedAllTasks().length + ' activities (project JTB001) · <span style="color:var(--good)">' + pass + ' pass</span> · <span style="color:var(--bad)">' + fail + ' fail</span> · ' + na + ' N/A</div></div>' +
+      '<span class="wbs-close" onclick="closeSchedule14()" title="Close">✕</span></div>' +
+      '<div class="wbs-body"><table class="wbs" style="min-width:920px"><thead><tr><th>#</th><th>Metric</th><th class="num">Measured</th><th>DCMA Threshold</th><th>Result</th><th>Notes</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); if (wb) { wb.scrollTop = 0; wb.scrollLeft = 0; }
+  }
+
   function renderArtifacts(p) {
     const ARTIFACTS = [
       ['WBS Dictionary', 'Baseline', 'P. Nguyen', '05/30/2026', 'Current'],
       ['Responsibility Assignment Matrix (RAM)', 'Baseline', 'P. Nguyen', '05/30/2026', 'Current'],
       ['Integrated Master Schedule (IMS)', 'Schedule', 'P. Nguyen', '06/05/2026', 'Current'],
+      ['Schedule 14-Point Assessment', 'Schedule', 'P. Nguyen', '06/10/2026', 'Current'],
       ['Control Account Plans (CAP)', 'Baseline', 'EHAYES', '05/28/2026', 'Current'],
       ['Tripwire Report', 'EVM', 'J. Bartello', '06/08/2026', 'Current'],
       ['Program Control Log', 'EVM', 'J. Bartello', '06/09/2026', 'Current'],
@@ -2829,6 +2897,7 @@
       else if (x[0] === 'Tripwire Report') open = '<a class="link" onclick="openTripwire()">Open ›</a>';
       else if (x[0] === 'Variance Analysis Report (VAR)') open = '<a class="link" onclick="setModule(\'analysis\')">Open ›</a>';
       else if (x[0] === 'Program Control Log') open = '<a class="link" onclick="openControlLog()">Open ›</a>';
+      else if (x[0] === 'Schedule 14-Point Assessment') open = '<a class="link" onclick="openSchedule14()">Run ›</a>';
       return `<tr>
         <td>${x[0]}</td><td>${x[3]}</td>
         <td><span class="pill ${aStatus(x[4])}">${x[4]}</span></td>
