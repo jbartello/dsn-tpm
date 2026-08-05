@@ -668,6 +668,8 @@
         <div class="nav-item nav-child" data-mod="plan-edit" onclick="setModule('plan-edit')">
           <span class="nav-ico">📝</span> Edit Plan</div>
       </div>
+      <div class="nav-item" data-mod="ev-status" onclick="setModule('ev-status')">
+        <span class="nav-ico">📈</span> Earned Value Status</div>
       <div class="nav-item" data-mod="eac"      onclick="setModule('eac')">
         <span class="nav-ico">💰</span> Project EAC</div>
       <div class="nav-item" data-mod="values"   onclick="setModule('values')">
@@ -737,6 +739,7 @@
     'baseline-change':  'Baseline Change Request',
     'baseline-display': 'Display Baseline',
     'plan-edit':        'Edit Plan',
+    'ev-status': 'Earned Value Status',
     eac:       'Project EAC',
     values:    'Project Values',
     reports:   'Project Analytics',
@@ -1964,6 +1967,11 @@
     return `
       <p class="module-intro">Estimate at Completion for <strong>${p.name}</strong>.</p>
       <div class="placeholder-note">Project EAC view — to be built out (EAC scenarios, VAC, EAC by control account, forecast trends).</div>`;
+  }
+  function renderEvStatus(p) {
+    return `
+      <p class="module-intro">Earned Value Status for <strong>${p.name}</strong>.</p>
+      <div class="placeholder-note">Earned Value Status view — to be built out (current-period &amp; cumulative BCWS/BCWP/ACWP, CPI/SPI/CV/SV, %complete, and status vs. baseline by control account).</div>`;
   }
   /* ===================== Project Setup (/DSN/PPCN) =====================
      Maintain Control Accounts & Work Packages: a mode selector (Project
@@ -4188,6 +4196,7 @@
       case 'baseline-change':  c.innerHTML = renderBaselineChange(p);  break;
       case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
       case 'plan-edit':        c.innerHTML = renderPlanEdit(p);        break;
+      case 'ev-status':        c.innerHTML = renderEvStatus(p);        break;
       case 'eac':      c.innerHTML = renderEac(p);      break;
       case 'values':   c.innerHTML = renderValues(p);  break;
       case 'reports':  c.innerHTML = renderReports();   break;
