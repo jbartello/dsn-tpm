@@ -620,6 +620,12 @@
   .ps-classbar input[disabled] + strong, .ps-classbar label[title]:not([title=""]) input[disabled] { opacity: .5; }
   .ps-block { font-size: 12px; color: var(--bad); font-weight: 600; }
   /* Earned Value Status */
+  /* Project EAC */
+  .eac-periodbar { display: flex; align-items: center; gap: 10px; padding: 9px 14px; margin-bottom: 14px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fafafa; }
+  .eac-periodbar select { font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 4px 8px; margin-left: 4px; }
+  table.bd-tp th.eac-acwp, table.bd-tp td.eac-acwp { background: #e7eef9; }
+  table.bd-tp th.eac-etc, table.bd-tp td.eac-etc { background: #eef6e9; }
+  table.bd-tp td.bd-edit-td.eac-etc { background: #eef6e9; }
   .ev-lockbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 16px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fafafa; }
   .ev-state { font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 12px; }
   .ev-state-open { background: #e3f4ea; color: var(--good); }
@@ -698,8 +704,14 @@
       </div>
       <div class="nav-item" data-mod="ev-status" onclick="setModule('ev-status')">
         <span class="nav-ico">📈</span> Earned Value Status</div>
-      <div class="nav-item" data-mod="eac"      onclick="setModule('eac')">
-        <span class="nav-ico">💰</span> Project EAC</div>
+      <div class="nav-item nav-parent" onclick="toggleEac()">
+        <span class="nav-ico">💰</span> Project EAC <span class="nav-chev" id="eacChev">▾</span></div>
+      <div class="nav-sub" id="eacSub">
+        <div class="nav-item nav-child" data-mod="eac-edit" onclick="setModule('eac-edit')">
+          <span class="nav-ico">✎</span> Create/Edit EAC</div>
+        <div class="nav-item nav-child" data-mod="eac-display" onclick="setModule('eac-display')">
+          <span class="nav-ico">👁️</span> Display EAC</div>
+      </div>
       <div class="nav-item" data-mod="values"   onclick="setModule('values')">
         <span class="nav-ico">📊</span> Project Values</div>
       <div class="nav-item" data-mod="reports"  onclick="setModule('reports')">
@@ -768,6 +780,8 @@
     'baseline-display': 'Display Baseline',
     'plan-edit':        'Edit Plan',
     'ev-status': 'Earned Value Status',
+    'eac-edit':    'Create/Edit EAC',
+    'eac-display': 'Display EAC',
     eac:       'Project EAC',
     values:    'Project Values',
     reports:   'Project Analytics',
@@ -1088,6 +1102,11 @@
 
   function toggleBaseline() {
     const sub = document.getElementById('baselineSub'), chev = document.getElementById('baselineChev');
+    const collapsed = sub.classList.toggle('collapsed');
+    chev.classList.toggle('collapsed', collapsed);
+  }
+  function toggleEac() {
+    const sub = document.getElementById('eacSub'), chev = document.getElementById('eacChev');
     const collapsed = sub.classList.toggle('collapsed');
     chev.classList.toggle('collapsed', collapsed);
   }
@@ -2966,6 +2985,136 @@
   }
 
   /* ===================== Project Artifacts (own module) ===================== */
+  /* ===================== Project EAC (Create/Edit + Display) =====================
+     EAC forecast layered on the baseline subtasks: each gains eacFinish (editable
+     forecast finish) and eacRes (time-phased cost, seeded = baseline res). Cells
+     through the data date = ACWP (locked); after = ETC (editable on Create/Edit).
+     EAC = ACWP + ETC, rolled up the WBS. */
+  const eacState = { expanded: {}, sel: '', task: '', _init: false };
+  function eacEnsure(t) {
+    if (!t.eacRes) { t.eacRes = {}; Object.keys(t.res || {}).forEach(rid => t.eacRes[rid] = (t.res[rid] || []).slice()); }
+    if (!t.eacFinish) t.eacFinish = t.finish;
+  }
+  function eacSeedAll() { schedSeed(); schedAllTasks().forEach(x => eacEnsure(x.task)); }
+  function eacPeriodKey() { const p = String(pvState.period).split('-'); return p.length < 2 ? Infinity : (+p[0]) * 12 + (+p[1] - 1); }
+  function eacMonthKey(m) { const p = String(m).split('/'); return p.length < 3 ? 0 : (+p[2]) * 12 + (+p[0] - 1); }
+  function eacCellClass(t, i) {   // 'acwp' | 'etc' | 'none'
+    const months = (window.CAP_TP || { months: [] }).months, md = bdDateNum(months[i]);
+    if (md < bdDateNum(t.start) || md > bdDateNum(t.eacFinish || t.finish)) return 'none';
+    return eacMonthKey(months[i]) <= eacPeriodKey() ? 'acwp' : 'etc';
+  }
+  function eacResSeries(wbs) {
+    const n = (window.CAP_TP || { months: [] }).months.length, agg = {};
+    bdLeaves(wbs).forEach(wp => schedTasks(wp).forEach(t => { eacEnsure(t); Object.keys(t.eacRes || {}).forEach(rid => { if (!agg[rid]) agg[rid] = new Array(n).fill(0); (t.eacRes[rid] || []).forEach((v, i) => agg[rid][i] += (v || 0)); }); }));
+    return agg;
+  }
+  function eacTaskTotals(t) { eacEnsure(t); let a = 0, e = 0; Object.keys(t.eacRes || {}).forEach(rid => (t.eacRes[rid] || []).forEach((v, i) => { const c = eacCellClass(t, i); if (c === 'acwp') a += (v || 0); else if (c === 'etc') e += (v || 0); })); return { acwp: a, etc: e, eac: a + e }; }
+  function eacTotals(wbs) {
+    let acwp = 0, etc = 0, ff = null;
+    bdLeaves(wbs).forEach(wp => schedTasks(wp).forEach(t => { const tt = eacTaskTotals(t); acwp += tt.acwp; etc += tt.etc; if (!ff || bdDateNum(t.eacFinish) > bdDateNum(ff)) ff = t.eacFinish; }));
+    const bac = bdNodeBCWS(wbs), eac = acwp + etc;
+    return { bac: bac, acwp: acwp, etc: etc, eac: eac, vac: bac - eac, ff: ff };
+  }
+  function eacRender() { const c = document.getElementById('content'); if (c) c.innerHTML = (currentModule === 'eac-edit' ? renderEacEdit : renderEacDisplay)(prog()); }
+  function eacSetPeriod(v) { pvState.period = v; eacRender(); }
+  function eacToggle(w) { eacState.expanded[w] = !eacState.expanded[w]; eacRender(); }
+  function eacSelect(w) { eacState.sel = w; eacState.task = ''; eacRender(); }
+  function eacSelectTask(w, id) { eacState.task = id; eacRender(); }
+  function eacSetFinish(wp, id, val) {
+    const t = schedTask(wp, id); if (!t) return; eacEnsure(t);
+    const norm = bdNormDate(val); if (!norm) { eacRender(); return; }
+    t.eacFinish = bdDateNum(norm) < bdDateNum(t.start) ? t.start : norm;
+    const months = (window.CAP_TP || { months: [] }).months;
+    Object.keys(t.eacRes || {}).forEach(rid => { t.eacRes[rid] = t.eacRes[rid].map((v, i) => bdDateNum(months[i]) > bdDateNum(t.eacFinish) ? 0 : v); });
+    eacRender();
+  }
+  function eacSetETC(wp, id, resId, mi, raw) {
+    const t = schedTask(wp, id); if (!t) return; eacEnsure(t);
+    if (eacCellClass(t, mi) !== 'etc') return;   // only future/forecast cells are editable
+    if (!t.eacRes[resId]) t.eacRes[resId] = new Array((window.CAP_TP || { months: [] }).months.length).fill(0);
+    t.eacRes[resId][mi] = parseFloat(String(raw).replace(/[, $]/g, '')) || 0; eacRender();
+  }
+  function eacTreeHtml(wbs, depth) {
+    const node = bdBuild().map[wbs], kids = node.children, tot = eacTotals(wbs), open = !!eacState.expanded[wbs];
+    const caret = kids.length ? `<span class="bd-caret" onclick="eacToggle('${wbs}')">${open ? '▾' : '▸'}</span>` : '<span class="bd-caret"></span>';
+    const active = eacState.sel === wbs ? ' active' : '';
+    let html = `<div class="bd-row" style="padding-left:${10 + depth * 16}px">${caret}<span class="bd-name${active}" onclick="eacSelect('${wbs}')"><span class="bd-wid">${_xml(wbs)} · ${_xml(node.desc || '')}</span><span class="bd-bcws">${tot.eac ? bdUsd(tot.eac) : '—'}</span></span></div>`;
+    if (kids.length) html += `<div class="bd-children${open ? ' open' : ''}">` + kids.map(k => eacTreeHtml(k, depth + 1)).join('') + '</div>';
+    return html;
+  }
+  function eacResTableHtml(wbs) {
+    const months = (window.CAP_TP || { months: [] }).months, byRes = eacResSeries(wbs);
+    const resList = BD_RES.catalog.filter(r => byRes[r.id] && byRes[r.id].some(v => Math.round(v) !== 0));
+    const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const pk = eacPeriodKey(), cls = i => eacMonthKey(months[i]) <= pk ? 'eac-acwp' : 'eac-etc';
+    const monthCols = months.map((m, i) => `<th class="${cls(i)}">${bdMonthLabel(m)}</th>`).join('');
+    const rows = resList.map(r => { const s = byRes[r.id]; return `<tr><td class="lbl">${r.cls === 'labor' ? _xml(r.name) : _xml(r.name) + ' <span class="bd-rate">cost</span>'}</td>${s.map((v, i) => `<td class="${cls(i)}">${cents(v)}</td>`).join('')}<td class="tot">${bdUsd(s.reduce((a, b) => a + b, 0))}</td></tr>`; }).join('');
+    const tot = months.map((_, i) => resList.reduce((s, r) => s + (byRes[r.id][i] || 0), 0));
+    const grand = `<tr class="grand"><td class="lbl">Total EAC</td>${tot.map((v, i) => `<td class="${cls(i)}">${cents(v)}</td>`).join('')}<td class="tot">${bdUsd(tot.reduce((a, b) => a + b, 0))}</td></tr>`;
+    let c = 0; const cum = `<tr class="cum"><td class="lbl">Cumulative</td>${tot.map(v => { c += v; return `<td>${cents(c)}</td>`; }).join('')}<td class="tot">${bdUsd(c)}</td></tr>`;
+    return `<div class="bd-tp-head"><span class="bd-tp-title">Time-Phased EAC — by Resource</span></div>
+      <div class="bd-tp-note">Blue columns = ACWP (actual to the data date); green = ETC (forecast to complete). EAC = ACWP + ETC.</div>
+      <div class="bd-tp-wrap"><table class="bd-tp"><thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">EAC</th></tr></thead><tbody>${rows}${grand}${cum}</tbody></table></div>`;
+  }
+  function eacGridHtml(wp, taskId) {
+    const t = schedTask(wp, taskId); if (!t) return ''; eacEnsure(t);
+    const months = (window.CAP_TP || { months: [] }).months, cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const resList = BD_RES.catalog.filter(r => (t.eacRes[r.id] && t.eacRes[r.id].some(v => Math.round(v) !== 0)) || (t.res[r.id] && t.res[r.id].some(v => Math.round(v) !== 0)));
+    resList.forEach(r => { if (!t.eacRes[r.id]) t.eacRes[r.id] = new Array(months.length).fill(0); });
+    const monthCols = months.map((m, i) => { const c = eacCellClass(t, i); return `<th class="${c === 'acwp' ? 'eac-acwp' : c === 'etc' ? 'eac-etc' : ''}">${bdMonthLabel(m)}</th>`; }).join('');
+    const rows = resList.map(r => {
+      const s = t.eacRes[r.id];
+      const cells = s.map((v, i) => { const c = eacCellClass(t, i);
+        if (c === 'etc') return `<td class="bd-edit-td eac-etc"><input class="bd-edit" value="${Math.round(v) || 0}" onchange="eacSetETC('${wp}','${taskId}','${r.id}',${i},this.value)"></td>`;
+        if (c === 'acwp') return `<td class="bd-lock eac-acwp" title="ACWP — actual to date">${cents(v)}</td>`;
+        return `<td class="bd-lock">·</td>`; }).join('');
+      return `<tr class="res"><td class="lbl">${r.cls === 'labor' ? _xml(r.name) : _xml(r.name) + ' <span class="bd-rate">cost</span>'}</td>${cells}<td class="tot">${bdUsd(s.reduce((a, b) => a + b, 0))}</td></tr>`;
+    }).join('');
+    return `<div class="bd-tp-head" style="margin-top:14px"><span class="bd-tp-title">EAC cost — ${_xml(t.name)} <span class="bd-rate">forecast finish ${_xml(t.eacFinish)}</span></span></div>
+      <div class="bd-tp-note">Blue = ACWP (actual through the data date, locked). Green = ETC (editable, out to the forecast finish).</div>
+      <div class="bd-tp-wrap"><table class="bd-tp"><thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">EAC</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function eacSubtaskSection(wp) {
+    const tasks = schedTasks(wp); tasks.forEach(eacEnsure);
+    if (!schedTask(wp, eacState.task)) eacState.task = tasks.length ? tasks[0].id : '';
+    if (!tasks.length) return '<div class="bd-tp-note">No activities in this work package.</div>';
+    const rows = tasks.map(t => { const tt = eacTaskTotals(t), sel = eacState.task === t.id ? ' active' : ''; const stop = 'onclick="event.stopPropagation()"';
+      return `<tr class="st-row${sel}" onclick="eacSelectTask('${wp}','${t.id}')"><td class="st-id">${_xml(t.id)}</td><td>${_xml(t.name)}</td><td>${_xml(t.finish)}</td><td><input class="st-in st-date" ${stop} value="${_xml(t.eacFinish)}" onchange="eacSetFinish('${wp}','${t.id}',this.value)"></td><td class="num">${bdUsd(tt.eac)}</td><td class="num">${bdUsd(tt.acwp)}</td><td class="num">${bdUsd(tt.etc)}</td></tr>`;
+    }).join('');
+    const table = `<div class="bd-tp-head"><span class="bd-tp-title">Activities — EAC forecast</span></div>
+      <div class="st-wrap"><table class="st-tbl"><thead><tr><th>ID</th><th>Name</th><th>Baseline Finish</th><th>Forecast Finish</th><th class="num">EAC</th><th class="num">ACWP</th><th class="num">ETC</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const grid = (eacState.task && schedTask(wp, eacState.task)) ? eacGridHtml(wp, eacState.task) : '<div class="bd-tp-note" style="margin-top:12px">Select an activity to edit its ETC forecast.</div>';
+    return table + grid;
+  }
+  function eacDetailHtml(wbs, editable) {
+    const node = bdBuild().map[wbs]; if (!node) return '';
+    const isLeaf = bdIsLeaf(wbs), tot = eacTotals(wbs);
+    const cards = bdCard('EAC', bdUsd(tot.eac)) + bdCard('ACWP to date', bdUsd(tot.acwp)) + bdCard('ETC', bdUsd(tot.etc)) + bdCard('Forecast Finish', tot.ff || '—') + bdCard('VAC', bdUsd(tot.vac));
+    const tag = editable ? (isLeaf ? ' · <span class="bd-editable">EAC editable (ETC)</span>' : ' · <span class="bd-readonly">Summary — display only</span>') : '';
+    const head = `<div class="bd-head"><div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div><div class="bd-sub">Level ${_xml(node.level || '—')}${tag}</div></div><div class="kpi-strip bd-kpis">${cards}</div>`;
+    if (editable && isLeaf) return head + eacSubtaskSection(wbs);
+    return head + eacResTableHtml(wbs);
+  }
+  function eacMasterDetail(editable) {
+    const { map, roots } = bdBuild();
+    if (!eacState.sel || !map[eacState.sel]) eacState.sel = roots[0];
+    if (!eacState._init) { Object.keys(map).forEach(w => { if (w.split('.').length <= 3) eacState.expanded[w] = true; }); eacState._init = true; }
+    const tree = roots.map(r => eacTreeHtml(r, 0)).join('');
+    return `<div class="bd-wrap"><div class="bd-tree">${tree}</div><div class="bd-detail" id="eacDetail">${eacDetailHtml(eacState.sel, editable)}</div></div>`;
+  }
+  function eacPeriodBar() { return `<div class="eac-periodbar"><span class="ev-dd" style="margin-left:0">Status period (data date): <select onchange="eacSetPeriod(this.value)">${PERIODS.map(pd => `<option value="${pd.id}"${pd.id === pvState.period ? ' selected' : ''}>${pd.label}</option>`).join('')}</select></span></div>`; }
+  function eacNotLoaded(p, what) { return `<p class="module-intro">${what} for <strong>${_xml(p.name)}</strong>.</p><div class="placeholder-note">EAC uses the cost-loaded schedule, available for the <strong>Demo</strong> program (project JTB001).</div>`; }
+  function renderEacEdit(p) {
+    if (!p.projects.includes('JTB001')) return eacNotLoaded(p, 'Create/Edit EAC');
+    eacSeedAll();
+    return eacPeriodBar() + `<p class="module-intro">Create / Edit EAC for <strong>${_xml(p.name)}</strong> — project JTB001. ACWP is fixed through the data date; edit each activity's <strong>forecast finish</strong> and its <strong>ETC</strong> (forecast) cells. EAC = ACWP + ETC.</p>` + eacMasterDetail(true);
+  }
+  function renderEacDisplay(p) {
+    if (!p.projects.includes('JTB001')) return eacNotLoaded(p, 'Display EAC');
+    eacSeedAll();
+    return eacPeriodBar() + `<p class="module-intro">Display EAC for <strong>${_xml(p.name)}</strong> — project JTB001. Read-only estimate at completion (ACWP to date + ETC forecast).</p>` + eacMasterDetail(false);
+  }
+
   /* ===================== DCMA 14-Point Schedule Assessment =====================
      Runs the 14 DCMA schedule-health metrics against the schedule built in Edit
      Plan (schedData subtasks + CPM). Thresholds per the DCMA standard. Metrics
@@ -4350,6 +4499,8 @@
       case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
       case 'plan-edit':        c.innerHTML = renderPlanEdit(p);        break;
       case 'ev-status':        c.innerHTML = renderEvStatus(p);        break;
+      case 'eac-edit':         c.innerHTML = renderEacEdit(p);         break;
+      case 'eac-display':      c.innerHTML = renderEacDisplay(p);      break;
       case 'eac':      c.innerHTML = renderEac(p);      break;
       case 'values':   c.innerHTML = renderValues(p);  break;
       case 'reports':  c.innerHTML = renderReports();   break;
