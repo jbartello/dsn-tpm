@@ -620,6 +620,12 @@
   .ps-classbar input[disabled] + strong, .ps-classbar label[title]:not([title=""]) input[disabled] { opacity: .5; }
   .ps-block { font-size: 12px; color: var(--bad); font-weight: 600; }
   /* Earned Value Status */
+  .ev-lockbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 16px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fafafa; }
+  .ev-state { font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 12px; }
+  .ev-state-open { background: #e3f4ea; color: var(--good); }
+  .ev-state-locked { background: #fcefe3; color: var(--warn); }
+  .ev-state-finalized { background: #eef0f2; color: var(--text-muted); }
+  .ev-lock-note { font-size: 12px; color: var(--text-muted); margin-left: auto; }
   .ev-dd { margin-left: 12px; font-size: 13px; color: var(--text-muted); }
   .ev-dd select { font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 3px 6px; margin-left: 4px; }
   .ev-wrap { overflow-x: auto; }
@@ -1995,6 +2001,24 @@
      editable EV method and method-aware % complete, budget-weighted up the WBS.
      LOE tasks are time-based (data date = Month-End selector), read-only. */
   const evState = { expanded: {}, _init: false };
+  // Per-period status: evPeriodState[periodId] = 'locked' | 'finalized' (absent = open).
+  // Locked = no edits until unlocked; Finalized = permanently closed for that period.
+  let evPeriodState = {};
+  function evLockState() { return evPeriodState[pvState.period] || 'open'; }
+  function evLocked() { return evLockState() !== 'open'; }   // no entries allowed
+  function evToggleLock() {
+    if (evLockState() === 'finalized') { tpmToast('Period is finalized — it cannot be reopened'); return; }
+    if (evLockState() === 'locked') { delete evPeriodState[pvState.period]; tpmToast('Period unlocked — entries allowed'); }
+    else { evPeriodState[pvState.period] = 'locked'; tpmToast('Period locked — no entries until unlocked'); }
+    evRender();
+  }
+  function evFinalize() {
+    if (evLockState() === 'finalized') return;
+    const lbl = PERIOD_MAP[pvState.period] ? PERIOD_MAP[pvState.period].label : pvState.period;
+    if (!window.confirm('Finalize ' + lbl + '? Once finalized, no more entries can be made for this period and it cannot be reopened.')) return;
+    evPeriodState[pvState.period] = 'finalized'; tpmToast('✓ ' + lbl + ' finalized — entries closed');
+    evRender();
+  }
   function evNormMethod(raw) {
     const r = String(raw || '').toUpperCase();
     if (r.indexOf('LOE') >= 0 || r.indexOf('LEVEL OF EFFORT') >= 0) return 'Level of Effort (LOE)';
@@ -2030,8 +2054,8 @@
     bdLeaves(wbs).forEach(wp => schedTasks(wp).forEach(t => { bac += taskBAC(t); bcwp += taskBCWP(wp, t); }));
     return { bac: bac, bcwp: bcwp, pc: bac ? bcwp / bac * 100 : 0 };
   }
-  function evSetMethod(wp, id, val) { const t = schedTask(wp, id); if (t) { t.evm = val; evRender(); } }
-  function evSetPC(wp, id, val) { const t = schedTask(wp, id); if (t) { t.pc = Math.max(0, Math.min(100, parseFloat(val) || 0)); evRender(); } }
+  function evSetMethod(wp, id, val) { if (evLocked()) { tpmToast('Period is ' + evLockState() + ' — unlock to edit'); return; } const t = schedTask(wp, id); if (t) { t.evm = val; evRender(); } }
+  function evSetPC(wp, id, val) { if (evLocked()) { tpmToast('Period is ' + evLockState() + ' — unlock to edit'); return; } const t = schedTask(wp, id); if (t) { t.pc = Math.max(0, Math.min(100, parseFloat(val) || 0)); evRender(); } }
   function evSetPeriod(v) { pvState.period = v; evRender(); }
   function evToggle(wbs) { evState.expanded[wbs] = !evState.expanded[wbs]; evRender(); }
   function evRender() { const c = document.getElementById('content'); if (c) c.innerHTML = renderEvStatus(prog()); }
@@ -2044,14 +2068,15 @@
     bdBuild().roots.forEach(r => rec(r, 0));
     return out;
   }
-  function evPcCell(wp, t, method, pc) {
+  function evPcCell(wp, t, method, pc, locked) {
+    const dis = locked ? ' disabled' : '';
     if (isLOE(method)) return `<span class="ev-loe" title="Level of Effort — time-based, calculated">${pc.toFixed(0)}%</span>`;
-    if (method === '0/100') return `<label class="ev-chk"><input type="checkbox" ${pc >= 100 ? 'checked' : ''} onchange="evSetPC('${wp}','${t.id}',this.checked?100:0)"> ${pc >= 100 ? '100%' : '0%'}</label>`;
+    if (method === '0/100') return `<label class="ev-chk"><input type="checkbox" ${pc >= 100 ? 'checked' : ''}${dis} onchange="evSetPC('${wp}','${t.id}',this.checked?100:0)"> ${pc >= 100 ? '100%' : '0%'}</label>`;
     if (method === '50/50' || method === '25/75') {
       const mid = method === '50/50' ? 50 : 25;
-      return `<select class="ev-sel" onchange="evSetPC('${wp}','${t.id}',this.value)"><option value="0"${pc < mid ? ' selected' : ''}>0%</option><option value="${mid}"${(pc >= mid && pc < 100) ? ' selected' : ''}>${mid}%</option><option value="100"${pc >= 100 ? ' selected' : ''}>100%</option></select>`;
+      return `<select class="ev-sel"${dis} onchange="evSetPC('${wp}','${t.id}',this.value)"><option value="0"${pc < mid ? ' selected' : ''}>0%</option><option value="${mid}"${(pc >= mid && pc < 100) ? ' selected' : ''}>${mid}%</option><option value="100"${pc >= 100 ? ' selected' : ''}>100%</option></select>`;
     }
-    return `<input class="ev-pc" type="number" min="0" max="100" value="${Math.round(pc)}" onchange="evSetPC('${wp}','${t.id}',this.value)">`;
+    return `<input class="ev-pc" type="number" min="0" max="100" value="${Math.round(pc)}"${dis} onchange="evSetPC('${wp}','${t.id}',this.value)">`;
   }
   function renderEvStatus(p) {
     if (!p.projects.includes('JTB001')) {
@@ -2065,11 +2090,12 @@
     const totPc = tot.bac ? tot.bcwp / tot.bac * 100 : 0;
     const tile = (label, val, sub) => `<div class="tile"><div class="t-label">${label}</div><div class="t-value">${val}</div><div class="t-sub">${sub}</div></div>`;
     const dd = `<span class="ev-dd">Data date: <select onchange="evSetPeriod(this.value)">${PERIODS.map(pd => `<option value="${pd.id}"${pd.id === pvState.period ? ' selected' : ''}>${pd.label}</option>`).join('')}</select></span>`;
+    const locked = evLocked(), state = evLockState();
     const rows = evRows().map(r => {
       if (r.kind === 'task') {
         const wp = r.wbs, t = r.task, method = taskEvm(wp, t), bac = taskBAC(t), pc = taskPC(wp, t), bcwp = pc / 100 * bac;
-        const msel = `<select class="ev-msel" onchange="evSetMethod('${wp}','${t.id}',this.value)">${PS_EV_METHODS.map(m => `<option${m === method ? ' selected' : ''}>${_xml(m)}</option>`).join('')}</select>`;
-        return `<tr class="ev-task"><td class="ev-name" style="padding-left:${8 + r.depth * 16}px">${_xml(t.id)} · ${_xml(t.name)}</td><td>${msel}</td><td class="num">${bdUsd(bac)}</td><td class="num">${evPcCell(wp, t, method, pc)}</td><td class="num">${bdUsd(bcwp)}</td></tr>`;
+        const msel = `<select class="ev-msel"${locked ? ' disabled' : ''} onchange="evSetMethod('${wp}','${t.id}',this.value)">${PS_EV_METHODS.map(m => `<option${m === method ? ' selected' : ''}>${_xml(m)}</option>`).join('')}</select>`;
+        return `<tr class="ev-task"><td class="ev-name" style="padding-left:${8 + r.depth * 16}px">${_xml(t.id)} · ${_xml(t.name)}</td><td>${msel}</td><td class="num">${bdUsd(bac)}</td><td class="num">${evPcCell(wp, t, method, pc, locked)}</td><td class="num">${bdUsd(bcwp)}</td></tr>`;
       }
       const isWP = bdIsLeaf(r.wbs), roll = evNode(r.wbs);
       const hasKids = r.node.children.length > 0 || (isWP && schedTasks(r.wbs).length > 0);
@@ -2078,8 +2104,17 @@
       const methodCol = isWP ? `<span class="ev-wpm${isLOE(evMethodOf(r.wbs)) ? ' ev-loe' : ''}">${_xml(evMethodOf(r.wbs))}</span>` : '';
       return `<tr class="ev-wbs${isWP ? ' ev-wp' : ''}"><td class="ev-name" style="padding-left:${8 + r.depth * 16}px">${caret}<span class="ev-wid">${_xml(r.wbs)}</span> · ${_xml(r.node.desc || '')}</td><td>${methodCol}</td><td class="num">${roll.bac ? bdUsd(roll.bac) : '—'}</td><td class="num">${roll.pc.toFixed(0)}%</td><td class="num">${roll.bcwp ? bdUsd(roll.bcwp) : '—'}</td></tr>`;
     }).join('');
+    const stateLabel = { open: 'Open', locked: 'Locked', finalized: 'Finalized' }[state];
+    const lockBar = `
+      <div class="ev-lockbar">
+        <span class="ev-state ev-state-${state}">● Period ${stateLabel}</span>
+        <button class="btn" onclick="evToggleLock()"${state === 'finalized' ? ' disabled' : ''}>${state === 'locked' ? '🔓 Unlock Period' : '🔒 Lock Period'}</button>
+        <button class="btn" onclick="evFinalize()"${state === 'finalized' ? ' disabled' : ''}>${state === 'finalized' ? '✓ Finalized' : '✓ Finalize Period'}</button>
+        <span class="ev-lock-note">${state === 'finalized' ? 'Entries are permanently closed for this period.' : state === 'locked' ? 'Entries are frozen — unlock to make changes.' : 'Entries are open for this period.'}</span>
+      </div>`;
     return `
       <p class="module-intro">Earned Value Status for <strong>${_xml(p.name)}</strong> — project JTB001. Set each task's EV method &amp; % complete; the work package %C rolls up budget-weighted (BCWP ÷ BAC). LOE is time-based from the data date. ${dd}</p>
+      ${lockBar}
       <div class="tile-grid" style="margin-bottom:18px">
         ${tile('Budget at Complete', bdUsd(tot.bac), 'Σ task BAC')}
         ${tile('Earned Value (BCWP)', bdUsd(tot.bcwp), 'Σ %C × BAC')}
