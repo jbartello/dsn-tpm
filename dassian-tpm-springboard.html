@@ -623,6 +623,7 @@
   /* Project EAC */
   .eac-periodbar { display: flex; align-items: center; gap: 10px; padding: 9px 14px; margin-bottom: 14px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fafafa; }
   .eac-periodbar select { font-family: inherit; font-size: 13px; border: 1px solid #c4c4c4; border-radius: 4px; padding: 4px 8px; margin-left: 4px; }
+  .eac-lock-note { font-size: 12px; color: var(--text-muted); margin-left: auto; }
   table.bd-tp th.eac-acwp, table.bd-tp td.eac-acwp { background: #e7eef9; }
   table.bd-tp th.eac-etc, table.bd-tp td.eac-etc { background: #eef6e9; }
   table.bd-tp td.bd-edit-td.eac-etc { background: #eef6e9; }
@@ -2990,21 +2991,35 @@
      forecast finish) and eacRes (time-phased cost, seeded = baseline res). Cells
      through the data date = ACWP (locked); after = ETC (editable on Create/Edit).
      EAC = ACWP + ETC, rolled up the WBS. */
-  const eacState = { expanded: {}, sel: '', task: '', _init: false };
+  const eacState = { expanded: {}, sel: '', task: '', _init: false, period: '2025-12' };
   function eacEnsure(t) {
     if (!t.eacRes) { t.eacRes = {}; Object.keys(t.res || {}).forEach(rid => t.eacRes[rid] = (t.res[rid] || []).slice()); }
     if (!t.eacFinish) t.eacFinish = t.finish;
   }
-  function eacSeedAll() { schedSeed(); schedAllTasks().forEach(x => eacEnsure(x.task)); }
-  function eacPeriodKey() { const p = String(pvState.period).split('-'); return p.length < 2 ? Infinity : (+p[0]) * 12 + (+p[1] - 1); }
+  function eacSeedAll() { schedSeed(); schedAllTasks().forEach(x => eacEnsure(x.task)); _eacMonths = null; }
+  // EAC month axis = baseline months, extended monthly out to the latest forecast
+  // finish so pushing a forecast finish opens editable ETC columns. Cached per render.
+  let _eacMonths = null;
+  function eacMonths() {
+    if (_eacMonths) return _eacMonths;
+    const base = ((window.CAP_TP || { months: [] }).months || []).slice();
+    if (!base.length) return (_eacMonths = base);
+    let maxFf = null;
+    schedAllTasks().forEach(x => { const f = x.task.eacFinish || x.task.finish; if (f && (!maxFf || bdDateNum(f) > bdDateNum(maxFf))) maxFf = f; });
+    const mEnd = (y, m) => { const d = new Date(y, m, 0); return String(m).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + y; };
+    let lp = base[base.length - 1].split('/'), y = +lp[2], m = +lp[0];
+    while (maxFf && bdDateNum(base[base.length - 1]) < bdDateNum(maxFf) && base.length < 240) { m++; if (m > 12) { m = 1; y++; } base.push(mEnd(y, m)); }
+    return (_eacMonths = base);
+  }
+  function eacPeriodKey() { const p = String(eacState.period).split('-'); return p.length < 2 ? Infinity : (+p[0]) * 12 + (+p[1] - 1); }
   function eacMonthKey(m) { const p = String(m).split('/'); return p.length < 3 ? 0 : (+p[2]) * 12 + (+p[0] - 1); }
   function eacCellClass(t, i) {   // 'acwp' | 'etc' | 'none'
-    const months = (window.CAP_TP || { months: [] }).months, md = bdDateNum(months[i]);
+    const months = eacMonths(), md = bdDateNum(months[i]);
     if (md < bdDateNum(t.start) || md > bdDateNum(t.eacFinish || t.finish)) return 'none';
     return eacMonthKey(months[i]) <= eacPeriodKey() ? 'acwp' : 'etc';
   }
   function eacResSeries(wbs) {
-    const n = (window.CAP_TP || { months: [] }).months.length, agg = {};
+    const n = eacMonths().length, agg = {};
     bdLeaves(wbs).forEach(wp => schedTasks(wp).forEach(t => { eacEnsure(t); Object.keys(t.eacRes || {}).forEach(rid => { if (!agg[rid]) agg[rid] = new Array(n).fill(0); (t.eacRes[rid] || []).forEach((v, i) => agg[rid][i] += (v || 0)); }); }));
     return agg;
   }
@@ -3016,7 +3031,7 @@
     return { bac: bac, acwp: acwp, etc: etc, eac: eac, vac: bac - eac, ff: ff };
   }
   function eacRender() { const c = document.getElementById('content'); if (c) c.innerHTML = (currentModule === 'eac-edit' ? renderEacEdit : renderEacDisplay)(prog()); }
-  function eacSetPeriod(v) { pvState.period = v; eacRender(); }
+  function eacSetPeriod(v) { eacState.period = v; eacRender(); }
   function eacToggle(w) { eacState.expanded[w] = !eacState.expanded[w]; eacRender(); }
   function eacSelect(w) { eacState.sel = w; eacState.task = ''; eacRender(); }
   function eacSelectTask(w, id) { eacState.task = id; eacRender(); }
@@ -3024,14 +3039,17 @@
     const t = schedTask(wp, id); if (!t) return; eacEnsure(t);
     const norm = bdNormDate(val); if (!norm) { eacRender(); return; }
     t.eacFinish = bdDateNum(norm) < bdDateNum(t.start) ? t.start : norm;
-    const months = (window.CAP_TP || { months: [] }).months;
-    Object.keys(t.eacRes || {}).forEach(rid => { t.eacRes[rid] = t.eacRes[rid].map((v, i) => bdDateNum(months[i]) > bdDateNum(t.eacFinish) ? 0 : v); });
+    _eacMonths = null;                              // axis may extend to the new forecast finish
+    const months = eacMonths();
+    Object.keys(t.eacRes || {}).forEach(rid => { t.eacRes[rid] = months.map((mm, i) => bdDateNum(months[i]) > bdDateNum(t.eacFinish) ? 0 : ((t.eacRes[rid] || [])[i] || 0)); });
     eacRender();
   }
   function eacSetETC(wp, id, resId, mi, raw) {
     const t = schedTask(wp, id); if (!t) return; eacEnsure(t);
     if (eacCellClass(t, mi) !== 'etc') return;   // only future/forecast cells are editable
-    if (!t.eacRes[resId]) t.eacRes[resId] = new Array((window.CAP_TP || { months: [] }).months.length).fill(0);
+    const n = eacMonths().length;
+    if (!t.eacRes[resId]) t.eacRes[resId] = new Array(n).fill(0);
+    while (t.eacRes[resId].length < n) t.eacRes[resId].push(0);   // grow into extended months
     t.eacRes[resId][mi] = parseFloat(String(raw).replace(/[, $]/g, '')) || 0; eacRender();
   }
   function eacTreeHtml(wbs, depth) {
@@ -3043,7 +3061,7 @@
     return html;
   }
   function eacResTableHtml(wbs) {
-    const months = (window.CAP_TP || { months: [] }).months, byRes = eacResSeries(wbs);
+    const months = eacMonths(), byRes = eacResSeries(wbs);
     const resList = BD_RES.catalog.filter(r => byRes[r.id] && byRes[r.id].some(v => Math.round(v) !== 0));
     const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
     const pk = eacPeriodKey(), cls = i => eacMonthKey(months[i]) <= pk ? 'eac-acwp' : 'eac-etc';
@@ -3058,17 +3076,18 @@
   }
   function eacGridHtml(wp, taskId) {
     const t = schedTask(wp, taskId); if (!t) return ''; eacEnsure(t);
-    const months = (window.CAP_TP || { months: [] }).months, cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const months = eacMonths(), cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
     const resList = BD_RES.catalog.filter(r => (t.eacRes[r.id] && t.eacRes[r.id].some(v => Math.round(v) !== 0)) || (t.res[r.id] && t.res[r.id].some(v => Math.round(v) !== 0)));
     resList.forEach(r => { if (!t.eacRes[r.id]) t.eacRes[r.id] = new Array(months.length).fill(0); });
     const monthCols = months.map((m, i) => { const c = eacCellClass(t, i); return `<th class="${c === 'acwp' ? 'eac-acwp' : c === 'etc' ? 'eac-etc' : ''}">${bdMonthLabel(m)}</th>`; }).join('');
     const rows = resList.map(r => {
       const s = t.eacRes[r.id];
-      const cells = s.map((v, i) => { const c = eacCellClass(t, i);
+      const cells = months.map((mm, i) => { const v = s[i] || 0, c = eacCellClass(t, i);
         if (c === 'etc') return `<td class="bd-edit-td eac-etc"><input class="bd-edit" value="${Math.round(v) || 0}" onchange="eacSetETC('${wp}','${taskId}','${r.id}',${i},this.value)"></td>`;
         if (c === 'acwp') return `<td class="bd-lock eac-acwp" title="ACWP — actual to date">${cents(v)}</td>`;
         return `<td class="bd-lock">·</td>`; }).join('');
-      return `<tr class="res"><td class="lbl">${r.cls === 'labor' ? _xml(r.name) : _xml(r.name) + ' <span class="bd-rate">cost</span>'}</td>${cells}<td class="tot">${bdUsd(s.reduce((a, b) => a + b, 0))}</td></tr>`;
+      const rowTot = months.reduce((a, mm, i) => a + (s[i] || 0), 0);
+      return `<tr class="res"><td class="lbl">${r.cls === 'labor' ? _xml(r.name) : _xml(r.name) + ' <span class="bd-rate">cost</span>'}</td>${cells}<td class="tot">${bdUsd(rowTot)}</td></tr>`;
     }).join('');
     return `<div class="bd-tp-head" style="margin-top:14px"><span class="bd-tp-title">EAC cost — ${_xml(t.name)} <span class="bd-rate">forecast finish ${_xml(t.eacFinish)}</span></span></div>
       <div class="bd-tp-note">Blue = ACWP (actual through the data date, locked). Green = ETC (editable, out to the forecast finish).</div>
@@ -3102,7 +3121,9 @@
     const tree = roots.map(r => eacTreeHtml(r, 0)).join('');
     return `<div class="bd-wrap"><div class="bd-tree">${tree}</div><div class="bd-detail" id="eacDetail">${eacDetailHtml(eacState.sel, editable)}</div></div>`;
   }
-  function eacPeriodBar() { return `<div class="eac-periodbar"><span class="ev-dd" style="margin-left:0">Status period (data date): <select onchange="eacSetPeriod(this.value)">${PERIODS.map(pd => `<option value="${pd.id}"${pd.id === pvState.period ? ' selected' : ''}>${pd.label}</option>`).join('')}</select></span></div>`; }
+  function eacPeriodBar() {
+    return `<div class="eac-periodbar"><span class="ev-dd" style="margin-left:0">Status period (data date): <select onchange="eacSetPeriod(this.value)">${PERIODS.map(pd => `<option value="${pd.id}"${pd.id === eacState.period ? ' selected' : ''}>${pd.label}</option>`).join('')}</select></span><span class="eac-lock-note">ACWP is fixed through this period; ETC (after it, out to each activity's forecast finish) is editable on Create/Edit.</span></div>`;
+  }
   function eacNotLoaded(p, what) { return `<p class="module-intro">${what} for <strong>${_xml(p.name)}</strong>.</p><div class="placeholder-note">EAC uses the cost-loaded schedule, available for the <strong>Demo</strong> program (project JTB001).</div>`; }
   function renderEacEdit(p) {
     if (!p.projects.includes('JTB001')) return eacNotLoaded(p, 'Create/Edit EAC');
