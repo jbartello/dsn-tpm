@@ -2991,7 +2991,7 @@
      forecast finish) and eacRes (time-phased cost, seeded = baseline res). Cells
      through the data date = ACWP (locked); after = ETC (editable on Create/Edit).
      EAC = ACWP + ETC, rolled up the WBS. */
-  const eacState = { expanded: {}, sel: '', task: '', _init: false, period: '2025-12' };
+  const eacState = { expanded: {}, sel: '', task: '', _init: false, period: '2025-12', measure: 'cost' };
   function eacEnsure(t) {
     if (!t.eacRes) { t.eacRes = {}; Object.keys(t.res || {}).forEach(rid => t.eacRes[rid] = (t.res[rid] || []).slice()); }
     if (!t.eacFinish) t.eacFinish = t.finish;
@@ -3032,6 +3032,7 @@
   }
   function eacRender() { const c = document.getElementById('content'); if (c) c.innerHTML = (currentModule === 'eac-edit' ? renderEacEdit : renderEacDisplay)(prog()); }
   function eacSetPeriod(v) { eacState.period = v; eacRender(); }
+  function eacSetMeasure(m) { eacState.measure = m; eacRender(); }
   function eacToggle(w) { eacState.expanded[w] = !eacState.expanded[w]; eacRender(); }
   function eacSelect(w) { eacState.sel = w; eacState.task = ''; eacRender(); }
   function eacSelectTask(w, id) { eacState.task = id; eacRender(); }
@@ -3044,13 +3045,15 @@
     Object.keys(t.eacRes || {}).forEach(rid => { t.eacRes[rid] = months.map((mm, i) => bdDateNum(months[i]) > bdDateNum(t.eacFinish) ? 0 : ((t.eacRes[rid] || [])[i] || 0)); });
     eacRender();
   }
-  function eacSetETC(wp, id, resId, mi, raw) {
+  function eacSetETC(wp, id, resId, mi, raw, measure, rate) {
     const t = schedTask(wp, id); if (!t) return; eacEnsure(t);
     if (eacCellClass(t, mi) !== 'etc') return;   // only future/forecast cells are editable
     const n = eacMonths().length;
     if (!t.eacRes[resId]) t.eacRes[resId] = new Array(n).fill(0);
     while (t.eacRes[resId].length < n) t.eacRes[resId].push(0);   // grow into extended months
-    t.eacRes[resId][mi] = parseFloat(String(raw).replace(/[, $]/g, '')) || 0; eacRender();
+    let dollars = parseFloat(String(raw).replace(/[, $]/g, '')) || 0;
+    if (measure === 'hours') dollars *= (rate || 0);   // entered in hours ⇒ store dollars
+    t.eacRes[resId][mi] = dollars; eacRender();
   }
   function eacTreeHtml(wbs, depth) {
     const node = bdBuild().map[wbs], kids = node.children, tot = eacTotals(wbs), open = !!eacState.expanded[wbs];
@@ -3076,22 +3079,38 @@
   }
   function eacGridHtml(wp, taskId) {
     const t = schedTask(wp, taskId); if (!t) return ''; eacEnsure(t);
-    const months = eacMonths(), cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const months = eacMonths(), measure = eacState.measure || 'cost';
+    const cents = v => Math.round(v) ? addCommas(Math.round(v)) : '·';
+    const workHrs = months.map(m => bdWorkHours(m));
+    const eqp = (h, i) => (workHrs[i] && h / workHrs[i] >= 0.05) ? (h / workHrs[i]).toFixed(1) : '·';
     const resList = BD_RES.catalog.filter(r => (t.eacRes[r.id] && t.eacRes[r.id].some(v => Math.round(v) !== 0)) || (t.res[r.id] && t.res[r.id].some(v => Math.round(v) !== 0)));
     resList.forEach(r => { if (!t.eacRes[r.id]) t.eacRes[r.id] = new Array(months.length).fill(0); });
     const monthCols = months.map((m, i) => { const c = eacCellClass(t, i); return `<th class="${c === 'acwp' ? 'eac-acwp' : c === 'etc' ? 'eac-etc' : ''}">${bdMonthLabel(m)}</th>`; }).join('');
+    const shade = c => c === 'acwp' ? 'eac-acwp' : c === 'etc' ? 'eac-etc' : '';
+    const editTd = (val, resId, i, meas, rate) => `<td class="bd-edit-td eac-etc"><input class="bd-edit" value="${Math.round(val) || 0}" onchange="eacSetETC('${wp}','${taskId}','${resId}',${i},this.value,'${meas}',${rate || 0})"></td>`;
+    const lockTd = (val, c) => `<td class="bd-lock ${shade(c)}"${c === 'acwp' ? ' title="ACWP — actual to date"' : ''}>${cents(val)}</td>`;
     const rows = resList.map(r => {
-      const s = t.eacRes[r.id];
-      const cells = months.map((mm, i) => { const v = s[i] || 0, c = eacCellClass(t, i);
-        if (c === 'etc') return `<td class="bd-edit-td eac-etc"><input class="bd-edit" value="${Math.round(v) || 0}" onchange="eacSetETC('${wp}','${taskId}','${r.id}',${i},this.value)"></td>`;
-        if (c === 'acwp') return `<td class="bd-lock eac-acwp" title="ACWP — actual to date">${cents(v)}</td>`;
-        return `<td class="bd-lock">·</td>`; }).join('');
-      const rowTot = months.reduce((a, mm, i) => a + (s[i] || 0), 0);
-      return `<tr class="res"><td class="lbl">${r.cls === 'labor' ? _xml(r.name) : _xml(r.name) + ' <span class="bd-rate">cost</span>'}</td>${cells}<td class="tot">${bdUsd(rowTot)}</td></tr>`;
+      const s = t.eacRes[r.id]; let cells, total;
+      if (measure === 'cost') {
+        cells = months.map((mm, i) => { const v = s[i] || 0, c = eacCellClass(t, i); return c === 'etc' ? editTd(v, r.id, i, 'cost', 0) : c === 'acwp' ? lockTd(v, c) : '<td class="bd-lock">·</td>'; }).join('');
+        total = bdUsd(months.reduce((a, mm, i) => a + (s[i] || 0), 0));
+      } else if (r.cls === 'labor') {
+        if (measure === 'hours') {
+          cells = months.map((mm, i) => { const h = (s[i] || 0) / r.rate, c = eacCellClass(t, i); return c === 'etc' ? editTd(h, r.id, i, 'hours', r.rate) : c === 'acwp' ? lockTd(h, c) : '<td class="bd-lock">·</td>'; }).join('');
+          total = addCommas(Math.round(months.reduce((a, mm, i) => a + (s[i] || 0) / r.rate, 0)));
+        } else {   // EQP — read-only
+          cells = months.map((mm, i) => { const h = (s[i] || 0) / r.rate, c = eacCellClass(t, i); return `<td class="${shade(c)}">${eqp(h, i)}</td>`; }).join('');
+          let sh = 0, sw = 0; months.forEach((mm, i) => { const h = (s[i] || 0) / r.rate; if (h > 1e-4) { sh += h; sw += workHrs[i]; } }); total = sw ? (sh / sw).toFixed(1) : '·';
+        }
+      } else { cells = months.map(() => '<td class="bd-lock">·</td>').join(''); total = '·'; }   // cost resource: no hours/EQP
+      const lbl = r.cls === 'labor' ? _xml(r.name) : _xml(r.name) + ' <span class="bd-rate">cost</span>';
+      return `<tr class="res"><td class="lbl">${lbl}</td>${cells}<td class="tot">${total}</td></tr>`;
     }).join('');
-    return `<div class="bd-tp-head" style="margin-top:14px"><span class="bd-tp-title">EAC cost — ${_xml(t.name)} <span class="bd-rate">forecast finish ${_xml(t.eacFinish)}</span></span></div>
-      <div class="bd-tp-note">Blue = ACWP (actual through the data date, locked). Green = ETC (editable, out to the forecast finish).</div>
-      <div class="bd-tp-wrap"><table class="bd-tp"><thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">EAC</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const toggle = [['cost', 'Cost'], ['hours', 'Hours'], ['eqp', 'EQP']].map(m => `<button class="${m[0] === measure ? 'active' : ''}" onclick="eacSetMeasure('${m[0]}')">${m[1]}</button>`).join('');
+    const lastHdr = measure === 'eqp' ? 'Avg' : measure === 'hours' ? 'Hours' : 'EAC';
+    return `<div class="bd-tp-head" style="margin-top:14px"><span class="bd-tp-title">EAC — ${_xml(t.name)} <span class="bd-rate">forecast finish ${_xml(t.eacFinish)}</span></span><span class="bd-measure">${toggle}</span></div>
+      <div class="bd-tp-note">Blue = ACWP (actual through the data date, locked). Green = ETC (editable, out to the forecast finish). Enter in Cost, Hours, or EQP.</div>
+      <div class="bd-tp-wrap"><table class="bd-tp"><thead><tr><th class="lbl">Resource</th>${monthCols}<th class="tot">${lastHdr}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   function eacSubtaskSection(wp) {
     const tasks = schedTasks(wp); tasks.forEach(eacEnsure);
