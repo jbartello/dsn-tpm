@@ -307,6 +307,7 @@
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
   .bd-gantt-row.ms-mrow.active { background: #f3ecfb; }
   .st-lagin { width: 56px; padding: 3px 6px; border: 1px solid var(--panel-border); border-radius: 4px; font-size: 12px; }
+  .st-cat { width: 44px; text-align: center; text-transform: uppercase; }
   .st-typesel { min-width: 56px; }
   /* Edit Plan — subtask (activity) table */
   .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
@@ -1939,7 +1940,7 @@
         const dia = x == null ? '' : `<div class="bd-g-diamond${c.critical ? ' crit' : ''}" style="left:${x - 5}px" title="${_xml(m.name)} · ${_xml(m.date)}${c.float != null ? ' · float ' + c.float + 'd' : ''}"></div>`;
         const preds = (m.preds && m.preds.length) ? ` <span class="bd-g-pred">⟵ ${_xml(schedPredsStr(m.preds))}</span>` : '';
         const active = msSel === m.id ? ' active' : '';
-        const lbl = '◆ ' + _xml(m.name || 'Milestone');
+        const lbl = '◆ ' + (m.cat ? '[' + _xml(m.cat) + '] ' : '') + _xml(m.name || 'Milestone');
         return `<div class="bd-gantt-row ms-mrow${active}"><div class="bd-g-label" style="padding-left:10px" title="${lbl} · ${_xml(m.date)}" onclick="msSelect('${m.id}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${dia}</div></div>`;
       }).join('');
     }
@@ -1986,12 +1987,13 @@
     const months = (window.CAP_TP || { months: [] }).months;
     const def = span.end || span.start || months[months.length - 1] || months[0] || '';
     const id = msNextId();
-    msList().push({ id: id, name: 'New Milestone', date: def, preds: [] });
+    msList().push({ id: id, name: 'New Milestone', cat: '', date: def, preds: [] });
     msSel = id; schedInvalidate(); render();
   }
   function msSet(id, field, val) {
     const m = msList().find(x => x.id === id); if (!m) return;
     if (field === 'date') { const norm = bdNormDate(val) || String(val).trim(); m.date = norm; schedInvalidate(); schedRescheduleAll(); render(); }
+    else if (field === 'cat') { m.cat = String(val).trim().slice(0, 2); bdRenderGantt(); }
     else { m[field] = String(val).trim(); bdRenderGantt(); }
   }
   function msDel(id) {
@@ -2042,6 +2044,7 @@
       return `<tr class="st-row${sel}${c.critical ? ' st-crit' : ''}" onclick="msSelect('${m.id}')">
         <td class="st-id">◆</td>
         <td><input class="st-in" value="${_xml(m.name)}" onclick="event.stopPropagation()" onchange="msSet('${m.id}','name',this.value)"></td>
+        <td><input class="st-in st-cat" maxlength="2" value="${_xml(m.cat || '')}" onclick="event.stopPropagation()" onchange="msSet('${m.id}','cat',this.value)"></td>
         <td${driven}><input class="st-in st-date" value="${_xml(m.date)}"${(m.preds && m.preds.length) ? ' readonly' : ''} onclick="event.stopPropagation()" onchange="msSet('${m.id}','date',this.value)"></td>
         <td class="num">${(m.preds ? m.preds.length : 0)} / ${nSucc}</td>
         <td class="num">${c.float == null ? '—' : c.float + 'd'}</td>
@@ -2050,7 +2053,7 @@
       </tr>`;
     }).join('');
     const table = `<div class="st-wrap"><table class="st-tbl">
-        <thead><tr><th></th><th>Milestone</th><th>Date</th><th class="num">Pred / Succ</th><th class="num">Float</th><th>Critical</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Milestone</th><th>Cat</th><th>Date</th><th class="num">Pred / Succ</th><th class="num">Float</th><th>Critical</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       <div class="bd-tp-note" style="margin:8px 0">Zero-duration schedule events (not EV Milestone method). Select a milestone to link predecessors and successors; a milestone with predecessors is date-driven by the network.</div>`;
     const selM = msSel && list.find(x => x.id === msSel);
