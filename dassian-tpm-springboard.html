@@ -1430,8 +1430,8 @@
     const out = {};
     order.forEach(t => {
       const r = R[t.id], fl = schedFloatDays(r.es, r.ls);
-      const linked = (t.preds && t.preds.length) || (succ[t.id] && succ[t.id].length);   // unlinked tasks aren't "critical"
-      out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: fl, critical: !!linked && fl <= 0 };
+      const linked = (t.preds && t.preds.length) || (succ[t.id] && succ[t.id].length);   // only nodes in a dependency chain have meaningful float / criticality
+      out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: linked ? fl : null, critical: !!linked && fl <= 0 };
     });
     return (_schedCpm = out);
   }
@@ -1987,7 +1987,7 @@
     const def = span.end || span.start || months[months.length - 1] || months[0] || '';
     const id = msNextId();
     msList().push({ id: id, name: 'New Milestone', date: def, preds: [] });
-    msSel = id; render();
+    msSel = id; schedInvalidate(); render();
   }
   function msSet(id, field, val) {
     const m = msList().find(x => x.id === id); if (!m) return;
