@@ -293,6 +293,21 @@
   .bd-g-bar.crit { background: var(--bad); }
   .bd-g-label.bd-g-sub { font-style: italic; color: var(--text-muted); }
   .bd-g-pred { font-size: 10px; color: #9aa0a6; font-style: normal; }
+  /* Master Schedule */
+  .ms-tiles { display: flex; gap: 12px; flex-wrap: wrap; margin: 4px 0 2px; }
+  .ms-tile { flex: 1 1 140px; background: #fff; border: 1px solid var(--panel-border); border-radius: 6px; padding: 12px 14px; }
+  .ms-tile-v { font-size: 20px; font-weight: 600; color: var(--text); }
+  .ms-tile-l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; }
+  .ms-legend { font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; }
+  .ms-k { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-left: 10px; }
+  .ms-k.crit { background: var(--bad); } .ms-k.task { background: var(--sap-blue); } .ms-k.summary { background: #5b738b; }
+  .ms-k.mstone { width: 9px; height: 9px; background: #7a3fd0; transform: rotate(45deg); border-radius: 1px; }
+  .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
+  .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
+  .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
+  .bd-gantt-row.ms-mrow.active { background: #f3ecfb; }
+  .st-lagin { width: 56px; padding: 3px 6px; border: 1px solid var(--panel-border); border-radius: 4px; font-size: 12px; }
+  .st-typesel { min-width: 56px; }
   /* Edit Plan — subtask (activity) table */
   .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
   table.st-tbl { border-collapse: collapse; width: 100%; font-size: 12px; white-space: nowrap; }
@@ -703,6 +718,8 @@
         <div class="nav-item nav-child" data-mod="plan-edit" onclick="setModule('plan-edit')">
           <span class="nav-ico">📝</span> Edit Plan</div>
       </div>
+      <div class="nav-item" data-mod="master-schedule" onclick="setModule('master-schedule')">
+        <span class="nav-ico">📅</span> Master Schedule</div>
       <div class="nav-item" data-mod="ev-status" onclick="setModule('ev-status')">
         <span class="nav-ico">📈</span> Earned Value Status</div>
       <div class="nav-item nav-parent" onclick="toggleEac()">
@@ -780,6 +797,7 @@
     'baseline-change':  'Baseline Change Request',
     'baseline-display': 'Display Baseline',
     'plan-edit':        'Edit Plan',
+    'master-schedule': 'Master Schedule',
     'ev-status': 'Earned Value Status',
     'eac-edit':    'Create/Edit EAC',
     'eac-display': 'Display EAC',
@@ -1332,8 +1350,21 @@
     const walk = w => { const n = map[w]; if (!n) return; if (n.children.length) n.children.forEach(walk); else schedTasks(w).forEach(t => out.push({ gid: t.id, wp: w, task: t })); };
     bdBuild().roots.forEach(walk); return out;
   }
-  function schedFind(gid) { return schedAllTasks().find(x => x.gid === gid); }
+  function schedFind(gid) {
+    const t = schedAllTasks().find(x => x.gid === gid); if (t) return t;
+    const m = (typeof msList === 'function') ? msList().find(x => x.id === gid) : null;
+    return m ? { gid: m.id, wp: 'Milestone', task: m, isMs: true } : undefined;
+  }
   function schedNextId() { let m = 0; schedAllTasks().forEach(x => { const k = parseInt(x.gid, 10); if (!isNaN(k) && k > m) m = k; }); return String(m + 1); }
+  // Every CPM node: subtasks + schedule milestones (zero-duration). Milestones link into the same network.
+  function schedCpmNodes() { return schedAllTasks().map(x => x.task).concat(msList().map(schedMsNode)); }
+  function schedNodeById(id) { return schedCpmNodes().find(t => t.id === id); }
+  // Options for predecessor/successor pickers: every task + milestone except excludeId.
+  function schedLinkOptions(excludeId) {
+    const opts = schedAllTasks().filter(x => x.gid !== excludeId).map(x => ({ id: x.gid, label: '#' + x.gid + ' · ' + x.wp + ' · ' + x.task.name }));
+    msList().filter(m => m.id !== excludeId).forEach(m => opts.push({ id: m.id, label: '◆ ' + m.id + ' · Milestone · ' + m.name }));
+    return opts;
+  }
   // Sum a WP's subtasks into a {resId: monthly[]} series.
   function bdWpSeries(wp) {
     const n = (window.CAP_TP || { months: [] }).months.length, agg = {};
@@ -1367,7 +1398,7 @@
   function schedInvalidate() { _schedCpm = null; }
   function schedComputeAll() {
     if (_schedCpm) return _schedCpm;
-    const all = schedAllTasks().map(x => x.task), byId = {}; all.forEach(t => byId[t.id] = t);
+    const all = schedCpmNodes(), byId = {}; all.forEach(t => byId[t.id] = t);
     const order = schedTopo(all), R = {};
     order.forEach(t => {
       const d = schedDuration(t);
@@ -1418,7 +1449,11 @@
   // Reschedule the whole project from predecessors: apply CPM dates and shift cost with them.
   function schedRescheduleAll() {
     const r = schedComputeAll();
-    schedAllTasks().forEach(x => { const t = x.task, c = r[t.id]; if (!c) return; schedShiftRes(t, bdMonthIndexOf(c.es) - bdMonthIndexOf(t.start)); t.start = c.es; t.finish = c.ef; schedClampRes(t); });
+    schedCpmNodes().forEach(t => {
+      const c = r[t.id]; if (!c) return;
+      if (t.isMilestone) { t.date = c.es; t.start = c.es; t.finish = c.es; return; }   // zero-duration: date driven by network
+      schedShiftRes(t, bdMonthIndexOf(c.es) - bdMonthIndexOf(t.start)); t.start = c.es; t.finish = c.ef; schedClampRes(t);
+    });
     schedInvalidate();
   }
   // Zero any cost outside the subtask's [start, finish] (no baseline beyond the dates).
@@ -1444,7 +1479,7 @@
   }
   function schedDelTask(wp, id) {
     const tasks = schedTasks(wp), i = tasks.findIndex(t => t.id === id); if (i >= 0) tasks.splice(i, 1);
-    schedAllTasks().forEach(x => { x.task.preds = (x.task.preds || []).filter(p => p.id !== id); });   // drop dangling links
+    schedCpmNodes().forEach(t => { t.preds = (t.preds || []).filter(p => p.id !== id); });   // drop dangling links
     if (schedSel.task === id) schedSel.task = tasks.length ? tasks[0].id : ''; schedApply();
   }
   function schedSelectTask(wp, id) { schedSel.task = id; schedRender(); }
@@ -1471,7 +1506,7 @@
   function schedDoReschedule() { schedRescheduleAll(); schedRender(); tpmToast('Project rescheduled from predecessors — cost shifted with the dates'); }
   // Cross-WBS predecessor links (global ids).
   function schedHasCycle() {
-    const all = schedAllTasks().map(x => x.task), byId = {}; all.forEach(t => byId[t.id] = t); const state = {}; let cyc = false;
+    const all = schedCpmNodes(), byId = {}; all.forEach(t => byId[t.id] = t); const state = {}; let cyc = false;
     const dfs = t => { if (!t || cyc) return; if (state[t.id] === 1) { cyc = true; return; } if (state[t.id] === 2) return; state[t.id] = 1; (t.preds || []).forEach(p => dfs(byId[p.id])); state[t.id] = 2; };
     all.forEach(t => dfs(t)); return cyc;
   }
@@ -1523,13 +1558,12 @@
   }
   // Predecessor picker for the selected subtask — choose any task across the project.
   function bdPredEditor(wp, t) {
-    const others = schedAllTasks().filter(x => x.gid !== t.id);
     const chips = (t.preds || []).map(p => {
-      const f = schedFind(p.id), nm = f ? f.task.name : '(deleted)', loc = f ? f.wp : '';
+      const f = schedFind(p.id), nm = f ? (f.task.name || '') : '(deleted)', loc = f ? f.wp : '';
       const lag = p.lag ? (p.lag > 0 ? '+' + p.lag + 'd' : p.lag + 'd') : '';
       return `<span class="st-predchip" title="${_xml(loc)} · ${_xml(nm)}">#${_xml(p.id)} ${_xml(p.type)}${lag} · ${_xml(nm)}<button onclick="schedDelPred('${wp}','${t.id}','${p.id}')" title="Remove link">✕</button></span>`;
     }).join('') || '<span class="bd-add-none">none</span>';
-    const opts = others.map(x => `<option value="${x.gid}">#${x.gid} · ${_xml(x.wp)} · ${_xml(x.task.name)}</option>`).join('');
+    const opts = schedLinkOptions(t.id).map(o => `<option value="${o.id}">${_xml(o.label)}</option>`).join('');
     return `<div class="st-pred-edit">
       <div class="st-pred-cur"><strong>Predecessors for #${_xml(t.id)} ${_xml(t.name)}:</strong> ${chips}</div>
       <div class="st-pred-add">
@@ -1847,11 +1881,12 @@
      Rows mirror the tree (respecting expand/collapse); each bar spans the
      node's start→finish from bdPmbRange (the dates set per resource). ---- */
   function bdGanttRows() {
-    const planMode = currentModule === 'plan-edit';
+    const masterMode = currentModule === 'master-schedule';
+    const planMode = currentModule === 'plan-edit' || masterMode;
     const out = [], rec = (wbs, depth) => {
       const n = bdBuild().map[wbs]; out.push({ kind: 'wbs', wbs, depth, node: n });
-      if (n.children.length) { if (bdState.expanded[wbs]) n.children.forEach(k => rec(k, depth + 1)); }
-      else if (planMode) {   // leaf work package: nest its subtask activities (Edit Plan only)
+      if (n.children.length) { if (masterMode || bdState.expanded[wbs]) n.children.forEach(k => rec(k, depth + 1)); }
+      else if (planMode) {   // leaf work package: nest its subtask activities (Edit Plan + Master Schedule)
         const cpm = schedComputeAll();
         schedTasks(wbs).forEach(t => out.push({ kind: 'task', wbs, depth: depth + 1, task: t, cpm: cpm[t.id] || {} }));
       }
@@ -1893,7 +1928,22 @@
       const lbl = _xml(r.wbs) + ' · ' + _xml(r.node.desc || '');
       return `<div class="bd-gantt-row${active}"><div class="bd-g-label" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="bdSelect('${r.wbs}')">${lbl}</div><div class="bd-g-track" style="width:${W}px">${bar}</div></div>`;
     }).join('');
-    return head + rows;
+    // Schedule milestones (Master Schedule only): zero-duration diamonds plotted by date.
+    let msRows = '';
+    if (currentModule === 'master-schedule' && msList().length) {
+      const cpmM = schedComputeAll();
+      const mkeyf = d => { const p = String(d).split('/'); if (p.length < 3) return null; const y = +p[2], mo = +p[0] - 1, day = +p[1] || 1; const dim = new Date(y, mo + 1, 0).getDate(); return y * 12 + mo + (Math.max(1, day) - 1) / dim; };
+      const xOf = d => { const k = mkeyf(d); if (k == null) return null; return Math.max(0, Math.min(months.length * PXM, (k - base) * PXM)); };
+      msRows = msList().map(m => {
+        const c = cpmM[m.id] || {}, x = xOf(m.date);
+        const dia = x == null ? '' : `<div class="bd-g-diamond${c.critical ? ' crit' : ''}" style="left:${x - 5}px" title="${_xml(m.name)} · ${_xml(m.date)}${c.float != null ? ' · float ' + c.float + 'd' : ''}"></div>`;
+        const preds = (m.preds && m.preds.length) ? ` <span class="bd-g-pred">⟵ ${_xml(schedPredsStr(m.preds))}</span>` : '';
+        const active = msSel === m.id ? ' active' : '';
+        const lbl = '◆ ' + _xml(m.name || 'Milestone');
+        return `<div class="bd-gantt-row ms-mrow${active}"><div class="bd-g-label" style="padding-left:10px" title="${lbl} · ${_xml(m.date)}" onclick="msSelect('${m.id}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${dia}</div></div>`;
+      }).join('');
+    }
+    return head + msRows + rows;
   }
   function bdRenderGantt() { const g = document.getElementById('bdGantt'); if (g) g.innerHTML = bdGanttHtml(); }
   function renderBaselineDisplay(p) {
@@ -1915,6 +1965,163 @@
         <div class="card-head"><span class="ch-title">Schedule — Time-Phased Gantt</span></div>
         <div class="card-body" style="padding:12px">
           <div class="bd-tp-note" style="margin-bottom:10px">WBS schedule from each element's resource start/finish dates (summary bars roll up their children). Edit dates in the panel above to reshape the bars.</div>
+          <div class="bd-gantt-wrap" id="bdGantt">${bdGanttHtml()}</div>
+        </div>
+      </div>`;
+  }
+  /* ---- Schedule milestones: zero-duration events on the IMS (distinct from EV
+     Milestone method). Program-level, in-session. Full CPM participants: they carry
+     their own predecessors and can be linked as successors of any task/milestone,
+     so their dates are driven by (and drive) the network. IDs are 'M#' to stay
+     distinct from subtask ids. Shown as diamonds. ---- */
+  let msMilestones = null;
+  let msSel = '';
+  function msList() { if (msMilestones === null) msMilestones = []; return msMilestones; }
+  function msNextId() { let m = 0; msList().forEach(x => { const k = parseInt(String(x.id).replace(/^M/i, ''), 10); if (!isNaN(k) && k > m) m = k; }); return 'M' + (m + 1); }
+  // A milestone rendered as a zero-duration CPM node (start == finish == its date).
+  function schedMsNode(m) { m.res = m.res || {}; m.preds = m.preds || []; m.start = m.date; m.finish = m.date; m.isMilestone = true; return m; }
+  function msAdd() {
+    const root = bdBuild().roots[0] || '';
+    const span = root ? bdPmbRange(root) : {};
+    const months = (window.CAP_TP || { months: [] }).months;
+    const def = span.end || span.start || months[months.length - 1] || months[0] || '';
+    const id = msNextId();
+    msList().push({ id: id, name: 'New Milestone', date: def, preds: [] });
+    msSel = id; render();
+  }
+  function msSet(id, field, val) {
+    const m = msList().find(x => x.id === id); if (!m) return;
+    if (field === 'date') { const norm = bdNormDate(val) || String(val).trim(); m.date = norm; schedInvalidate(); schedRescheduleAll(); render(); }
+    else { m[field] = String(val).trim(); bdRenderGantt(); }
+  }
+  function msDel(id) {
+    msMilestones = msList().filter(x => x.id !== id);
+    schedCpmNodes().forEach(t => { t.preds = (t.preds || []).filter(p => p.id !== id); });   // drop dangling links
+    if (msSel === id) msSel = '';
+    schedInvalidate(); schedRescheduleAll(); render();
+  }
+  function msSelect(id) { msSel = (msSel === id ? '' : id); render(); }
+  // Recompute the network and rebuild the Master Schedule after a milestone link change.
+  function msApply(msg) { schedInvalidate(); schedRescheduleAll(); render(); if (msg) tpmToast(msg); }
+  // Successors of a node = every node whose preds reference it.
+  function msSuccessorsOf(id) {
+    const out = []; schedCpmNodes().forEach(n => (n.preds || []).forEach(p => { if (p.id === id) out.push({ node: n, link: p }); })); return out;
+  }
+  function msAddPred(mid) {
+    const m = msList().find(x => x.id === mid); if (!m) return;
+    const ps = document.getElementById('msPredTask'), ty = document.getElementById('msPredType'), lg = document.getElementById('msPredLag');
+    if (!ps || !ps.value) return;
+    if (ps.value === mid) { tpmToast('A milestone cannot precede itself'); return; }
+    m.preds = m.preds || [];
+    if (m.preds.some(p => p.id === ps.value)) { tpmToast('That predecessor is already linked'); return; }
+    m.preds.push({ id: ps.value, type: (ty && ty.value) || 'FS', lag: (lg && parseInt(lg.value, 10)) || 0 });
+    if (schedHasCycle()) { m.preds.pop(); tpmToast('That link would create a circular dependency'); return; }
+    msApply('Predecessor linked — schedule updated');
+  }
+  function msDelPred(mid, pid) { const m = msList().find(x => x.id === mid); if (!m) return; m.preds = (m.preds || []).filter(p => p.id !== pid); msApply('Link removed'); }
+  function msAddSucc(mid) {
+    const ps = document.getElementById('msSuccTask'), ty = document.getElementById('msSuccType'), lg = document.getElementById('msSuccLag');
+    if (!ps || !ps.value) return;
+    if (ps.value === mid) { tpmToast('A milestone cannot succeed itself'); return; }
+    const target = schedNodeById(ps.value); if (!target) return;
+    target.preds = target.preds || [];
+    if (target.preds.some(p => p.id === mid)) { tpmToast('That successor is already linked'); return; }
+    target.preds.push({ id: mid, type: (ty && ty.value) || 'FS', lag: (lg && parseInt(lg.value, 10)) || 0 });
+    if (schedHasCycle()) { target.preds.pop(); tpmToast('That link would create a circular dependency'); return; }
+    msApply('Successor linked — schedule updated');
+  }
+  function msDelSucc(mid, targetId) { const target = schedNodeById(targetId); if (!target) return; target.preds = (target.preds || []).filter(p => p.id !== mid); msApply('Link removed'); }
+  // Milestone management table + link editor for the Master Schedule.
+  function msTableHtml() {
+    const list = msList(), cpm = schedComputeAll();
+    const add = `<div class="bd-edit-bar" style="margin:0 0 12px"><button class="btn primary" onclick="msAdd()">＋ Add Milestone</button></div>`;
+    if (!list.length) return add + '<div class="bd-tp-note">No milestones yet — add zero-duration schedule events (e.g. contract awards, design reviews, deliveries). Link them to predecessors/successors so their dates are driven by the network. They appear as diamonds on the timeline below.</div>';
+    const rows = list.map(m => {
+      const c = cpm[m.id] || {}, sel = msSel === m.id ? ' active' : '', driven = (m.preds && m.preds.length) ? ' title="Date driven by predecessors"' : '';
+      const nSucc = msSuccessorsOf(m.id).length;
+      return `<tr class="st-row${sel}${c.critical ? ' st-crit' : ''}" onclick="msSelect('${m.id}')">
+        <td class="st-id">◆</td>
+        <td><input class="st-in" value="${_xml(m.name)}" onclick="event.stopPropagation()" onchange="msSet('${m.id}','name',this.value)"></td>
+        <td${driven}><input class="st-in st-date" value="${_xml(m.date)}"${(m.preds && m.preds.length) ? ' readonly' : ''} onclick="event.stopPropagation()" onchange="msSet('${m.id}','date',this.value)"></td>
+        <td class="num">${(m.preds ? m.preds.length : 0)} / ${nSucc}</td>
+        <td class="num">${c.float == null ? '—' : c.float + 'd'}</td>
+        <td>${c.critical ? '<span class="st-critflag">● Critical</span>' : ''}</td>
+        <td><button class="st-del" onclick="event.stopPropagation();msDel('${m.id}')" title="Delete milestone">✕</button></td>
+      </tr>`;
+    }).join('');
+    const table = `<div class="st-wrap"><table class="st-tbl">
+        <thead><tr><th></th><th>Milestone</th><th>Date</th><th class="num">Pred / Succ</th><th class="num">Float</th><th>Critical</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div class="bd-tp-note" style="margin:8px 0">Zero-duration schedule events (not EV Milestone method). Select a milestone to link predecessors and successors; a milestone with predecessors is date-driven by the network.</div>`;
+    const selM = msSel && list.find(x => x.id === msSel);
+    return add + table + (selM ? msLinkEditor(selM) : '');
+  }
+  // Predecessor + successor link editor for a selected milestone.
+  function msLinkEditor(m) {
+    const typeSel = pfx => `<select id="${pfx}Type" class="st-predsel st-typesel">${['FS', 'SS', 'FF', 'SF'].map(x => `<option value="${x}">${x}</option>`).join('')}</select>`;
+    const opts = ex => schedLinkOptions(ex).map(o => `<option value="${o.id}">${_xml(o.label)}</option>`).join('');
+    const predChips = (m.preds || []).map(p => {
+      const f = schedFind(p.id), nm = f ? (f.task.name || f.task.desc || '') : '(deleted)';
+      const lag = p.lag ? (p.lag > 0 ? '+' + p.lag + 'd' : p.lag + 'd') : '';
+      return `<span class="st-predchip" title="${_xml(nm)}">${_xml(p.id)} ${_xml(p.type)}${lag} · ${_xml(nm)}<button onclick="msDelPred('${m.id}','${p.id}')" title="Remove link">✕</button></span>`;
+    }).join('') || '<span class="bd-add-none">none</span>';
+    const succs = msSuccessorsOf(m.id);
+    const succChips = succs.map(s => {
+      const p = s.link, lag = p.lag ? (p.lag > 0 ? '+' + p.lag + 'd' : p.lag + 'd') : '';
+      return `<span class="st-predchip" title="${_xml(s.node.name || '')}">${_xml(s.node.id)} ${_xml(p.type)}${lag} · ${_xml(s.node.name || '')}<button onclick="msDelSucc('${m.id}','${s.node.id}')" title="Remove link">✕</button></span>`;
+    }).join('') || '<span class="bd-add-none">none</span>';
+    return `<div class="st-pred-edit">
+      <div class="st-pred-cur"><strong>Predecessors of ◆ ${_xml(m.name)}:</strong> ${predChips}</div>
+      <div class="st-pred-add">
+        <select id="msPredTask" class="st-predsel">${opts(m.id)}</select>
+        ${typeSel('msPred')}
+        <input id="msPredLag" class="st-lagin" type="number" value="0" title="Lag (working days; negative = lead)"> d
+        <button class="btn sm" onclick="msAddPred('${m.id}')">Link predecessor</button>
+      </div>
+      <div class="st-pred-cur" style="margin-top:10px"><strong>Successors of ◆ ${_xml(m.name)}:</strong> ${succChips}</div>
+      <div class="st-pred-add">
+        <select id="msSuccTask" class="st-predsel">${opts(m.id)}</select>
+        ${typeSel('msSucc')}
+        <input id="msSuccLag" class="st-lagin" type="number" value="0" title="Lag (working days; negative = lead)"> d
+        <button class="btn sm" onclick="msAddSucc('${m.id}')">Link successor</button>
+      </div>
+    </div>`;
+  }
+  /* ---- Master Schedule: project-wide, read-only Integrated Master Schedule (IMS)
+     Gantt of the whole WBS + every cost-loaded activity, fully expanded, with the
+     critical path highlighted. Reuses the schedule model (schedData + CPM). ---- */
+  function renderMasterSchedule(p) {
+    if (!bdBuild().roots.length) return bdNotLoaded(p, 'Master Schedule');
+    schedComputeAll();
+    // gather every activity across all work packages for the summary tiles
+    const leaves = Object.keys(bdBuild().map).filter(w => bdIsLeaf(w));
+    let tasks = [];
+    leaves.forEach(w => { tasks = tasks.concat(schedTasks(w)); });
+    const cpm = schedComputeAll();
+    const crit = tasks.filter(t => (cpm[t.id] || {}).critical).length + msList().filter(m => (cpm[m.id] || {}).critical).length;
+    const root = bdBuild().roots[0];
+    const span = bdPmbRange(root);
+    const tile = (lbl, val) => `<div class="ms-tile"><div class="ms-tile-v">${_xml(val)}</div><div class="ms-tile-l">${lbl}</div></div>`;
+    return `
+      <p class="module-intro">Integrated Master Schedule for <strong>${_xml(p.name)}</strong> — the full WBS and every cost-loaded activity on one timeline, with the critical path highlighted. Read-only; edit dates and predecessors in <strong>Edit Plan</strong>.</p>
+      <div class="ms-tiles">
+        ${tile('Project Start', span.start || '—')}
+        ${tile('Project Finish', span.end || '—')}
+        ${tile('Activities', tasks.length)}
+        ${tile('Critical', crit)}
+        ${tile('Milestones', msList().length)}
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><span class="ch-title">Program Milestones</span></div>
+        <div class="card-body" style="padding:12px">${msTableHtml()}</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head">
+          <span class="ch-title">Integrated Master Schedule</span>
+          <span class="ms-legend"><i class="ms-k crit"></i>Critical path<i class="ms-k task"></i>Activity<i class="ms-k summary"></i>Summary / WBS<i class="ms-k mstone"></i>Milestone</span>
+        </div>
+        <div class="card-body" style="padding:12px">
+          <div class="bd-tp-note" style="margin-bottom:10px">All ${leaves.length ? '' : ''}WBS elements expanded, with their scheduled activities nested beneath each work package. Bars derive from the same schedule that drives cost and earned value.</div>
           <div class="bd-gantt-wrap" id="bdGantt">${bdGanttHtml()}</div>
         </div>
       </div>`;
@@ -4538,6 +4745,7 @@
       case 'baseline-change':  c.innerHTML = renderBaselineChange(p);  break;
       case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
       case 'plan-edit':        c.innerHTML = renderPlanEdit(p);        break;
+      case 'master-schedule':  c.innerHTML = renderMasterSchedule(p);  break;
       case 'ev-status':        c.innerHTML = renderEvStatus(p);        break;
       case 'eac-edit':         c.innerHTML = renderEacEdit(p);         break;
       case 'eac-display':      c.innerHTML = renderEacDisplay(p);      break;
