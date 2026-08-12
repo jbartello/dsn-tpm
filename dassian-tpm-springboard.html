@@ -313,6 +313,11 @@
   .hol-chip { display: inline-flex; align-items: center; gap: 4px; background: #eef2f7; border: 1px solid var(--panel-border); border-radius: 12px; padding: 2px 6px 2px 10px; font-size: 12px; }
   .hol-chip button { border: none; background: none; cursor: pointer; color: #8a94a6; font-size: 12px; line-height: 1; padding: 0 2px; }
   .hol-chip button:hover { color: var(--bad); }
+  .fl-neg { color: var(--bad); font-weight: 600; }
+  .fl-conf { color: #c77700; cursor: help; }
+  .st-attrs { margin: 10px 0 4px; padding: 10px 12px; background: #f7f9fc; border: 1px solid var(--panel-border); border-radius: 6px; }
+  .st-attr-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
+  .st-attr-row > label { width: 80px; font-size: 12px; color: var(--text-muted); font-weight: 600; }
   .st-typesel { min-width: 56px; }
   /* Edit Plan — subtask (activity) table */
   .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
@@ -1421,7 +1426,17 @@
         else cand = bdShiftWD(r.ef, 1 + lag);   // FS
         cand = bdSnapWD(cand); if (cand > es) es = cand;
       });
-      R[t.id] = { es: es, ef: bdShiftWD(es, d - 1), d: d };
+      const logicEs = es;                                   // predecessor-driven early start (pre-constraint)
+      const con = t.constraint || {}; let mandatory = false;
+      if (con.type && con.date) {
+        const cd = bdSnapWD(bdParseDate(con.date));
+        if (con.type === 'SNET') { if (cd > es) es = cd; }
+        else if (con.type === 'FNET') { const s = bdShiftWD(cd, -(d - 1)); if (s > es) es = s; }
+        else if (con.type === 'MSO') { es = cd; mandatory = true; }                 // mandatory: pin start
+        else if (con.type === 'MFO') { es = bdShiftWD(cd, -(d - 1)); mandatory = true; }  // mandatory: pin finish
+      }
+      const conflict = mandatory && logicEs > es;           // logic requires a later date than the pinned constraint
+      R[t.id] = { es: es, ef: bdShiftWD(es, d - 1), d: d, con: con, conflict: conflict };
     });
     let PF = null; order.forEach(t => { if (!PF || R[t.id].ef > PF) PF = R[t.id].ef; });
     const succ = {}; all.forEach(t => (t.preds || []).forEach(p => { (succ[p.id] = succ[p.id] || []).push({ sid: t.id, type: p.type, lag: +p.lag || 0 }); }));
@@ -1435,13 +1450,22 @@
         else cand = bdShiftWD(sr.ls, -(1 + lag));   // FS
         cand = bdSnapWDback(cand); if (cand < lf) lf = cand;
       });
+      const con = r.con || {};                              // late constraints cap the late finish → negative float when logic runs past them
+      if (con.type && con.date) {
+        const cd = bdSnapWD(bdParseDate(con.date));
+        if (con.type === 'SNLT') { const c = bdShiftWD(cd, d - 1); if (c < lf) lf = c; }
+        else if (con.type === 'FNLT' || con.type === 'MFO') { if (cd < lf) lf = cd; }
+        else if (con.type === 'MSO') { const c = bdShiftWD(cd, d - 1); if (c < lf) lf = c; }
+      }
+      if (t.deadline) { const dl = bdSnapWDback(bdParseDate(t.deadline)); if (dl && dl < lf) lf = dl; }
       r.lf = lf; r.ls = bdShiftWD(lf, -(d - 1));
     });
     const out = {};
     order.forEach(t => {
       const r = R[t.id], fl = schedFloatDays(r.es, r.ls);
-      const linked = (t.preds && t.preds.length) || (succ[t.id] && succ[t.id].length);   // only nodes in a dependency chain have meaningful float / criticality
-      out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: linked ? fl : null, critical: !!linked && fl <= 0 };
+      const hasCon = !!((t.constraint && t.constraint.type && t.constraint.date) || t.deadline);
+      const linked = (t.preds && t.preds.length) || (succ[t.id] && succ[t.id].length) || hasCon;   // constrained nodes also have meaningful float
+      out[t.id] = { es: bdFmtDate(r.es), ef: bdFmtDate(r.ef), ls: bdFmtDate(r.ls), lf: bdFmtDate(r.lf), float: linked ? fl : null, critical: !!linked && fl <= 0, conflict: r.conflict };
     });
     return (_schedCpm = out);
   }
@@ -1482,6 +1506,41 @@
   // Auto-schedule: recompute the project from predecessors and apply, then render.
   // So a new link / date / duration change is reflected immediately (no manual reschedule).
   function schedApply() { schedInvalidate(); schedRescheduleAll(); schedRender(); }
+  // Float cell renderer: negative float red, mandatory-constraint conflicts flagged.
+  function schedFloatCell(c) {
+    if (!c || c.float == null) return '—';
+    const s = c.float + 'd', body = c.float < 0 ? '<span class="fl-neg">' + s + '</span>' : s;
+    return body + (c.conflict ? ' <span class="fl-conf" title="Constraint conflict: predecessor logic requires a later date than the mandatory constraint">⚠</span>' : '');
+  }
+  const SCHED_CONS = [['', 'As Soon As Possible'], ['SNET', 'Start No Earlier Than'], ['SNLT', 'Start No Later Than'], ['FNET', 'Finish No Earlier Than'], ['FNLT', 'Finish No Later Than'], ['MSO', 'Must Start On'], ['MFO', 'Must Finish On']];
+  // Constraint / deadline editors — resolve the node as a subtask (wp given) or a milestone.
+  function schedNodeFor(wp, id) { return (wp && schedTask(wp, id)) || msList().find(m => m.id === id) || schedNodeById(id); }
+  function schedSetConstraint(wp, id, field, val) {
+    const t = schedNodeFor(wp, id); if (!t) return;
+    if (!t.constraint) t.constraint = { type: '', date: '' };
+    if (field === 'type') { t.constraint.type = val; if (!val) t.constraint.date = ''; }
+    else { t.constraint.date = bdNormDate(val) || ''; }
+    if (t.isMilestone) { msApply('Constraint updated'); } else { schedApply(); }
+  }
+  function schedSetDeadline(wp, id, val) {
+    const t = schedNodeFor(wp, id); if (!t) return;
+    t.deadline = bdNormDate(val) || '';
+    if (t.isMilestone) { msApply('Deadline updated'); } else { schedApply(); }
+  }
+  // Constraint + deadline editor block for the selected activity or milestone.
+  function schedAttrsHtml(wp, t) {
+    const con = t.constraint || {};
+    const opts = SCHED_CONS.map(x => `<option value="${x[0]}"${con.type === x[0] ? ' selected' : ''}>${x[1]}</option>`).join('');
+    const dateDis = con.type ? '' : ' disabled';
+    return `<div class="st-attrs">
+      <div class="st-attr-row"><label>Constraint</label>
+        <select class="st-predsel" onchange="schedSetConstraint('${wp}','${t.id}','type',this.value)">${opts}</select>
+        <input class="st-in st-date" value="${_xml(con.date || '')}" placeholder="MM/DD/YYYY"${dateDis} onchange="schedSetConstraint('${wp}','${t.id}','date',this.value)"></div>
+      <div class="st-attr-row"><label>Deadline</label>
+        <input class="st-in st-date" value="${_xml(t.deadline || '')}" placeholder="MM/DD/YYYY" onchange="schedSetDeadline('${wp}','${t.id}',this.value)">
+        <span class="bd-tp-note" style="margin:0">A missed deadline or late constraint shows as <span class="fl-neg">negative float</span>.</span></div>
+    </div>`;
+  }
   function schedAddTask(wp) {
     const tasks = schedTasks(wp), months = (window.CAP_TP || { months: [] }).months, span = bdNodeSpan(wp), id = schedNextId();
     tasks.push({ id: id, name: 'New subtask ' + id, start: months.length ? (span.s >= 0 ? bdFirstOfMonth(months[span.s]) : months[0]) : '', finish: months.length ? (span.f >= 0 ? months[span.f] : months[months.length - 1]) : '', preds: [], res: {}, added: [] });
@@ -1552,7 +1611,7 @@
         <td><input class="st-in st-date" value="${_xml(t.finish)}" ${stop} onchange="schedSetField('${wp}','${t.id}','finish',this.value)"></td>
         <td class="num"><input class="st-in st-dur" value="${dur}" ${stop} onchange="schedSetField('${wp}','${t.id}','dur',this.value)"> d</td>
         <td class="st-predcol">${schedPredsStr(t.preds) ? _xml(schedPredsStr(t.preds)) : '<span class="bd-add-none">—</span>'}</td>
-        <td class="num">${c.float == null ? '—' : c.float + 'd'}</td>
+        <td class="num">${schedFloatCell(c)}</td>
         <td>${c.critical ? '<span class="st-critflag">● Critical</span>' : ''}</td>
         <td><button class="st-del" onclick="event.stopPropagation();schedDelTask('${wp}','${t.id}')" title="Delete subtask">✕</button></td>
       </tr>`;
@@ -1562,7 +1621,7 @@
         <thead><tr><th>ID</th><th>Task Name</th><th>Start</th><th>Finish</th><th class="num">Dur</th><th>Predecessors</th><th class="num">Float</th><th>Critical</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
     const selTask = schedSel.task && schedTask(wp, schedSel.task);
-    const detail = selTask ? (bdPredEditor(wp, selTask) + bdSubtaskGrid(wp, schedSel.task))
+    const detail = selTask ? (bdPredEditor(wp, selTask) + schedAttrsHtml(wp, selTask) + bdSubtaskGrid(wp, schedSel.task))
       : '<div class="bd-tp-note" style="margin-top:12px">Select a subtask above to set predecessors and edit its resource cost grid.</div>';
     return bar + table + detail;
   }
@@ -2056,7 +2115,7 @@
         <td><input class="st-in st-cat" maxlength="2" value="${_xml(m.cat || '')}" onclick="event.stopPropagation()" onchange="msSet('${m.id}','cat',this.value)"></td>
         <td${driven}><input class="st-in st-date" value="${_xml(m.date)}"${(m.preds && m.preds.length) ? ' readonly' : ''} onclick="event.stopPropagation()" onchange="msSet('${m.id}','date',this.value)"></td>
         <td class="num">${(m.preds ? m.preds.length : 0)} / ${nSucc}</td>
-        <td class="num">${c.float == null ? '—' : c.float + 'd'}</td>
+        <td class="num">${schedFloatCell(c)}</td>
         <td>${c.critical ? '<span class="st-critflag">● Critical</span>' : ''}</td>
         <td><button class="st-del" onclick="event.stopPropagation();msDel('${m.id}')" title="Delete milestone">✕</button></td>
       </tr>`;
@@ -2097,6 +2156,7 @@
         <input id="msSuccLag" class="st-lagin" type="number" value="0" title="Lag (working days; negative = lead)"> d
         <button class="btn sm" onclick="msAddSucc('${m.id}')">Link successor</button>
       </div>
+      ${schedAttrsHtml('', m)}
     </div>`;
   }
   /* ---- Working calendar (holidays): non-working days for the whole project. ---- */
