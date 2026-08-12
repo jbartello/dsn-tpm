@@ -302,6 +302,10 @@
   .ms-k { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-left: 10px; }
   .ms-k.crit { background: var(--bad); } .ms-k.task { background: var(--sap-blue); } .ms-k.summary { background: #5b738b; }
   .ms-k.mstone { width: 9px; height: 9px; background: #7a3fd0; transform: rotate(45deg); border-radius: 1px; }
+  .ms-k.fill { background: rgba(0,0,0,0.42); } .ms-k.slip { background: repeating-linear-gradient(45deg, #e0a33d, #e0a33d 3px, #f0cc8a 3px, #f0cc8a 6px); } .ms-k.ddl { width: 3px; background: #d23b3b; }
+  .ms-datebar { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px; font-size: 13px; color: var(--text-muted); }
+  .ms-datebar select { padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 4px; }
+  .ms-dd { font-weight: 600; color: var(--text); }
   .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
   .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
@@ -318,6 +322,10 @@
   .st-attrs { margin: 10px 0 4px; padding: 10px 12px; background: #f7f9fc; border: 1px solid var(--panel-border); border-radius: 6px; }
   .st-attr-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
   .st-attr-row > label { width: 80px; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  .st-attr-sub { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+  .bd-g-fill { position: absolute; top: 9px; height: 8px; background: rgba(0,0,0,0.42); border-radius: 3px; pointer-events: none; }
+  .bd-g-slip { position: absolute; top: 8px; height: 10px; border-radius: 2px; background: repeating-linear-gradient(45deg, #e0a33d, #e0a33d 4px, #f0cc8a 4px, #f0cc8a 8px); }
+  .bd-g-ddline { position: absolute; top: 0; bottom: 0; width: 2px; background: #d23b3b; z-index: 2; pointer-events: none; }
   .st-typesel { min-width: 56px; }
   /* Edit Plan — subtask (activity) table */
   .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
@@ -1410,7 +1418,7 @@
   // Project-wide CPM (cached): forward/backward pass over EVERY subtask, so
   // predecessors can cross work packages. Returns map globalId → {es,ef,ls,lf,float,critical}.
   let _schedCpm = null;
-  function schedInvalidate() { _schedCpm = null; }
+  function schedInvalidate() { _schedCpm = null; _schedFcst = null; }
   function schedComputeAll() {
     if (_schedCpm) return _schedCpm;
     const all = schedCpmNodes(), byId = {}; all.forEach(t => byId[t.id] = t);
@@ -1490,6 +1498,74 @@
     });
     schedInvalidate();
   }
+  /* ----- Progressing overlay: forecast/actual dates given status + data date.
+     Read-only — never mutates plan dates or cost. Retained logic. ----- */
+  // Data date = last calendar day of the shared Month-End period (pvState.period 'YYYY-MM').
+  function schedDataDate() {
+    const p = String(pvState.period || '').split('-');
+    if (p.length < 2) return null;
+    const y = +p[0], mo = +p[1];           // last day of month = day 0 of next month
+    const d = new Date(y, mo, 0);
+    return bdFmtDate(d);
+  }
+  function schedTaskState(t) {
+    if ((+t.pct || 0) >= 100 || t.actualFinish) return 'complete';
+    if ((+t.pct || 0) > 0 || t.actualStart) return 'inprogress';
+    return 'notstarted';
+  }
+  // Forecast pass: id → { fES, fEF, state, pct }. Milestones placed by driven date (no DD floor).
+  let _schedFcst = null, _schedFcstKey = '';
+  function schedForecast() {
+    const dd = schedDataDate(), key = String(dd);
+    if (_schedFcst && _schedFcstKey === key) return _schedFcst;
+    schedComputeAll();                                   // ensure plan dates current
+    const DD = dd ? bdSnapWD(bdParseDate(dd)) : null;
+    const all = schedCpmNodes(), order = schedTopo(all), F = {};
+    order.forEach(t => {
+      const d = schedDuration(t);
+      let fes = bdSnapWD(bdParseDate(t.start) || new Date(2022, 0, 1));
+      (t.preds || []).forEach(p => {
+        const r = F[p.id]; if (!r) return; const lag = +p.lag || 0; let cand;
+        if (p.type === 'SS') cand = bdShiftWD(r.fES, lag);
+        else if (p.type === 'FF') cand = bdShiftWD(bdShiftWD(r.fEF, lag), -(d - 1));
+        else if (p.type === 'SF') cand = bdShiftWD(bdShiftWD(r.fES, lag), -(d - 1));
+        else cand = bdShiftWD(r.fEF, 1 + lag);   // FS
+        cand = bdSnapWD(cand); if (cand > fes) fes = cand;
+      });
+      if (t.isMilestone) { F[t.id] = { fES: fes, fEF: fes, state: (DD && fes <= DD ? 'complete' : 'notstarted'), pct: (DD && fes <= DD ? 100 : 0) }; return; }
+      const state = schedTaskState(t), pct = state === 'complete' ? 100 : Math.max(0, Math.min(100, +t.pct || 0));
+      const aS = t.actualStart ? bdSnapWD(bdParseDate(t.actualStart)) : null;
+      const aF = t.actualFinish ? bdSnapWD(bdParseDate(t.actualFinish)) : null;
+      let fES, fEF;
+      if (state === 'complete') {
+        fES = aS || fes;
+        fEF = aF || (DD ? (bdParseDate(t.finish) <= DD ? bdSnapWDback(bdParseDate(t.finish)) : DD) : bdShiftWD(fES, d - 1));
+        if (fEF < fES) fEF = fES;
+      } else if (state === 'inprogress') {
+        fES = aS || fes;
+        const remDur = Math.max(1, Math.ceil(d * (1 - pct / 100)));
+        const remStart = DD ? (fes > DD ? fes : DD) : fes;   // remaining work resumes at the data date
+        fEF = bdShiftWD(remStart, remDur - 1);
+      } else {                                              // not started — cannot begin before the data date
+        fES = DD ? (fes > DD ? fes : DD) : fes;
+        fEF = bdShiftWD(fES, d - 1);
+      }
+      F[t.id] = { fES: fES, fEF: fEF, state: state, pct: pct };
+    });
+    _schedFcst = F; _schedFcstKey = key; return F;
+  }
+  function schedForecastFinish() {                          // project forecast finish (max forecast EF)
+    const F = schedForecast(); let pf = null;
+    Object.keys(F).forEach(k => { const e = F[k].fEF; if (e && (!pf || e > pf)) pf = e; });
+    return pf ? bdFmtDate(pf) : null;
+  }
+  function schedSetStatus(wp, id, field, val) {
+    const t = schedNodeFor(wp, id); if (!t) return;
+    if (field === 'pct') t.pct = Math.max(0, Math.min(100, parseFloat(val) || 0));
+    else t[field] = bdNormDate(val) || '';                 // actualStart / actualFinish
+    _schedFcst = null;                                     // progressing never touches plan; just refresh overlay
+    if (t.isMilestone) render(); else schedRender();
+  }
   // Zero any cost outside the subtask's [start, finish] (no baseline beyond the dates).
   function schedClampRes(t) {
     const months = (window.CAP_TP || { months: [] }).months, sN = bdDateNum(t.start), eN = bdDateNum(t.finish);
@@ -1539,6 +1615,11 @@
       <div class="st-attr-row"><label>Deadline</label>
         <input class="st-in st-date" value="${_xml(t.deadline || '')}" placeholder="MM/DD/YYYY" onchange="schedSetDeadline('${wp}','${t.id}',this.value)">
         <span class="bd-tp-note" style="margin:0">A missed deadline or late constraint shows as <span class="fl-neg">negative float</span>.</span></div>
+      ${t.isMilestone ? '' : `<div class="st-attr-row"><label>Status</label>
+        <span class="st-attr-sub">% Complete</span><input class="st-in st-dur" value="${_xml(t.pct || 0)}" onchange="schedSetStatus('${wp}','${t.id}','pct',this.value)">
+        <span class="st-attr-sub">Actual Start</span><input class="st-in st-date" value="${_xml(t.actualStart || '')}" placeholder="MM/DD/YYYY" onchange="schedSetStatus('${wp}','${t.id}','actualStart',this.value)">
+        <span class="st-attr-sub">Actual Finish</span><input class="st-in st-date" value="${_xml(t.actualFinish || '')}" placeholder="MM/DD/YYYY" onchange="schedSetStatus('${wp}','${t.id}','actualFinish',this.value)"></div>
+      <div class="bd-tp-note" style="margin:2px 0 0">Progressing (data date = Month-End) forecasts dates on the Master Schedule; it does not change plan dates or cost.</div>`}
     </div>`;
   }
   function schedAddTask(wp) {
@@ -1981,21 +2062,39 @@
       const s = clamp(off(a)), f = clamp(off(b));
       return `<div class="bd-g-bar ${cls}" style="left:${s * PXM}px;width:${Math.max(PXM, (f - s + 1) * PXM)}px" title="${tip}"></div>`;
     };
+    // Progressing overlay (Master Schedule only): data-date line, progress fill, slip segment.
+    const master = currentModule === 'master-schedule';
+    const F = master ? schedForecast() : null;
+    const DD = master ? schedDataDate() : null;
+    const xDD = (DD && off(DD) != null) ? (clamp(off(DD)) + 1) * PXM : null;
+    const ddLine = xDD != null ? `<div class="bd-g-ddline" style="left:${xDD}px" title="Data date ${_xml(DD)}"></div>` : '';
+    const taskBar = (t, c) => {
+      const s = off(t.start), fin = off(t.finish);
+      if (s == null || fin == null) return '';
+      const S = clamp(s), Fp = clamp(fin), planW = Math.max(PXM, (Fp - S + 1) * PXM), f = (F && F[t.id]) || {};
+      const cls = c.critical ? 'crit' : 'task';
+      const fefStr = f.fEF ? bdFmtDate(f.fEF) : null;
+      const tip = _xml(t.start) + ' – ' + _xml(t.finish) + (c.float != null ? ' · float ' + c.float + 'd' : '') + (f.state ? ' · ' + f.state + ' ' + f.pct + '%' : '');
+      let h = `<div class="bd-g-bar ${cls}" style="left:${S * PXM}px;width:${planW}px" title="${tip}"></div>`;
+      if (master && f.pct > 0) { const fw = Math.max(2, planW * Math.min(100, f.pct) / 100); h += `<div class="bd-g-fill" style="left:${S * PXM}px;width:${fw}px"></div>`; }
+      if (master && fefStr) { const fe = off(fefStr); if (fe != null && clamp(fe) > Fp) { const fc = clamp(fe); h += `<div class="bd-g-slip" style="left:${(Fp + 1) * PXM}px;width:${(fc - Fp) * PXM}px" title="Forecast finish ${_xml(fefStr)}"></div>`; } }
+      return h;
+    };
     const rows = bdGanttRows().map(r => {
       if (r.kind === 'task') {
         const t = r.task, c = r.cpm || {};
-        const bar = barDiv(t.start, t.finish, c.critical ? 'crit' : 'task', _xml(t.start) + ' – ' + _xml(t.finish) + (c.float != null ? ' · float ' + c.float + 'd' : ''));
+        const bar = master ? taskBar(t, c) : barDiv(t.start, t.finish, c.critical ? 'crit' : 'task', _xml(t.start) + ' – ' + _xml(t.finish) + (c.float != null ? ' · float ' + c.float + 'd' : ''));
         const preds = (t.preds && t.preds.length) ? ` <span class="bd-g-pred">⟵ ${_xml(schedPredsStr(t.preds))}</span>` : '';
         const active = (r.wbs === bdState.sel && schedSel.task === t.id) ? ' active' : '';
         const lbl = _xml(t.id) + ' · ' + _xml(t.name);
-        return `<div class="bd-gantt-row${active}"><div class="bd-g-label bd-g-sub" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="schedSelectTask('${r.wbs}','${t.id}');bdSelect('${r.wbs}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${bar}</div></div>`;
+        return `<div class="bd-gantt-row${active}"><div class="bd-g-label bd-g-sub" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="schedSelectTask('${r.wbs}','${t.id}');bdSelect('${r.wbs}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${ddLine}${bar}</div></div>`;
       }
       const isSum = r.node.children.length > 0 || (bdIsLeaf(r.wbs) && schedTasks(r.wbs).length > 0);
       const rng = bdPmbRange(r.wbs);
       const bar = barDiv(rng.start, rng.end, isSum ? 'summary' : 'task', _xml(rng.start || '') + ' – ' + _xml(rng.end || ''));
       const active = r.wbs === bdState.sel ? ' active' : '';
       const lbl = _xml(r.wbs) + ' · ' + _xml(r.node.desc || '');
-      return `<div class="bd-gantt-row${active}"><div class="bd-g-label" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="bdSelect('${r.wbs}')">${lbl}</div><div class="bd-g-track" style="width:${W}px">${bar}</div></div>`;
+      return `<div class="bd-gantt-row${active}"><div class="bd-g-label" style="padding-left:${10 + r.depth * 16}px" title="${lbl}" onclick="bdSelect('${r.wbs}')">${lbl}</div><div class="bd-g-track" style="width:${W}px">${ddLine}${bar}</div></div>`;
     }).join('');
     // Schedule milestones (Master Schedule only): zero-duration diamonds plotted by date.
     let msRows = '';
@@ -2009,7 +2108,7 @@
         const preds = (m.preds && m.preds.length) ? ` <span class="bd-g-pred">⟵ ${_xml(schedPredsStr(m.preds))}</span>` : '';
         const active = msSel === m.id ? ' active' : '';
         const lbl = '◆ ' + (m.cat ? '[' + _xml(m.cat) + '] ' : '') + _xml(m.name || 'Milestone');
-        return `<div class="bd-gantt-row ms-mrow${active}"><div class="bd-g-label" style="padding-left:10px" title="${lbl} · ${_xml(m.date)}" onclick="msSelect('${m.id}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${dia}</div></div>`;
+        return `<div class="bd-gantt-row ms-mrow${active}"><div class="bd-g-label" style="padding-left:10px" title="${lbl} · ${_xml(m.date)}" onclick="msSelect('${m.id}')">${lbl}${preds}</div><div class="bd-g-track" style="width:${W}px">${ddLine}${dia}</div></div>`;
       }).join('');
     }
     return head + msRows + rows;
@@ -2191,12 +2290,25 @@
     const crit = tasks.filter(t => (cpm[t.id] || {}).critical).length + msList().filter(m => (cpm[m.id] || {}).critical).length;
     const root = bdBuild().roots[0];
     const span = bdPmbRange(root);
-    const tile = (lbl, val) => `<div class="ms-tile"><div class="ms-tile-v">${_xml(val)}</div><div class="ms-tile-l">${lbl}</div></div>`;
+    const tile = (lbl, val, cls) => `<div class="ms-tile"><div class="ms-tile-v${cls ? ' ' + cls : ''}">${val}</div><div class="ms-tile-l">${lbl}</div></div>`;
+    // progressing summary: forecast finish + schedule variance (working days) vs the plan finish
+    const fFinish = schedForecastFinish();
+    let svTile = '';
+    if (span.end && fFinish) {
+      const late = bdDateNum(fFinish) > bdDateNum(span.end), early = bdDateNum(fFinish) < bdDateNum(span.end);
+      const mag = Math.max(0, bdWorkdaysBetween(span.end, fFinish) - 1);
+      const svVal = late ? '−' + mag + ' wd' : (early ? '+' + mag + ' wd' : '0 wd');
+      svTile = tile('Schedule Variance', svVal, late ? 'fl-neg' : '');
+    }
+    const periodOpts = PERIODS.map(pp => `<option value="${pp.id}"${pp.id === pvState.period ? ' selected' : ''}>${pp.label}</option>`).join('');
     return `
-      <p class="module-intro">Integrated Master Schedule for <strong>${_xml(p.name)}</strong> — the full WBS and every cost-loaded activity on one timeline, with the critical path highlighted. Read-only; edit dates and predecessors in <strong>Edit Plan</strong>.</p>
+      <p class="module-intro">Integrated Master Schedule for <strong>${_xml(p.name)}</strong> — the full WBS and every cost-loaded activity on one timeline, with the critical path and progress against the data date. Read-only; edit dates, predecessors, constraints, and status in <strong>Edit Plan</strong>.</p>
+      <div class="ms-datebar">Data date (Month-End): <select onchange="msSetPeriod(this.value)">${periodOpts}</select> <span class="ms-dd">= ${_xml(schedDataDate() || '—')}</span></div>
       <div class="ms-tiles">
-        ${tile('Project Start', span.start || '—')}
-        ${tile('Project Finish', span.end || '—')}
+        ${tile('Project Start', _xml(span.start || '—'))}
+        ${tile('Project Finish', _xml(span.end || '—'))}
+        ${tile('Forecast Finish', _xml(fFinish || '—'))}
+        ${svTile}
         ${tile('Activities', tasks.length)}
         ${tile('Critical', crit)}
         ${tile('Milestones', msList().length)}
@@ -2212,14 +2324,15 @@
       <div class="card" style="margin-top:16px">
         <div class="card-head">
           <span class="ch-title">Integrated Master Schedule</span>
-          <span class="ms-legend"><i class="ms-k crit"></i>Critical path<i class="ms-k task"></i>Activity<i class="ms-k summary"></i>Summary / WBS<i class="ms-k mstone"></i>Milestone</span>
+          <span class="ms-legend"><i class="ms-k crit"></i>Critical path<i class="ms-k task"></i>Activity<i class="ms-k fill"></i>% Complete<i class="ms-k slip"></i>Forecast slip<i class="ms-k ddl"></i>Data date<i class="ms-k mstone"></i>Milestone</span>
         </div>
         <div class="card-body" style="padding:12px">
-          <div class="bd-tp-note" style="margin-bottom:10px">All ${leaves.length ? '' : ''}WBS elements expanded, with their scheduled activities nested beneath each work package. Bars derive from the same schedule that drives cost and earned value.</div>
+          <div class="bd-tp-note" style="margin-bottom:10px">All WBS elements expanded, with their scheduled activities nested beneath each work package. The red line is the data date; bar fill shows % complete; a hatched segment marks forecast slip past the plan finish.</div>
           <div class="bd-gantt-wrap" id="bdGantt">${bdGanttHtml()}</div>
         </div>
       </div>`;
   }
+  function msSetPeriod(v) { pvState.period = v; render(); }
   // Record a resource cell edit (dollars in cost mode; hours×rate in hours mode) and re-render the detail.
   function bdEditCell(wbs, resId, mi, raw, measure, rate) {
     let dollars = parseFloat(String(raw).replace(/[, $]/g, '')) || 0;
