@@ -308,6 +308,11 @@
   .bd-gantt-row.ms-mrow.active { background: #f3ecfb; }
   .st-lagin { width: 56px; padding: 3px 6px; border: 1px solid var(--panel-border); border-radius: 4px; font-size: 12px; }
   .st-cat { width: 44px; text-align: center; text-transform: uppercase; }
+  .hol-add { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .hol-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hol-chip { display: inline-flex; align-items: center; gap: 4px; background: #eef2f7; border: 1px solid var(--panel-border); border-radius: 12px; padding: 2px 6px 2px 10px; font-size: 12px; }
+  .hol-chip button { border: none; background: none; cursor: pointer; color: #8a94a6; font-size: 12px; line-height: 1; padding: 0 2px; }
+  .hol-chip button:hover { color: var(--bad); }
   .st-typesel { min-width: 56px; }
   /* Edit Plan — subtask (activity) table */
   .st-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; margin-bottom: 4px; }
@@ -1379,7 +1384,11 @@
   /* ----- CPM engine: working-day calendar + critical path ----- */
   function bdParseDate(s) { const p = String(s || '').split('/'); return p.length < 3 ? null : new Date(+p[2], +p[0] - 1, +p[1]); }
   function bdFmtDate(d) { return String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear(); }
-  function bdIsWD(d) { const x = d.getDay(); return x !== 0 && x !== 6; }
+  // Global working calendar: Mon–Fri minus holidays (holiday keys = YYYYMMDD, same as bdDateNum).
+  let SCHED_HOLIDAYS = null;
+  function schedHolidays() { if (SCHED_HOLIDAYS === null) SCHED_HOLIDAYS = new Set(); return SCHED_HOLIDAYS; }
+  function bdDateKey(d) { return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+  function bdIsWD(d) { const x = d.getDay(); if (x === 0 || x === 6) return false; return !schedHolidays().has(bdDateKey(d)); }
   function bdSnapWD(d) { const r = new Date(d); while (!bdIsWD(r)) r.setDate(r.getDate() + 1); return r; }       // forward to a workday
   function bdSnapWDback(d) { const r = new Date(d); while (!bdIsWD(r)) r.setDate(r.getDate() - 1); return r; }   // back to a workday
   function bdShiftWD(d, n) { const r = new Date(d); if (!n) return r; const step = n > 0 ? 1 : -1; let need = Math.abs(n), c = 0; while (c < need) { r.setDate(r.getDate() + step); if (bdIsWD(r)) c++; } return r; }
@@ -2090,6 +2099,24 @@
       </div>
     </div>`;
   }
+  /* ---- Working calendar (holidays): non-working days for the whole project. ---- */
+  function schedHolidayList() { return Array.from(schedHolidays()).sort((a, b) => a - b); }
+  function holKeyToDate(key) { const y = Math.floor(key / 10000), m = Math.floor((key % 10000) / 100), d = key % 100; return String(m).padStart(2, '0') + '/' + String(d).padStart(2, '0') + '/' + y; }
+  function schedAddHoliday() {
+    const el = document.getElementById('holInput'); if (!el || !el.value) return;
+    const norm = bdNormDate(el.value); if (!norm) { tpmToast('Enter a date as MM/DD/YYYY'); return; }
+    schedHolidays().add(bdDateNum(norm)); schedInvalidate(); schedRescheduleAll(); render(); tpmToast('Holiday added — schedule recalculated');
+  }
+  function schedDelHoliday(key) { schedHolidays().delete(key); schedInvalidate(); schedRescheduleAll(); render(); }
+  function schedCalendarHtml() {
+    const list = schedHolidayList();
+    const chips = list.length
+      ? list.map(k => `<span class="hol-chip">${holKeyToDate(k)}<button onclick="schedDelHoliday(${k})" title="Remove holiday">✕</button></span>`).join('')
+      : '<span class="bd-add-none">No holidays defined — Mon–Fri working week.</span>';
+    return `<div class="hol-add"><input id="holInput" class="st-in st-date" placeholder="MM/DD/YYYY" style="width:120px"> <button class="btn sm" onclick="schedAddHoliday()">＋ Add holiday</button></div>
+      <div class="hol-list">${chips}</div>
+      <div class="bd-tp-note" style="margin-top:8px">Holidays are non-working days for the whole project — all schedule dates, durations, and lags skip them (in addition to weekends).</div>`;
+  }
   /* ---- Master Schedule: project-wide, read-only Integrated Master Schedule (IMS)
      Gantt of the whole WBS + every cost-loaded activity, fully expanded, with the
      critical path highlighted. Reuses the schedule model (schedData + CPM). ---- */
@@ -2117,6 +2144,10 @@
       <div class="card" style="margin-top:16px">
         <div class="card-head"><span class="ch-title">Program Milestones</span></div>
         <div class="card-body" style="padding:12px">${msTableHtml()}</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><span class="ch-title">Working Calendar — Holidays</span></div>
+        <div class="card-body" style="padding:12px">${schedCalendarHtml()}</div>
       </div>
       <div class="card" style="margin-top:16px">
         <div class="card-head">
