@@ -2855,6 +2855,7 @@
       customer: 'U.S. Air Force — AFLCMC (demo)', prime: 'Dassian Aerospace (demo prime)',
       pm: 'Jason Bartello', pop: '01/01/2022 – 02/27/2026',
       coe: 'Air Vehicle Systems COE', sbu: 'Combat Air SBU', cbt: 'USAF Fighter/Trainer CBT',
+      productFamily: 'Fighter / Trainer Aircraft', pmFocal: 'Jason Bartello', ppcFocal: 'E. Hayes', engLead: 'R. Reed', ipdsPhase: 'EMD (Phase C)',
       evms: 'Compliant — EIA-748 (Validated)', reporting: 'IPMDAR — Monthly', oversight: 'DCMA (demo)'
     },
     MFG: {
@@ -2863,6 +2864,7 @@
       customer: 'U.S. Navy — NAVAIR (demo)', prime: 'Dassian Manufacturing (demo prime)',
       pm: 'Program Office', pop: '10/01/2023 – 09/30/2027',
       coe: 'Manufacturing & Production COE', sbu: 'Naval Systems SBU', cbt: 'USN NAVAIR CBT',
+      productFamily: 'Naval Aircraft Systems', pmFocal: 'Program Office', ppcFocal: 'T. LaRue', engLead: 'L. Johnson', ipdsPhase: 'Production & Deployment (Phase D)',
       evms: 'Compliant — EIA-748', reporting: 'IPMDAR — Monthly', oversight: 'DCMA (demo)'
     }
   };
@@ -2949,7 +2951,7 @@
   let piCreate = false, piNewSeq = 0, piPrevProg = '';
   const PI_CONTRACT_TYPES = ['Firm-Fixed-Price (FFP)', 'Fixed-Price Incentive, Firm (FPIF)', 'Cost Plus Fixed Fee (CPFF)', 'Cost Plus Incentive Fee (CPIF)', 'Cost Plus Award Fee (CPAF)', 'Time & Materials (T&M)', 'Indefinite Delivery/Indefinite Quantity (IDIQ)'];
   function emptyProgData() { return { WBS_DICT: {}, CAP_TP: { months: [] }, CAP_SUMMARY: {}, RAM_DICT: {}, TRIPWIRE: [], CONTROL_LOG: [] }; }
-  function piBlankInfo() { return { progName: '', progNo: '', contractNo: '', contractType: '', customer: '', prime: '', pm: '', pop: '', coe: '', sbu: '', cbt: '', evms: '', reporting: '', oversight: '' }; }
+  function piBlankInfo() { return { progName: '', progNo: '', contractNo: '', contractType: '', customer: '', prime: '', pm: '', pop: '', coe: '', sbu: '', cbt: '', productFamily: '', pmFocal: '', ppcFocal: '', engLead: '', ipdsPhase: '', evms: '', reporting: '', oversight: '' }; }
   function piStartCreate() {
     piPrevProg = progId();
     const id = 'NEW' + (++piNewSeq);
@@ -2980,7 +2982,8 @@
     const rec = {
       progName: g('piName'), progNo: g('piNumber'), contractNo: g('piContract'), contractType: g('piCtype'),
       customer: g('piCustomer'), prime: g('piPrime'), pm: g('piPm'), pop: g('piPop'),
-      coe: g('piCoe'), sbu: g('piSbu'), cbt: g('piCbt')
+      coe: g('piCoe'), sbu: g('piSbu'), cbt: g('piCbt'),
+      productFamily: g('piProdFam'), pmFocal: g('piPmFocal'), ppcFocal: g('piPpcFocal'), engLead: g('piEngLead'), ipdsPhase: g('piIpds')
     };
     PROG_INFO[progId()] = Object.assign({}, PROG_INFO[progId()] || piBlankInfo(), rec);
     const nm = rec.progName || (PROGRAMS[progId()] && PROGRAMS[progId()].name) || 'New Program';
@@ -3014,6 +3017,11 @@
           ${inp('Center of Excellence (COE)', 'piCoe')}
           ${inp('Small Business Unit (SBU)', 'piSbu')}
           ${inp('Customer Business Team (CBT)', 'piCbt')}
+          ${inp('Product Family', 'piProdFam')}
+          ${inp('PM Focal', 'piPmFocal')}
+          ${inp('PP&amp;C Focal', 'piPpcFocal')}
+          ${inp('Engineering Tech Lead', 'piEngLead')}
+          ${inp('IPDS Phase', 'piIpds')}
         </div></div></div>`
       : section('Program Identification',
         field('Program Name', _xml(info.progName)) +
@@ -3026,7 +3034,12 @@
         field('Period of Performance', _xml(info.pop)) +
         field('Center of Excellence (COE)', _xml(info.coe)) +
         field('Small Business Unit (SBU)', _xml(info.sbu)) +
-        field('Customer Business Team (CBT)', _xml(info.cbt)));
+        field('Customer Business Team (CBT)', _xml(info.cbt)) +
+        field('Product Family', _xml(info.productFamily)) +
+        field('PM Focal', _xml(info.pmFocal)) +
+        field('PP&amp;C Focal', _xml(info.ppcFocal)) +
+        field('Engineering Tech Lead', _xml(info.engLead)) +
+        field('IPDS Phase', _xml(info.ipdsPhase)));
     const buttonBar = piCreate
       ? `<div class="bd-edit-bar"><button class="btn primary" onclick="piSaveProgram()">Save Program</button><button class="btn" onclick="piCancelCreate()">Cancel</button></div>`
       : `<div class="bd-edit-bar"><button class="btn primary" onclick="piStartCreate()">Create Program</button></div>`;
