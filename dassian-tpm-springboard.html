@@ -313,6 +313,8 @@
   .pi-msfilter { font-size: 13px; color: var(--text-muted); }
   .pi-msfilter select { padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 4px; margin-left: 4px; }
   .rcca-flag { color: var(--good); font-weight: 700; }
+  .pi-in { font-family: inherit; font-size: 14px; color: var(--text); border: 1px solid #c4c4c4; border-radius: 4px; padding: 6px 8px; width: 100%; margin-top: 3px; background: #fff; }
+  .pi-in:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
   .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
   .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
@@ -2939,8 +2941,24 @@
     const el = document.getElementById('piMsBody'); if (el) el.innerHTML = piMilestonesTable();
     tpmToast('RCCA saved for ' + (m.name || 'milestone'));
   }
+  /* ---- Create Program mode: blank, editable Program Identification ---- */
+  let piCreate = false;
+  const piSaved = {};   // in-session identification overrides, keyed by program id
+  const PI_CONTRACT_TYPES = ['Firm-Fixed-Price (FFP)', 'Fixed-Price Incentive, Firm (FPIF)', 'Cost Plus Fixed Fee (CPFF)', 'Cost Plus Incentive Fee (CPIF)', 'Cost Plus Award Fee (CPAF)', 'Time & Materials (T&M)', 'Indefinite Delivery/Indefinite Quantity (IDIQ)'];
+  function piStartCreate() { piCreate = true; render(); }
+  function piCancelCreate() { piCreate = false; render(); }
+  function piSaveProgram() {
+    const g = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+    const rec = {
+      progName: g('piName'), progNo: g('piNumber'), contractNo: g('piContract'), contractType: g('piCtype'),
+      customer: g('piCustomer'), prime: g('piPrime'), pm: g('piPm'), pop: g('piPop')
+    };
+    // preserve the existing EVMS/reporting fields so the rest of the screen stays populated
+    piSaved[progId()] = Object.assign({}, PROG_INFO[progId()] || {}, rec);
+    piCreate = false; render(); tpmToast('Program saved');
+  }
   function renderProgramInfo(p) {
-    const info = PROG_INFO[progId()] || PROG_INFO.DEMO;
+    const info = piSaved[progId()] || PROG_INFO[progId()] || PROG_INFO.DEMO;
     const k = pvKpis(pvProgramRows().map(pvApplyPeriod));
     const bac = pvKpis(pvProgramRows()).bac;                 // BAC is period-independent
     const mr = bac * 0.04, cbb = bac + mr, tc = bac, fee = tc * 0.08, cv = tc + fee, ceiling = cv * 1.15, tab = cbb, ub = bac * 0.01;
@@ -2949,8 +2967,34 @@
     const money = n => '$' + addCommas(Math.round(n));
     const field = (l, v) => `<div class="pi-field"><div class="pi-l">${l}</div><div class="pi-v">${v}</div></div>`;
     const section = (title, fields) => `<div class="card" style="margin-top:16px"><div class="card-head"><span class="ch-title">${title}</span></div><div class="card-body" style="padding:16px"><div class="pi-grid">${fields}</div></div></div>`;
+    // Program Identification — display, or blank editable inputs in Create mode
+    const inp = (l, id) => `<div class="pi-field"><div class="pi-l">${l}</div><input class="pi-in" id="${id}" value=""></div>`;
+    const idSection = piCreate
+      ? `<div class="card" style="margin-top:16px"><div class="card-head"><span class="ch-title">Program Identification</span></div><div class="card-body" style="padding:16px"><div class="pi-grid">
+          ${inp('Program Name', 'piName')}
+          ${inp('Program Number', 'piNumber')}
+          ${inp('Contract Number', 'piContract')}
+          <div class="pi-field"><div class="pi-l">Contract Type</div><select class="pi-in" id="piCtype"><option value=""></option>${PI_CONTRACT_TYPES.map(t => `<option>${_xml(t)}</option>`).join('')}</select></div>
+          ${inp('Customer / Agency', 'piCustomer')}
+          ${inp('Prime Contractor', 'piPrime')}
+          ${inp('Program Manager', 'piPm')}
+          ${inp('Period of Performance', 'piPop')}
+        </div></div></div>`
+      : section('Program Identification',
+        field('Program Name', _xml(info.progName)) +
+        field('Program Number', _xml(info.progNo)) +
+        field('Contract Number', _xml(info.contractNo)) +
+        field('Contract Type', _xml(info.contractType)) +
+        field('Customer / Agency', _xml(info.customer)) +
+        field('Prime Contractor', _xml(info.prime)) +
+        field('Program Manager', _xml(info.pm)) +
+        field('Period of Performance', _xml(info.pop)));
+    const buttonBar = piCreate
+      ? `<div class="bd-edit-bar"><button class="btn primary" onclick="piSaveProgram()">Save Program</button><button class="btn" onclick="piCancelCreate()">Cancel</button></div>`
+      : `<div class="bd-edit-bar"><button class="btn primary" onclick="piStartCreate()">Create Program</button></div>`;
     return `
-      <p class="module-intro">Program-level information for <strong>${_xml(p.name)}</strong> — contract and program header with rolled-up performance for the current Month-End (${_xml(period)}). Display-only.</p>
+      <p class="module-intro">Program-level information for <strong>${_xml(p.name)}</strong> — contract and program header with rolled-up performance for the current Month-End (${_xml(period)}).${piCreate ? ' <strong>Create Program:</strong> enter the program identification and Save.' : ''}</p>
+      ${buttonBar}
       <div class="kpi-strip">
         ${kpiCard('BAC', fmtM(k.bac), true)}
         ${kpiCard('EAC', fmtM(k.eac), false, bandEAC(k.eac, k.bac))}
@@ -2959,15 +3003,7 @@
         ${kpiCard('SPI', k.spi.toFixed(2), false, bandSPI(k.spi))}
         ${kpiCard('% Complete', pct + '%', false)}
       </div>
-      ${section('Program Identification',
-        field('Program Name', _xml(info.progName)) +
-        field('Program Number', _xml(info.progNo)) +
-        field('Contract Number', _xml(info.contractNo)) +
-        field('Contract Type', _xml(info.contractType)) +
-        field('Customer / Agency', _xml(info.customer)) +
-        field('Prime Contractor', _xml(info.prime)) +
-        field('Program Manager', _xml(info.pm)) +
-        field('Period of Performance', _xml(info.pop)))}
+      ${idSection}
       ${section('Contract Value &amp; Budget',
         field('Contract Value (TC + Fee)', money(cv)) +
         field('Target Cost', money(tc)) +
