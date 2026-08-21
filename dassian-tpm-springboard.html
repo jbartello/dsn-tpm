@@ -306,6 +306,10 @@
   .ms-datebar { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px; font-size: 13px; color: var(--text-muted); }
   .ms-datebar select { padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 4px; }
   .ms-dd { font-weight: 600; color: var(--text); }
+  .pi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 24px; }
+  .pi-field { border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; }
+  .pi-l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+  .pi-v { font-size: 14px; color: var(--text); margin-top: 3px; font-weight: 500; }
   .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
   .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
@@ -725,6 +729,8 @@
     <!-- Left navigation -->
     <nav class="sidenav">
       <div class="nav-header">Total Program Management</div>
+      <div class="nav-item" data-mod="program-info" onclick="setModule('program-info')">
+        <span class="nav-ico">🎖️</span> Program Information</div>
       <div class="nav-item" data-mod="setup" onclick="setModule('setup')">
         <span class="nav-ico">⚙️</span> Project Setup</div>
       <div class="nav-item nav-parent" onclick="toggleBaseline()">
@@ -812,6 +818,7 @@
   };
 
   const MODULE_TITLES = {
+    'program-info': 'Program Information',
     setup:     'Project Setup',
     'baseline-change':  'Baseline Change Request',
     'baseline-display': 'Display Baseline',
@@ -2831,6 +2838,70 @@
     const head = `<div class="bd-head"><div class="bd-card-h">${_xml(wbs)} · ${_xml(node.desc || '')}</div><div class="bd-sub">Level ${_xml(node.level || '—')} · WBS CAM ${_xml(node.cam || '—')}</div></div>`;
     const body = psState.mode === 'ca' ? psCADetail(wbs) : psState.mode === 'wp' ? psWPDetail(wbs) : psMRUBDetail(wbs);
     return head + body;
+  }
+
+  /* ---------- Program Information (contract/program header + rolled-up EVM) ---------- */
+  const PROG_INFO = {
+    DEMO: {
+      progName: 'PPC/SIS Demonstration Program 1', progNo: 'JTB001',
+      contractNo: 'DEMO-JTB001-C-0001', contractType: 'Cost Plus Incentive Fee (CPIF)',
+      customer: 'U.S. Air Force — AFLCMC (demo)', prime: 'Dassian Aerospace (demo prime)',
+      pm: 'Jason Bartello', pop: '01/01/2022 – 02/27/2026',
+      evms: 'Compliant — EIA-748 (Validated)', reporting: 'IPMDAR — Monthly', oversight: 'DCMA (demo)'
+    },
+    MFG: {
+      progName: 'Manufacturing Production Program', progNo: 'MFG-2024',
+      contractNo: 'DEMO-MFG-C-0042', contractType: 'Fixed-Price Incentive, Firm (FPIF)',
+      customer: 'U.S. Navy — NAVAIR (demo)', prime: 'Dassian Manufacturing (demo prime)',
+      pm: 'Program Office', pop: '10/01/2023 – 09/30/2027',
+      evms: 'Compliant — EIA-748', reporting: 'IPMDAR — Monthly', oversight: 'DCMA (demo)'
+    }
+  };
+  function renderProgramInfo(p) {
+    const info = PROG_INFO[progId()] || PROG_INFO.DEMO;
+    const k = pvKpis(pvProgramRows().map(pvApplyPeriod));
+    const bac = pvKpis(pvProgramRows()).bac;                 // BAC is period-independent
+    const mr = bac * 0.04, cbb = bac + mr, tc = bac, fee = tc * 0.08, cv = tc + fee, ceiling = cv * 1.15, tab = cbb, ub = bac * 0.01;
+    const pct = PV_PCT[progId()] ?? PV_PCT[pvState.project] ?? 0;
+    const period = PERIOD_MAP[pvState.period] ? PERIOD_MAP[pvState.period].label : pvState.period;
+    const money = n => '$' + addCommas(Math.round(n));
+    const field = (l, v) => `<div class="pi-field"><div class="pi-l">${l}</div><div class="pi-v">${v}</div></div>`;
+    const section = (title, fields) => `<div class="card" style="margin-top:16px"><div class="card-head"><span class="ch-title">${title}</span></div><div class="card-body" style="padding:16px"><div class="pi-grid">${fields}</div></div></div>`;
+    return `
+      <p class="module-intro">Program-level information for <strong>${_xml(p.name)}</strong> — contract and program header with rolled-up performance for the current Month-End (${_xml(period)}). Display-only.</p>
+      <div class="kpi-strip">
+        ${kpiCard('BAC', fmtM(k.bac), true)}
+        ${kpiCard('EAC', fmtM(k.eac), false, bandEAC(k.eac, k.bac))}
+        ${kpiCard('VAC', fmtM(k.vac), true, bandVAC(k.vac, k.bac))}
+        ${kpiCard('CPI', k.cpi.toFixed(2), false, bandCPI(k.cpi))}
+        ${kpiCard('SPI', k.spi.toFixed(2), false, bandSPI(k.spi))}
+        ${kpiCard('% Complete', pct + '%', false)}
+      </div>
+      ${section('Program Identification',
+        field('Program Name', _xml(info.progName)) +
+        field('Program Number', _xml(info.progNo)) +
+        field('Contract Number', _xml(info.contractNo)) +
+        field('Contract Type', _xml(info.contractType)) +
+        field('Customer / Agency', _xml(info.customer)) +
+        field('Prime Contractor', _xml(info.prime)) +
+        field('Program Manager', _xml(info.pm)) +
+        field('Period of Performance', _xml(info.pop)))}
+      ${section('Contract Value &amp; Budget',
+        field('Contract Value (TC + Fee)', money(cv)) +
+        field('Target Cost', money(tc)) +
+        field('Target Fee', money(fee)) +
+        field('Contract Ceiling', money(ceiling)) +
+        field('Contract Budget Base (CBB)', money(cbb)) +
+        field('Total Allocated Budget (TAB)', money(tab)) +
+        field('Perf. Measurement Baseline (BAC)', money(bac)) +
+        field('Management Reserve (MR)', money(mr)) +
+        field('Undistributed Budget (UB)', money(ub)))}
+      ${section('EVMS &amp; Reporting',
+        field('EVMS Status', _xml(info.evms)) +
+        field('Reporting Format', _xml(info.reporting)) +
+        field('Government Oversight', _xml(info.oversight)) +
+        field('Current Reporting Period', _xml(period)))}
+      <div class="bd-tp-note" style="margin-top:10px">Values are demonstration data; budget figures are derived from the program BAC for illustration.</div>`;
   }
 
   function renderSetup(p) {
@@ -4948,6 +5019,7 @@
     const c = document.getElementById('content');
     document.getElementById('secTitle').textContent = MODULE_TITLES[currentModule];
     switch (currentModule) {
+      case 'program-info': c.innerHTML = renderProgramInfo(p); break;
       case 'setup':    c.innerHTML = renderSetup(p);    break;
       case 'baseline-change':  c.innerHTML = renderBaselineChange(p);  break;
       case 'baseline-display': c.innerHTML = renderBaselineDisplay(p); break;
