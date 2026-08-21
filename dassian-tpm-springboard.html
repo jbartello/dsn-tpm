@@ -2941,24 +2941,52 @@
     const el = document.getElementById('piMsBody'); if (el) el.innerHTML = piMilestonesTable();
     tpmToast('RCCA saved for ' + (m.name || 'milestone'));
   }
-  /* ---- Create Program mode: blank, editable Program Identification ---- */
-  let piCreate = false;
-  const piSaved = {};   // in-session identification overrides, keyed by program id
+  /* ---- Create Program: add a brand-new, EMPTY program (no EV / schedule / risk
+     data yet — none exists). It joins the Program dropdown and starts blank. ---- */
+  let piCreate = false, piNewSeq = 0, piPrevProg = '';
   const PI_CONTRACT_TYPES = ['Firm-Fixed-Price (FFP)', 'Fixed-Price Incentive, Firm (FPIF)', 'Cost Plus Fixed Fee (CPFF)', 'Cost Plus Incentive Fee (CPIF)', 'Cost Plus Award Fee (CPAF)', 'Time & Materials (T&M)', 'Indefinite Delivery/Indefinite Quantity (IDIQ)'];
-  function piStartCreate() { piCreate = true; render(); }
-  function piCancelCreate() { piCreate = false; render(); }
+  function emptyProgData() { return { WBS_DICT: {}, CAP_TP: { months: [] }, CAP_SUMMARY: {}, RAM_DICT: {}, TRIPWIRE: [], CONTROL_LOG: [] }; }
+  function piBlankInfo() { return { progName: '', progNo: '', contractNo: '', contractType: '', customer: '', prime: '', pm: '', pop: '', evms: '', reporting: '', oversight: '' }; }
+  function piStartCreate() {
+    piPrevProg = progId();
+    const id = 'NEW' + (++piNewSeq);
+    PROGRAMS[id] = { name: 'New Program', projects: [], values: { bac: 0, eac: 0, etc: 0, acwp: 0, cpi: 0, spi: 0, cv: 0, sv: 0, funding: 0 } };
+    PROG_DATA[id] = emptyProgData();
+    PROG_INFO[id] = piBlankInfo();
+    const sel = document.getElementById('progSelect');
+    const opt = document.createElement('option'); opt.value = id; opt.textContent = 'New Program'; sel.appendChild(opt); sel.value = id;
+    applyProgramData(id);
+    pvState.project = ''; pvState.cam = ''; pvState.wbs = '';
+    piCreate = true; render();
+  }
+  function piRemoveProgram(id) {
+    delete PROGRAMS[id]; delete PROG_DATA[id]; delete PROG_INFO[id];
+    const sel = document.getElementById('progSelect'); const opt = Array.from(sel.options).find(o => o.value === id); if (opt) opt.remove();
+  }
+  function piCancelCreate() {
+    const id = progId(); piCreate = false;
+    if (id.indexOf('NEW') === 0 && !(PROG_INFO[id] && PROG_INFO[id].progName)) {   // discard the unsaved new program
+      piRemoveProgram(id);
+      document.getElementById('progSelect').value = piPrevProg || 'DEMO';
+      onProgramChange(); return;
+    }
+    render();
+  }
   function piSaveProgram() {
     const g = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
     const rec = {
       progName: g('piName'), progNo: g('piNumber'), contractNo: g('piContract'), contractType: g('piCtype'),
       customer: g('piCustomer'), prime: g('piPrime'), pm: g('piPm'), pop: g('piPop')
     };
-    // preserve the existing EVMS/reporting fields so the rest of the screen stays populated
-    piSaved[progId()] = Object.assign({}, PROG_INFO[progId()] || {}, rec);
-    piCreate = false; render(); tpmToast('Program saved');
+    PROG_INFO[progId()] = Object.assign({}, PROG_INFO[progId()] || piBlankInfo(), rec);
+    const nm = rec.progName || (PROGRAMS[progId()] && PROGRAMS[progId()].name) || 'New Program';
+    if (PROGRAMS[progId()]) PROGRAMS[progId()].name = nm;
+    const sel = document.getElementById('progSelect'); const opt = Array.from(sel.options).find(o => o.value === progId()); if (opt) opt.textContent = nm;
+    piCreate = false; render(); tpmToast('Program created');
   }
   function renderProgramInfo(p) {
-    const info = piSaved[progId()] || PROG_INFO[progId()] || PROG_INFO.DEMO;
+    const info = PROG_INFO[progId()] || PROG_INFO.DEMO;
+    const hasData = pvProgramRows().length > 0;   // new programs have no EV/cost rows yet
     const k = pvKpis(pvProgramRows().map(pvApplyPeriod));
     const bac = pvKpis(pvProgramRows()).bac;                 // BAC is period-independent
     const mr = bac * 0.04, cbb = bac + mr, tc = bac, fee = tc * 0.08, cv = tc + fee, ceiling = cv * 1.15, tab = cbb, ub = bac * 0.01;
@@ -2996,24 +3024,24 @@
       <p class="module-intro">Program-level information for <strong>${_xml(p.name)}</strong> — contract and program header with rolled-up performance for the current Month-End (${_xml(period)}).${piCreate ? ' <strong>Create Program:</strong> enter the program identification and Save.' : ''}</p>
       ${buttonBar}
       <div class="kpi-strip">
-        ${kpiCard('BAC', fmtM(k.bac), true)}
-        ${kpiCard('EAC', fmtM(k.eac), false, bandEAC(k.eac, k.bac))}
-        ${kpiCard('VAC', fmtM(k.vac), true, bandVAC(k.vac, k.bac))}
-        ${kpiCard('CPI', k.cpi.toFixed(2), false, bandCPI(k.cpi))}
-        ${kpiCard('SPI', k.spi.toFixed(2), false, bandSPI(k.spi))}
-        ${kpiCard('% Complete', pct + '%', false)}
+        ${kpiCard('BAC', hasData ? fmtM(k.bac) : '—', true)}
+        ${kpiCard('EAC', hasData ? fmtM(k.eac) : '—', false, hasData ? bandEAC(k.eac, k.bac) : '')}
+        ${kpiCard('VAC', hasData ? fmtM(k.vac) : '—', true, hasData ? bandVAC(k.vac, k.bac) : '')}
+        ${kpiCard('CPI', hasData ? k.cpi.toFixed(2) : '—', false, hasData ? bandCPI(k.cpi) : '')}
+        ${kpiCard('SPI', hasData ? k.spi.toFixed(2) : '—', false, hasData ? bandSPI(k.spi) : '')}
+        ${kpiCard('% Complete', hasData ? pct + '%' : '—', false)}
       </div>
       ${idSection}
       ${section('Contract Value &amp; Budget',
-        field('Contract Value (TC + Fee)', money(cv)) +
-        field('Target Cost', money(tc)) +
-        field('Target Fee', money(fee)) +
-        field('Contract Ceiling', money(ceiling)) +
-        field('Contract Budget Base (CBB)', money(cbb)) +
-        field('Total Allocated Budget (TAB)', money(tab)) +
-        field('Perf. Measurement Baseline (BAC)', money(bac)) +
-        field('Management Reserve (MR)', money(mr)) +
-        field('Undistributed Budget (UB)', money(ub)))}
+        field('Contract Value (TC + Fee)', hasData ? money(cv) : '—') +
+        field('Target Cost', hasData ? money(tc) : '—') +
+        field('Target Fee', hasData ? money(fee) : '—') +
+        field('Contract Ceiling', hasData ? money(ceiling) : '—') +
+        field('Contract Budget Base (CBB)', hasData ? money(cbb) : '—') +
+        field('Total Allocated Budget (TAB)', hasData ? money(tab) : '—') +
+        field('Perf. Measurement Baseline (BAC)', hasData ? money(bac) : '—') +
+        field('Management Reserve (MR)', hasData ? money(mr) : '—') +
+        field('Undistributed Budget (UB)', hasData ? money(ub) : '—'))}
       ${section('EVMS &amp; Reporting',
         field('EVMS Status', _xml(info.evms)) +
         field('Reporting Format', _xml(info.reporting)) +
