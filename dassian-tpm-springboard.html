@@ -870,6 +870,7 @@
   function onProgramChange() {
     applyProgramData(progId());
     pvState.project = ''; pvState.cam = ''; pvState.wbs = ''; pvState.sortCol = null; pvState.sortDir = 1;
+    piCreate = false;   // exit Create Program mode when switching programs
     render();
   }
   const money = n => '$' + n.toFixed(2) + 'M';
