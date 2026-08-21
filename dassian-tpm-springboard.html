@@ -312,6 +312,7 @@
   .pi-v { font-size: 14px; color: var(--text); margin-top: 3px; font-weight: 500; }
   .pi-msfilter { font-size: 13px; color: var(--text-muted); }
   .pi-msfilter select { padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 4px; margin-left: 4px; }
+  .rcca-flag { color: var(--good); font-weight: 700; }
   .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
   .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
@@ -2874,9 +2875,10 @@
         <td>${m.cat ? _xml(m.cat) : '<span class="bd-add-none">—</span>'}</td>
         <td>${_xml(m.name || 'Milestone')}</td>
         <td>${_xml(m.date || '—')}</td>
+        <td><button class="btn sm" onclick="openRcca('${m.id}')">RCCA${rccaHasData(m) ? ' <span class="rcca-flag" title="RCCA entered">✓</span>' : ''}</button></td>
       </tr>`).join('');
     return `<div class="st-wrap"><table class="st-tbl">
-        <thead><tr><th></th><th>Category</th><th>Milestone</th><th>Baseline Date</th></tr></thead>
+        <thead><tr><th></th><th>Category</th><th>Milestone</th><th>Baseline Date</th><th>RCCA</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       <div class="bd-tp-note" style="margin-top:8px">${filt.length} of ${msList().length} milestone(s). Categories and baseline dates are maintained on the Master Schedule.</div>`;
   }
@@ -2893,6 +2895,49 @@
         </div>
         <div class="card-body" style="padding:12px" id="piMsBody">${piMilestonesTable()}</div>
       </div>`;
+  }
+  /* ---- RCCA (Root Cause / Corrective Action) slide-out per milestone ---- */
+  function rccaHasData(m) { const r = m.rcca; return !!(r && (r.rootCause || r.corrective || r.dueBy || r.responsible)); }
+  function piRccaPeople() { const s = new Set(); pvProgramRows().forEach(r => { if (r[4]) s.add(r[4]); }); return Array.from(s).sort(); }
+  function rccaToISO(s) { const d = bdParseDate(s); return d ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : ''; }
+  function ensureRccaDrawer() { let d = document.getElementById('rccaDrawer'); if (!d) { d = document.createElement('div'); d.id = 'rccaDrawer'; d.className = 'wbs-drawer'; document.body.appendChild(d); } return d; }
+  function closeRcca() { const d = document.getElementById('rccaDrawer'); if (d) d.classList.remove('open'); }
+  function openRcca(mid) {
+    const m = msList().find(x => x.id === mid); if (!m) return;
+    const r = m.rcca || {};
+    let people = piRccaPeople(); if (r.responsible && people.indexOf(r.responsible) < 0) people = [r.responsible].concat(people);
+    const peopleOpts = '<option value="">(select)</option>' + people.map(x => `<option${r.responsible === x ? ' selected' : ''}>${_xml(x)}</option>`).join('');
+    const d = ensureRccaDrawer();
+    d.innerHTML =
+      '<div class="wbs-head"><div class="wh-title"><div class="t1">RCCA — ◆ ' + _xml(m.name || 'Milestone') + '</div>' +
+        '<div class="t2">Root Cause &amp; Corrective Action' + (m.cat ? ' · ' + _xml(m.cat) : '') + ' · Baseline ' + _xml(m.date || '—') + '</div></div>' +
+        '<button class="wbs-xls" onclick="saveRcca(\'' + mid + '\')" title="Save RCCA"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="#0a6ed1"/><path d="M4 4h6l2 2v6H4z" fill="none" stroke="#fff" stroke-width="1.2"/><rect x="6" y="4" width="3" height="3" fill="#fff"/></svg> Save</button>' +
+        '<span class="wbs-close" onclick="closeRcca()" title="Close">✕</span></div>' +
+      '<div class="wbs-body"><div class="bcr-form">' +
+        '<div class="bcr-sec"><h3>Root Cause &amp; Corrective Action (RCCA)</h3><div class="sec-in"><div class="bcr-grid">' +
+          '<div class="bcr-fld wide"><label>Root Cause</label><textarea id="rccaRoot" style="min-height:130px" placeholder="Describe the root cause…">' + _xml(r.rootCause || '') + '</textarea></div>' +
+          '<div class="bcr-fld wide"><label>Corrective Action</label><textarea id="rccaCorr" style="min-height:130px" placeholder="Describe the corrective action…">' + _xml(r.corrective || '') + '</textarea></div>' +
+          '<div class="bcr-fld"><label>Due By</label><input type="date" id="rccaDue" value="' + _xml(rccaToISO(r.dueBy)) + '"></div>' +
+          '<div class="bcr-fld"><label>Responsible Person</label><select id="rccaResp">' + peopleOpts + '</select></div>' +
+        '</div></div></div>' +
+      '</div></div>';
+    d.classList.add('open');
+    const wb = d.querySelector('.wbs-body'); if (wb) wb.scrollTop = 0;
+  }
+  function saveRcca(mid) {
+    const m = msList().find(x => x.id === mid); if (!m) return;
+    const g = id => document.getElementById(id);
+    const iso = g('rccaDue') ? g('rccaDue').value : '';
+    const due = iso ? (function () { const p = iso.split('-'); return p[1] + '/' + p[2] + '/' + p[0]; })() : '';
+    m.rcca = {
+      rootCause: (g('rccaRoot').value || '').trim(),
+      corrective: (g('rccaCorr').value || '').trim(),
+      dueBy: due,
+      responsible: g('rccaResp').value || ''
+    };
+    closeRcca();
+    const el = document.getElementById('piMsBody'); if (el) el.innerHTML = piMilestonesTable();
+    tpmToast('RCCA saved for ' + (m.name || 'milestone'));
   }
   function renderProgramInfo(p) {
     const info = PROG_INFO[progId()] || PROG_INFO.DEMO;
