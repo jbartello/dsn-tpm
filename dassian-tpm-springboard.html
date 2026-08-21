@@ -315,6 +315,7 @@
   .rcca-flag { color: var(--good); font-weight: 700; }
   .pi-in { font-family: inherit; font-size: 14px; color: var(--text); border: 1px solid #c4c4c4; border-radius: 4px; padding: 6px 8px; width: 100%; margin-top: 3px; background: #fff; }
   .pi-in:focus { outline: none; border-color: var(--sap-blue); box-shadow: 0 0 0 2px #d6e6f8; }
+  .bd-edit-bar .btn:disabled { opacity: .45; cursor: not-allowed; }
   .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
   .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
@@ -870,7 +871,7 @@
   function onProgramChange() {
     applyProgramData(progId());
     pvState.project = ''; pvState.cam = ''; pvState.wbs = ''; pvState.sortCol = null; pvState.sortDir = 1;
-    piCreate = false;   // exit Create Program mode when switching programs
+    piCreate = false; piEdit = false;   // exit Create/Edit Program mode when switching programs
     render();
   }
   const money = n => '$' + n.toFixed(2) + 'M';
@@ -2948,8 +2949,10 @@
   }
   /* ---- Create Program: add a brand-new, EMPTY program (no EV / schedule / risk
      data yet — none exists). It joins the Program dropdown and starts blank. ---- */
-  let piCreate = false, piNewSeq = 0, piPrevProg = '';
+  let piCreate = false, piEdit = false, piNewSeq = 0, piPrevProg = '';
   const PI_CONTRACT_TYPES = ['Firm-Fixed-Price (FFP)', 'Fixed-Price Incentive, Firm (FPIF)', 'Cost Plus Fixed Fee (CPFF)', 'Cost Plus Incentive Fee (CPIF)', 'Cost Plus Award Fee (CPAF)', 'Time & Materials (T&M)', 'Indefinite Delivery/Indefinite Quantity (IDIQ)'];
+  function piStartEdit() { piEdit = true; piCreate = false; render(); }
+  function piCancelEdit() { piEdit = false; render(); }
   function emptyProgData() { return { WBS_DICT: {}, CAP_TP: { months: [] }, CAP_SUMMARY: {}, RAM_DICT: {}, TRIPWIRE: [], CONTROL_LOG: [] }; }
   function piBlankInfo() { return { progName: '', progNo: '', contractNo: '', contractType: '', customer: '', prime: '', pm: '', pop: '', coe: '', sbu: '', cbt: '', productFamily: '', pmFocal: '', ppcFocal: '', engLead: '', ipdsPhase: '', evms: '', reporting: '', oversight: '' }; }
   function piStartCreate() {
@@ -2989,7 +2992,7 @@
     const nm = rec.progName || (PROGRAMS[progId()] && PROGRAMS[progId()].name) || 'New Program';
     if (PROGRAMS[progId()]) PROGRAMS[progId()].name = nm;
     const sel = document.getElementById('progSelect'); const opt = Array.from(sel.options).find(o => o.value === progId()); if (opt) opt.textContent = nm;
-    piCreate = false; render(); tpmToast('Program created');
+    const wasEdit = piEdit; piCreate = false; piEdit = false; render(); tpmToast(wasEdit ? 'Program updated' : 'Program created');
   }
   function renderProgramInfo(p) {
     const info = PROG_INFO[progId()] || PROG_INFO.DEMO;
@@ -3002,26 +3005,28 @@
     const money = n => '$' + addCommas(Math.round(n));
     const field = (l, v) => `<div class="pi-field"><div class="pi-l">${l}</div><div class="pi-v">${v}</div></div>`;
     const section = (title, fields) => `<div class="card" style="margin-top:16px"><div class="card-head"><span class="ch-title">${title}</span></div><div class="card-body" style="padding:16px"><div class="pi-grid">${fields}</div></div></div>`;
-    // Program Identification — display, or blank editable inputs in Create mode
-    const inp = (l, id) => `<div class="pi-field"><div class="pi-l">${l}</div><input class="pi-in" id="${id}" value=""></div>`;
-    const idSection = piCreate
+    // Program Identification — display, or editable inputs in Create (blank) / Edit (pre-filled) mode
+    const editing = piCreate || piEdit;
+    const cval = k => piEdit ? _xml(info[k] || '') : '';   // Edit pre-fills current values; Create is blank
+    const inp = (l, id, k) => `<div class="pi-field"><div class="pi-l">${l}</div><input class="pi-in" id="${id}" value="${cval(k)}"></div>`;
+    const idSection = editing
       ? `<div class="card" style="margin-top:16px"><div class="card-head"><span class="ch-title">Program Identification</span></div><div class="card-body" style="padding:16px"><div class="pi-grid">
-          ${inp('Program Name', 'piName')}
-          ${inp('Program Number', 'piNumber')}
-          ${inp('Contract Number', 'piContract')}
-          <div class="pi-field"><div class="pi-l">Contract Type</div><select class="pi-in" id="piCtype"><option value=""></option>${PI_CONTRACT_TYPES.map(t => `<option>${_xml(t)}</option>`).join('')}</select></div>
-          ${inp('Customer / Agency', 'piCustomer')}
-          ${inp('Prime Contractor', 'piPrime')}
-          ${inp('Program Manager', 'piPm')}
-          ${inp('Period of Performance', 'piPop')}
-          ${inp('Center of Excellence (COE)', 'piCoe')}
-          ${inp('Small Business Unit (SBU)', 'piSbu')}
-          ${inp('Customer Business Team (CBT)', 'piCbt')}
-          ${inp('Product Family', 'piProdFam')}
-          ${inp('PM Focal', 'piPmFocal')}
-          ${inp('PP&amp;C Focal', 'piPpcFocal')}
-          ${inp('Engineering Tech Lead', 'piEngLead')}
-          ${inp('IPDS Phase', 'piIpds')}
+          ${inp('Program Name', 'piName', 'progName')}
+          ${inp('Program Number', 'piNumber', 'progNo')}
+          ${inp('Contract Number', 'piContract', 'contractNo')}
+          <div class="pi-field"><div class="pi-l">Contract Type</div><select class="pi-in" id="piCtype"><option value=""></option>${PI_CONTRACT_TYPES.map(t => `<option${piEdit && info.contractType === t ? ' selected' : ''}>${_xml(t)}</option>`).join('')}</select></div>
+          ${inp('Customer / Agency', 'piCustomer', 'customer')}
+          ${inp('Prime Contractor', 'piPrime', 'prime')}
+          ${inp('Program Manager', 'piPm', 'pm')}
+          ${inp('Period of Performance', 'piPop', 'pop')}
+          ${inp('Center of Excellence (COE)', 'piCoe', 'coe')}
+          ${inp('Small Business Unit (SBU)', 'piSbu', 'sbu')}
+          ${inp('Customer Business Team (CBT)', 'piCbt', 'cbt')}
+          ${inp('Product Family', 'piProdFam', 'productFamily')}
+          ${inp('PM Focal', 'piPmFocal', 'pmFocal')}
+          ${inp('PP&amp;C Focal', 'piPpcFocal', 'ppcFocal')}
+          ${inp('Engineering Tech Lead', 'piEngLead', 'engLead')}
+          ${inp('IPDS Phase', 'piIpds', 'ipdsPhase')}
         </div></div></div>`
       : section('Program Identification',
         field('Program Name', _xml(info.progName)) +
@@ -3042,9 +3047,11 @@
         field('IPDS Phase', _xml(info.ipdsPhase)));
     const buttonBar = piCreate
       ? `<div class="bd-edit-bar"><button class="btn primary" onclick="piSaveProgram()">Save Program</button><button class="btn" onclick="piCancelCreate()">Cancel</button></div>`
-      : `<div class="bd-edit-bar"><button class="btn primary" onclick="piStartCreate()">Create Program</button></div>`;
+      : piEdit
+        ? `<div class="bd-edit-bar"><button class="btn primary" onclick="piSaveProgram()">Save Program</button><button class="btn" onclick="piCancelEdit()">Cancel</button></div>`
+        : `<div class="bd-edit-bar"><button class="btn primary" onclick="piStartCreate()">Create Program</button><button class="btn" onclick="piStartEdit()">Edit Program</button><button class="btn" disabled title="Select Edit Program to enable">Save Program</button></div>`;
     return `
-      <p class="module-intro">Program-level information for <strong>${_xml(p.name)}</strong> — contract and program header with rolled-up performance for the current Month-End (${_xml(period)}).${piCreate ? ' <strong>Create Program:</strong> enter the program identification and Save.' : ''}</p>
+      <p class="module-intro">Program-level information for <strong>${_xml(p.name)}</strong> — contract and program header with rolled-up performance for the current Month-End (${_xml(period)}).${piCreate ? ' <strong>Create Program:</strong> enter the program identification and Save.' : (piEdit ? ' <strong>Edit Program:</strong> update the identification and Save.' : '')}</p>
       ${buttonBar}
       <div class="kpi-strip">
         ${kpiCard('BAC', hasData ? fmtM(k.bac) : '—', true)}
