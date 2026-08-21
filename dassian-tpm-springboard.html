@@ -310,6 +310,8 @@
   .pi-field { border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; }
   .pi-l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
   .pi-v { font-size: 14px; color: var(--text); margin-top: 3px; font-weight: 500; }
+  .pi-msfilter { font-size: 13px; color: var(--text-muted); }
+  .pi-msfilter select { padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 4px; margin-left: 4px; }
   .bd-g-diamond { position: absolute; top: 5px; width: 10px; height: 10px; background: #7a3fd0; border: 1px solid #5b2b9e; transform: rotate(45deg); border-radius: 1px; }
   .bd-g-diamond.crit { background: var(--bad); border-color: #a11; }
   .bd-gantt-row.ms-mrow .bd-g-label { color: #5b2b9e; font-weight: 600; }
@@ -2858,6 +2860,40 @@
       evms: 'Compliant — EIA-748', reporting: 'IPMDAR — Monthly', oversight: 'DCMA (demo)'
     }
   };
+  // Milestone summary (from the Master Schedule) with a category filter.
+  let piMsCat = '';
+  function piMilestoneCats() { const s = new Set(); msList().forEach(m => { if (m.cat) s.add(m.cat); }); return Array.from(s).sort(); }
+  function piMilestonesTable() {
+    if (!bdBuild().roots.length) return '<div class="bd-tp-note">No Master Schedule is tied to this program.</div>';
+    if (!msList().length) return '<div class="bd-tp-note">No milestones defined — add them on the Master Schedule.</div>';
+    const all = msList().slice().sort((a, b) => bdDateNum(a.date) - bdDateNum(b.date));
+    const filt = all.filter(m => !piMsCat || (piMsCat === '__none__' ? !m.cat : m.cat === piMsCat));
+    if (!filt.length) return '<div class="bd-tp-note">No milestones in the selected category.</div>';
+    const rows = filt.map(m => `<tr>
+        <td class="st-id">◆</td>
+        <td>${m.cat ? _xml(m.cat) : '<span class="bd-add-none">—</span>'}</td>
+        <td>${_xml(m.name || 'Milestone')}</td>
+        <td>${_xml(m.date || '—')}</td>
+      </tr>`).join('');
+    return `<div class="st-wrap"><table class="st-tbl">
+        <thead><tr><th></th><th>Category</th><th>Milestone</th><th>Baseline Date</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div class="bd-tp-note" style="margin-top:8px">${filt.length} of ${msList().length} milestone(s). Categories and baseline dates are maintained on the Master Schedule.</div>`;
+  }
+  function piSetMsCat(v) { piMsCat = v; const el = document.getElementById('piMsBody'); if (el) el.innerHTML = piMilestonesTable(); }
+  function piMilestonesSection() {
+    const cats = piMilestoneCats(), hasNone = msList().some(m => !m.cat);
+    const catOpts = '<option value="">All Categories</option>'
+      + cats.map(c => `<option value="${_xml(c)}"${piMsCat === c ? ' selected' : ''}>${_xml(c)}</option>`).join('')
+      + (hasNone ? `<option value="__none__"${piMsCat === '__none__' ? ' selected' : ''}>(no category)</option>` : '');
+    return `<div class="card" style="margin-top:16px">
+        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+          <span class="ch-title">Program Milestones</span>
+          <span class="pi-msfilter">Category: <select onchange="piSetMsCat(this.value)">${catOpts}</select></span>
+        </div>
+        <div class="card-body" style="padding:12px" id="piMsBody">${piMilestonesTable()}</div>
+      </div>`;
+  }
   function renderProgramInfo(p) {
     const info = PROG_INFO[progId()] || PROG_INFO.DEMO;
     const k = pvKpis(pvProgramRows().map(pvApplyPeriod));
@@ -2902,6 +2938,7 @@
         field('Reporting Format', _xml(info.reporting)) +
         field('Government Oversight', _xml(info.oversight)) +
         field('Current Reporting Period', _xml(period)))}
+      ${piMilestonesSection()}
       <div class="card" style="margin-top:16px">
         <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
           <span class="ch-title">Program Risk Information</span>
