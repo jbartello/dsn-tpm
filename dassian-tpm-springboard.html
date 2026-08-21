@@ -498,6 +498,7 @@
   .risk-embed-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .risk-embed-bar .ch-title { font-size: 16px; }
   .risk-frame { width: 100%; height: calc(100vh - 185px); border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; display: block; }
+  .risk-frame.risk-embed-mini { height: 560px; }
 
   /* ---------- Project Analysis: variance narrative ---------- */
   .alert-card { background: #fff; border: 1px solid var(--panel-border); border-left: 4px solid var(--warn); border-radius: 6px; padding: 13px 16px; margin-bottom: 12px; }
@@ -2901,7 +2902,22 @@
         field('Reporting Format', _xml(info.reporting)) +
         field('Government Oversight', _xml(info.oversight)) +
         field('Current Reporting Period', _xml(period)))}
+      <div class="card" style="margin-top:16px">
+        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+          <span class="ch-title">Program Risk Information</span>
+          <a class="btn" href="${piRiskSrc(p)}" target="_blank">Open full register ↗</a>
+        </div>
+        <div class="card-body" style="padding:12px">
+          <div class="bd-tp-note" style="margin-bottom:10px">Risks and opportunities associated with <strong>${_xml(p.name)}</strong>, from the Program Risk Register.</div>
+          <iframe class="risk-frame risk-embed-mini" src="${piRiskSrc(p)}" title="Program Risk Register"></iframe>
+        </div>
+      </div>
       <div class="bd-tp-note" style="margin-top:10px">Values are demonstration data; budget figures are derived from the program BAC for illustration.</div>`;
+  }
+  // Program-aware Risk Register URL (shared with the Risk Information module).
+  function piRiskSrc(p) {
+    const projects = [...new Map(pvProgramRows().map(r => [r[0], r[1]])).entries()].map(([id, name]) => ({ id, name }));
+    return 'program-risk-register-prototype.html?program=' + encodeURIComponent(p.name) + '&projects=' + encodeURIComponent(JSON.stringify(projects));
   }
 
   function renderSetup(p) {
@@ -3301,11 +3317,7 @@
   function renderRisk(p) {
     // Embed the Program Risk Register prototype, passing the selected Program's
     // projects so its left-side list reflects the current TPM Program.
-    const projects = [...new Map(pvProgramRows().map(r => [r[0], r[1]])).entries()]
-      .map(([id, name]) => ({ id, name }));
-    const src = 'program-risk-register-prototype.html'
-      + `?program=${encodeURIComponent(p.name)}`
-      + `&projects=${encodeURIComponent(JSON.stringify(projects))}`;
+    const src = piRiskSrc(p);
     return `
       <div class="risk-embed-bar">
         <span class="ch-title">Program Risk Register — ${p.name}</span>
