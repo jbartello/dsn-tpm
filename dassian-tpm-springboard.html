@@ -3051,11 +3051,13 @@
       <div class="card" style="margin-top:16px">
         <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
           <span class="ch-title">Program Risk Information</span>
-          <a class="btn" href="${piRiskSrc(p)}" target="_blank">Open full register ↗</a>
+          ${hasData ? `<a class="btn" href="${piRiskSrc(p)}" target="_blank">Open full register ↗</a>` : ''}
         </div>
         <div class="card-body" style="padding:12px">
-          <div class="bd-tp-note" style="margin-bottom:10px">Risks and opportunities associated with <strong>${_xml(p.name)}</strong>, from the Program Risk Register.</div>
-          <iframe class="risk-frame risk-embed-mini" src="${piRiskSrc(p)}" title="Program Risk Register"></iframe>
+          ${hasData
+            ? `<div class="bd-tp-note" style="margin-bottom:10px">Risks and opportunities associated with <strong>${_xml(p.name)}</strong>, from the Program Risk Register.</div>
+               <iframe class="risk-frame risk-embed-mini" src="${piRiskSrc(p)}" title="Program Risk Register"></iframe>`
+            : '<div class="bd-tp-note">No risks recorded for this program — add them in the Risk Information section.</div>'}
         </div>
       </div>
       <div class="bd-tp-note" style="margin-top:10px">Values are demonstration data; budget figures are derived from the program BAC for illustration.</div>`;
