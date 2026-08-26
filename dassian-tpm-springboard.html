@@ -549,6 +549,25 @@
   .var-msg { margin-top: 8px; }
   .var-msg .ok { background: #e3f4ea; color: var(--good); border-radius: 4px; padding: 8px 12px; font-size: 12px; }
 
+  /* ---------- Monte Carlo schedule risk ---------- */
+  .mc-controls { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+  .mc-controls label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .mc-controls input[type=number] { width: 62px; }
+  .mc-controls input[type=text] { width: 108px; }
+  .mc-controls input, .mc-controls select { font-family: inherit; font-size: 12px; color: var(--text); background: #fff; border: 1px solid var(--panel-border); border-radius: 4px; padding: 5px 7px; }
+  .mc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px,1fr)); gap: 10px; margin: 8px 0 14px; }
+  .mc-stat { background: var(--section-bg); border: 1px solid var(--panel-border); border-radius: 6px; padding: 9px 11px; }
+  .mc-stat .s-l { font-size: 11px; color: var(--text-muted); }
+  .mc-stat .s-v { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .mc-stat .s-s { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .mc-stat.bad .s-v { color: var(--bad); }
+  .mc-stat.good .s-v { color: var(--good); }
+  .mc-scurve { width: 100%; overflow-x: auto; margin: 6px 0 4px; }
+  .mc-drivers { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mc-drivers th, .mc-drivers td { padding: 5px 8px; border-bottom: 1px solid var(--panel-border); text-align: left; }
+  .mc-drivers td.num, .mc-drivers th.num { text-align: right; }
+  .mc-bar { height: 8px; background: var(--sap-blue); border-radius: 2px; display: inline-block; vertical-align: middle; }
+
   /* ---------- Notify modal + toast ---------- */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 2000; }
   .modal-overlay.open { display: flex; }
@@ -891,6 +910,7 @@
     bdState.sel = ''; bdState.expanded = {}; bdState._init = false;
     psState.sel = ''; psState.expanded = {}; psState._init = false;
     schedSel.task = '';
+    mcState.result = null; mcState.target = '';
     Object.keys(chartHidden).forEach(k => delete chartHidden[k]);
   }
 
@@ -2321,6 +2341,144 @@
   /* ---- Master Schedule: project-wide, read-only Integrated Master Schedule (IMS)
      Gantt of the whole WBS + every cost-loaded activity, fully expanded, with the
      critical path highlighted. Reuses the schedule model (schedData + CPM). ---- */
+  /* ===================== Schedule Risk — Monte Carlo =====================
+     Samples each activity's duration from a triangular distribution and runs a
+     CPM forward pass (reusing the schedule's predecessor logic + working
+     calendar) N times to build a completion-confidence distribution. Level-of-
+     effort spans can be held fixed. Assumptions are user-set (illustrative). */
+  let mcState = { iters: 10000, optPct: 10, pesPct: 30, loeFix: true, loeThresh: 1000, target: '', result: null };
+  function mcTri(o, m, p) {
+    if (p <= o) return m;
+    const u = Math.random(), fc = (m - o) / (p - o);
+    return u < fc ? o + Math.sqrt(u * (p - o) * (m - o)) : p - Math.sqrt((1 - u) * (p - o) * (p - m));
+  }
+  function mcSimulate() {
+    const nodes = schedCpmNodes(), cpm = schedComputeAll();
+    let gmin = null; nodes.forEach(t => { const d = bdParseDate(t.start); if (d && (!gmin || d < gmin)) gmin = d; });
+    if (!gmin) return null;
+    const gminStr = bdFmtDate(gmin), off = ds => bdWorkdaysBetween(gminStr, ds) - 1;
+    const idx = {}; nodes.forEach((t, i) => idx[t.id] = i);
+    const model = nodes.map((t, i) => ({
+      i, name: (t.name || '').slice(0, 40), isMs: !!t.isMilestone,
+      d0: t.isMilestone ? 1 : Math.max(1, bdWorkdaysBetween(t.start, t.finish)),
+      preds: (t.preds || []).map(p => ({ j: idx[p.id], type: p.type || 'FS', lag: +p.lag || 0 })).filter(p => p.j != null),
+      start0: off((cpm[t.id] || {}).es || t.start),
+    }));
+    const order = schedTopo(nodes).map(t => idx[t.id]);
+    const N = Math.max(500, mcState.iters | 0), M = model.length;
+    const opt = Math.max(0, mcState.optPct) / 100, pes = Math.max(0, mcState.pesPct) / 100;
+    const loeFix = mcState.loeFix, loeTh = mcState.loeThresh;
+    const es = new Float64Array(M), ef = new Float64Array(M), dcur = new Float64Array(M);
+    function pass(sample) {
+      let mx = -1e9;
+      for (const j of order) {
+        const m = model[j], d = sample(m); dcur[j] = d;
+        let s = m.preds.length ? -1e9 : m.start0;
+        for (const p of m.preds) {
+          let cand;
+          if (p.type === 'SS') cand = es[p.j] + p.lag;
+          else if (p.type === 'FF') cand = ef[p.j] + p.lag - (d - 1);
+          else if (p.type === 'SF') cand = es[p.j] + p.lag - (d - 1);
+          else cand = ef[p.j] + 1 + p.lag;   // FS
+          if (cand > s) s = cand;
+        }
+        if (m.preds.length && s < 0) s = 0;
+        es[j] = s; ef[j] = s + d - 1; if (ef[j] > mx) mx = ef[j];
+      }
+      return mx;
+    }
+    const base = pass(m => m.d0);   // deterministic finish (validates against Plan Finish)
+    const fins = new Float64Array(N), drive = new Float64Array(M);
+    const sx = new Float64Array(M), sxx = new Float64Array(M), sxy = new Float64Array(M);
+    let sy = 0, syy = 0;
+    for (let k = 0; k < N; k++) {
+      const mx = pass(m => m.isMs ? 1 : (loeFix && m.d0 >= loeTh ? m.d0 : Math.max(1, mcTri(m.d0 * (1 - opt), m.d0, m.d0 * (1 + pes)))));
+      fins[k] = mx; sy += mx; syy += mx * mx;
+      for (let j = 0; j < M; j++) { const d = dcur[j]; sx[j] += d; sxx[j] += d * d; sxy[j] += d * mx; if (ef[j] === mx) drive[j]++; }
+    }
+    fins.sort();
+    const pf = q => fins[Math.min(N - 1, Math.floor(q * N))];
+    const dt = o => bdFmtDate(bdShiftWD(gmin, Math.round(o)));
+    const mk = q => ({ off: pf(q), date: dt(pf(q)) });
+    const meanY = sy / N, varY = syy / N - meanY * meanY;
+    const curve = []; for (let i = 0; i <= 100; i++) curve.push({ off: pf(i / 100), p: i / 100 });
+    const drivers = model.map((m, j) => {
+      const mX = sx[j] / N, vX = sxx[j] / N - mX * mX, cov = sxy[j] / N - mX * meanY;
+      const sens = (vX > 1e-9 && varY > 1e-9) ? cov / Math.sqrt(vX * varY) : 0;
+      return { name: m.name, d0: m.d0, critPct: drive[j] / N * 100, sens };
+    }).sort((a, b) => b.critPct - a.critPct).slice(0, 8);
+    let tgt = base; const td = bdParseDate(mcState.target); if (td) tgt = off(mcState.target);
+    const pOnTime = fins.reduce((a, v) => a + (v <= tgt ? 1 : 0), 0) / N * 100;
+    return {
+      iters: N, gmin: gminStr, base, baseDate: dt(base), target: tgt, targetDate: dt(tgt),
+      mean: meanY, meanDate: dt(meanY), p: { P10: mk(0.10), P50: mk(0.50), P80: mk(0.80), P90: mk(0.90) },
+      pOnTime, curve, drivers, noLogic: model.every(m => !m.preds.length),
+    };
+  }
+  function mcRun() { const r = mcSimulate(); mcState.result = r; const el = document.getElementById('mcResults'); if (el) el.innerHTML = r ? mcResultsHtml(r) : 'No schedule to simulate.'; }
+  function mcSCurveSvg(res) {
+    const W = 660, H = 250, mL = 44, mR = 16, mT = 16, mB = 34, pw = W - mL - mR, ph = H - mT - mB;
+    const c = res.curve; if (!c.length) return '';
+    let xMin = Math.min(res.base, res.target, c[0].off), xMax = Math.max(res.base, res.target, c[c.length - 1].off);
+    if (xMax <= xMin) xMax = xMin + 1; const pad = (xMax - xMin) * 0.05; xMin -= pad; xMax += pad;
+    const X = o => mL + (o - xMin) / (xMax - xMin) * pw, Y = p => mT + (1 - p) * ph;
+    const gmin = bdParseDate(res.gmin), dstr = o => bdFmtDate(bdShiftWD(gmin, Math.round(o)));
+    const line = c.map((pt, i) => (i ? 'L' : 'M') + X(pt.off).toFixed(1) + ' ' + Y(pt.p).toFixed(1)).join(' ');
+    const area = 'M' + X(c[0].off).toFixed(1) + ' ' + Y(0) + ' ' + c.map(pt => 'L' + X(pt.off).toFixed(1) + ' ' + Y(pt.p).toFixed(1)).join(' ') + ' L' + X(c[c.length - 1].off).toFixed(1) + ' ' + Y(0) + ' Z';
+    let grid = ''; [0.1, 0.5, 0.8, 0.9].forEach(p => { grid += `<line x1="${mL}" y1="${Y(p)}" x2="${mL + pw}" y2="${Y(p)}" stroke="var(--panel-border)" stroke-dasharray="3 3"/><text x="${mL - 6}" y="${Y(p) + 3}" text-anchor="end" font-size="10" fill="var(--text-muted)">${p * 100 | 0}%</text>`; });
+    const vmark = (o, label, color) => `<line x1="${X(o).toFixed(1)}" y1="${mT}" x2="${X(o).toFixed(1)}" y2="${mT + ph}" stroke="${color}" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${X(o).toFixed(1)}" y="${mT - 4}" text-anchor="middle" font-size="10" fill="${color}">${label}</text>`;
+    let xax = ''; for (let i = 0; i <= 4; i++) { const o = xMin + (xMax - xMin) * i / 4; xax += `<text x="${X(o).toFixed(1)}" y="${mT + ph + 16}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${dstr(o)}</text>`; }
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" font-family="inherit">
+      ${grid}
+      <path d="${area}" fill="var(--sap-blue)" opacity="0.10"/>
+      <path d="${line}" fill="none" stroke="var(--sap-blue)" stroke-width="2"/>
+      ${vmark(res.base, 'Plan', 'var(--good)')}
+      ${Math.round(res.target) !== Math.round(res.base) ? vmark(res.target, 'Target', 'var(--warn)') : ''}
+      ${vmark(res.p.P80.off, 'P80', 'var(--bad)')}
+      ${xax}
+    </svg>`;
+  }
+  function mcResultsHtml(r) {
+    const stat = (l, v, s, cls) => `<div class="mc-stat${cls ? ' ' + cls : ''}"><div class="s-l">${l}</div><div class="s-v">${v}</div><div class="s-s">${s || ''}</div></div>`;
+    const slip = o => { const w = Math.round(o - r.base); return (w > 0 ? '+' : '') + w + ' wd'; };
+    const onCls = r.pOnTime >= 80 ? 'good' : (r.pOnTime >= 50 ? '' : 'bad');
+    const maxCrit = Math.max(1, ...r.drivers.map(d => d.critPct));
+    const drows = r.drivers.map(d => `<tr><td>${_xml(d.name)}</td><td class="num">${d.d0}</td><td class="num">${d.critPct.toFixed(1)}%</td><td><span class="mc-bar" style="width:${Math.max(2, d.critPct / maxCrit * 90).toFixed(0)}px"></span></td><td class="num">${d.sens.toFixed(2)}</td></tr>`).join('');
+    return `
+      <div class="mc-stats">
+        ${stat('Plan finish', r.baseDate, 'Deterministic')}
+        ${stat('Mean finish', r.meanDate, slip(r.mean))}
+        ${stat('P50', r.p.P50.date, slip(r.p.P50.off))}
+        ${stat('P80', r.p.P80.date, slip(r.p.P80.off), 'bad')}
+        ${stat('P90', r.p.P90.date, slip(r.p.P90.off), 'bad')}
+        ${stat('P(≤ ' + r.targetDate + ')', r.pOnTime.toFixed(1) + '%', 'On-time confidence', onCls)}
+      </div>
+      <div class="mc-scurve">${mcSCurveSvg(r)}</div>
+      <div class="ch-title" style="font-size:13px;margin:14px 0 6px">Top schedule-risk drivers</div>
+      <table class="mc-drivers"><thead><tr><th>Activity</th><th class="num">Plan dur (wd)</th><th class="num">Criticality</th><th></th><th class="num">Sensitivity</th></tr></thead><tbody>${drows}</tbody></table>
+      ${r.noLogic ? '<div class="bd-tp-note" style="margin-top:10px;color:var(--warn)">⚠ This schedule has no predecessor logic — every activity runs in parallel, so there is no critical path and the finish is the latest-finishing activity. Criticality spreads across the longest activities (merge bias). Add logic in Edit Plan for a true critical-path risk analysis.</div>' : ''}
+      <div class="bd-tp-note" style="margin-top:8px">${r.iters.toLocaleString()} iterations · triangular durations (−${mcState.optPct}% / +${mcState.pesPct}%)${mcState.loeFix ? ' · level-of-effort activities (≥ ' + mcState.loeThresh + ' wd) held fixed' : ''}. Illustrative — assumptions are user-set, not from SAP.</div>`;
+  }
+  function mcCardHtml() {
+    const s = mcState;
+    const itOpts = [1000, 5000, 10000, 20000].map(n => `<option value="${n}"${n === s.iters ? ' selected' : ''}>${n.toLocaleString()}</option>`).join('');
+    return `
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><span class="ch-title">Schedule Risk — Monte Carlo</span></div>
+        <div class="card-body" style="padding:14px">
+          <div class="mc-controls">
+            <label>Iterations <select onchange="mcState.iters=+this.value">${itOpts}</select></label>
+            <label>Optimistic <input type="number" value="${s.optPct}" oninput="mcState.optPct=+this.value||0">% shorter</label>
+            <label>Pessimistic <input type="number" value="${s.pesPct}" oninput="mcState.pesPct=+this.value||0">% longer</label>
+            <label><input type="checkbox" ${s.loeFix ? 'checked' : ''} onchange="mcState.loeFix=this.checked"> Hold level-of-effort fixed (≥ ${s.loeThresh} wd)</label>
+            <label>Target finish <input type="text" value="${_xml(s.target || '')}" placeholder="MM/DD/YYYY" oninput="mcState.target=this.value"></label>
+            <button class="var-btn" onclick="mcRun()">▶ Run simulation</button>
+          </div>
+          <div id="mcResults" style="margin-top:12px">${s.result ? mcResultsHtml(s.result) : '<div class="bd-tp-note">Set your assumptions and click <strong>Run simulation</strong> to build the completion-confidence curve.</div>'}</div>
+        </div>
+      </div>`;
+  }
+
   function renderMasterSchedule(p) {
     if (!bdBuild().roots.length) return bdNotLoaded(p, 'Master Schedule');
     schedComputeAll();
@@ -2332,6 +2490,7 @@
     const crit = tasks.filter(t => (cpm[t.id] || {}).critical).length + msList().filter(m => (cpm[m.id] || {}).critical).length;
     const root = bdBuild().roots[0];
     const span = bdPmbRange(root);
+    if (!mcState.target) mcState.target = span.end || '';
     const tile = (lbl, val, cls) => `<div class="ms-tile"><div class="ms-tile-v${cls ? ' ' + cls : ''}">${val}</div><div class="ms-tile-l">${lbl}</div></div>`;
     // progressing summary: forecast finish + schedule variance (working days) vs the plan finish
     const fFinish = schedForecastFinish();
@@ -2355,6 +2514,7 @@
         ${tile('Critical', crit)}
         ${tile('Milestones', msList().length)}
       </div>
+      ${mcCardHtml()}
       <div class="card" style="margin-top:16px">
         <div class="card-head"><span class="ch-title">Program Milestones</span></div>
         <div class="card-body" style="padding:12px">${msTableHtml()}</div>
