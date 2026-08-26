@@ -522,6 +522,33 @@
   .ac-notify:hover { background: #eaf2fb; }
   .ac-notify[disabled] { border-color: #b6e0c4; color: var(--good); background: #fff; cursor: default; }
 
+  /* ---------- VAR expandable editor (Format 5 narrative) ---------- */
+  .alert-card.expandable .ac-head { cursor: pointer; }
+  .ac-chev { display: inline-block; transition: transform .15s ease; color: var(--sap-blue); font-size: 11px; }
+  .alert-card.open .ac-chev { transform: rotate(90deg); }
+  .var-badge { font-size: 11px; white-space: nowrap; margin-left: 6px; }
+  .var-badge.complete { color: var(--good); }
+  .var-badge.pending { color: var(--warn); }
+  .var-editor { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--panel-border); }
+  .alert-card.open .var-editor { display: block; }
+  .var-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px,1fr)); gap: 8px; margin-bottom: 12px; }
+  .var-stat { background: var(--section-bg); border: 1px solid var(--panel-border); border-radius: 6px; padding: 7px 9px; }
+  .var-stat .vs-l { color: var(--text-muted); font-size: 11px; }
+  .var-stat .vs-v { font-weight: 700; font-size: 13px; margin-top: 2px; }
+  .var-stat .vs-v.bad { color: var(--bad); }
+  .var-field { margin-top: 10px; }
+  .var-field label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .var-field textarea, .var-field input { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 13px; color: var(--text); background: #fff; border: 1px solid var(--panel-border); border-radius: 4px; padding: 7px 9px; resize: vertical; }
+  .var-field input.gw { width: 150px; }
+  .var-ai-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 2px; }
+  .var-btn { border: 1px solid var(--sap-blue); color: var(--sap-blue); background: #fff; border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .var-btn:hover { background: #eaf2fb; }
+  .var-ai-banner { background: #e4f0fb; color: var(--sap-blue-dark); border-radius: 4px; padding: 8px 12px; font-size: 12px; margin-bottom: 4px; }
+  .var-wf { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--panel-border); font-size: 12px; color: var(--text-muted); }
+  .var-wf .wf-status.approved { color: var(--good); font-weight: 600; }
+  .var-msg { margin-top: 8px; }
+  .var-msg .ok { background: #e3f4ea; color: var(--good); border-radius: 4px; padding: 8px 12px; font-size: 12px; }
+
   /* ---------- Notify modal + toast ---------- */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 2000; }
   .modal-overlay.open { display: flex; }
@@ -3549,6 +3576,7 @@
       && (!pvState.cam || r[4] === pvState.cam));
     return rows.map(r => {
       const wbs = r[2], desc = r[3], cam = r[4], bac = num(r[14]);
+      const bcws = num(r[5]), bcwp = num(r[6]), acwp = num(r[7]), eac = num(r[15]), vac = num(r[16]);
       const seed = [...wbs].reduce((t, ch) => t + ch.charCodeAt(0), 0);
       // Each WBS has a starting variance and a per-period drift (negative = worsening),
       // so the picture evolves as the Month End status date moves.
@@ -3562,7 +3590,7 @@
       const degradingSV = svDrift < -0.05;
       const cvStatus = varStatus('cv', cvPct), svStatus = varStatus('sv', svPct);
       return {
-        wbs, desc, cam, bac,
+        wbs, desc, cam, bac, bcws, bcwp, acwp, eac, vac,
         cvPct, svPct, priorCVpct, priorSVpct, degradingCV, degradingSV, cvStatus, svStatus,
         cpi: 1 + cvPct / 100, spi: 1 + svPct / 100,
         cv$: (cvPct / 100) * bac, sv$: (svPct / 100) * bac,
@@ -3616,17 +3644,47 @@
       </div>`;
 
     lastAlerts = alerts;   // referenced by notifyCAM()
+    varStatsMap = {};      // per-WBS EVM figures for the expandable VAR editor / AI draft
     const alertHtml = alerts.length ? alerts.map((a, i) => {
       const worst = (a.flagCV && a.cvStatus === 'out') || (a.flagSV && a.svStatus === 'out') ? 'out' : 'watch';
       const pills = (a.flagCV ? `<span class="pill ${pctClass(a.cvStatus)}">CV ${a.cvPct.toFixed(1)}%</span>` : '')
         + (a.flagSV ? `<span class="pill ${pctClass(a.svStatus)}">SV ${a.svPct.toFixed(1)}%</span>` : '');
-      return `<div class="alert-card ${worst}">
-        <div class="ac-top"><span class="ac-wbs">${a.wbs}</span><span class="ac-desc">${a.desc} · CAM ${a.cam}</span><span style="flex:1"></span>${pills}</div>
-        <div class="ac-narr">${narrative(a)}</div>
+      // Real EVM figures (consistent with the other screens) drive the expandable VAR.
+      const cv = a.bcwp - a.acwp, cvp = a.bcwp ? cv / a.bcwp * 100 : 0;
+      const sv = a.bcwp - a.bcws, svp = a.bcws ? sv / a.bcws * 100 : 0;
+      const vac = a.vac != null ? a.vac : (a.bac - a.eac);
+      varStatsMap[a.wbs] = { cv, cvp, sv, svp, vac, bac: a.bac, eac: a.eac, bcws: a.bcws, bcwp: a.bcwp, acwp: a.acwp };
+      const sid = a.wbs.replace(/[^A-Za-z0-9]/g, '_');
+      const n = getVarN(a.wbs), done = !!(n.rc && n.im && n.ca);
+      const stat = (l, v, bad) => `<div class="var-stat"><div class="vs-l">${l}</div><div class="vs-v${bad ? ' bad' : ''}">${v}</div></div>`;
+      const editor = `
+        <div class="var-editor" id="vared-${sid}">
+          <div class="var-stats">
+            ${stat('BCWS', mfmt(a.bcws))}${stat('BCWP', mfmt(a.bcwp))}${stat('ACWP', mfmt(a.acwp))}
+            ${stat('CV', mfmt(cv) + ' / ' + cvp.toFixed(1) + '%', cv < 0)}${stat('SV', mfmt(sv) + ' / ' + svp.toFixed(1) + '%', sv < 0)}${stat('VAC', mfmt(vac), vac < 0)}
+          </div>
+          <div id="vaib-${sid}"></div>
+          <div class="var-ai-actions"><button class="var-btn" onclick="varAiDraft('${a.wbs}')">✨ AI draft narrative</button></div>
+          <div class="var-field"><label>Root cause</label><textarea id="vf-rc-${sid}" rows="3" oninput="varSet('${a.wbs}','rc',this.value)">${_xml(n.rc)}</textarea></div>
+          <div class="var-field"><label>Cost / schedule impact</label><textarea id="vf-im-${sid}" rows="2" oninput="varSet('${a.wbs}','im',this.value)">${_xml(n.im)}</textarea></div>
+          <div class="var-field"><label>Corrective action plan</label><textarea id="vf-ca-${sid}" rows="3" oninput="varSet('${a.wbs}','ca',this.value)">${_xml(n.ca)}</textarea></div>
+          <div class="var-field"><label>Get-well date</label><input class="gw" type="text" placeholder="YYYY-MM" id="vf-gw-${sid}" value="${_xml(n.gw).replace(/"/g, '&quot;')}" oninput="varSet('${a.wbs}','gw',this.value)"></div>
+          <div class="var-wf">
+            <span>Workflow: <span class="wf-status${n.approved ? ' approved' : ''}" id="vwf-${sid}">${n.approved ? 'Approved' : 'Auto-opened'}</span> → In analysis → Review → Approved</span>
+            <button class="var-btn" onclick="varApprove('${a.wbs}')">✓ Approve VAR</button>
+          </div>
+          <div class="var-msg" id="vmsg-${sid}"></div>
+        </div>`;
+      return `<div class="alert-card expandable ${worst}" id="vc-${sid}">
+        <div class="ac-head" onclick="varToggle('${a.wbs}')">
+          <div class="ac-top"><span class="ac-chev">▶</span><span class="ac-wbs">${a.wbs}</span><span class="ac-desc">${a.desc} · CAM ${a.cam}</span><span style="flex:1"></span>${pills}<span class="var-badge ${done ? 'complete' : 'pending'}" id="vbadge-${sid}">${done ? '● Narrative complete' : '○ Narrative pending'}</span></div>
+          <div class="ac-narr">${narrative(a)}</div>
+        </div>
         <div class="ac-rec-row">
           <span class="ac-rec">▶ Recommend a corrective-action review with the control account manager (${a.cam}).</span>
           <button class="ac-notify" id="notifyBtn-${i}" onclick="notifyCAM(${i})">✉ Notify CAM</button>
         </div>
+        ${editor}
       </div>`;
     }).join('') : `<div class="alert-ok">✓ No control accounts are degrading toward or beyond tolerance for the current selection.</div>`;
 
@@ -3950,6 +4008,44 @@
   /* ---------- Notify CAM (workflow / email) ---------- */
   let lastAlerts = [];
   let notifyIdx = -1;
+
+  // ---- Expandable Variance Analysis Report (VAR) narrative editor ----
+  // Per out-of-tolerance WBS: click to expand an in-place CPR/IPMR Format 5
+  // narrative (root cause, impact, corrective action, get-well) with an AI-draft
+  // helper and an approve workflow. Narratives persist per program+period+WBS.
+  let varNarr = {};       // key: program|period|wbs -> {rc,im,ca,gw,approved}
+  let varStatsMap = {};   // wbs -> EVM figures for the open VAR (set during renderAnalysis)
+  function varKey(wbs) { return progId() + '|' + pvState.period + '|' + wbs; }
+  function getVarN(wbs) { return varNarr[varKey(wbs)] || { rc: '', im: '', ca: '', gw: '', approved: false }; }
+  function varEnsure(wbs) { const k = varKey(wbs); return varNarr[k] || (varNarr[k] = { rc: '', im: '', ca: '', gw: '', approved: false }); }
+  function varSid(wbs) { return wbs.replace(/[^A-Za-z0-9]/g, '_'); }
+  function varToggle(wbs) { const c = document.getElementById('vc-' + varSid(wbs)); if (c) c.classList.toggle('open'); }
+  function varSet(wbs, f, val) { varEnsure(wbs)[f] = val; varUpdateBadge(wbs); }
+  function varUpdateBadge(wbs) {
+    const n = getVarN(wbs), done = !!(n.rc && n.im && n.ca);
+    const b = document.getElementById('vbadge-' + varSid(wbs));
+    if (b) { b.className = 'var-badge ' + (done ? 'complete' : 'pending'); b.textContent = done ? '● Narrative complete' : '○ Narrative pending'; }
+  }
+  function varAiDraft(wbs) {
+    const sid = varSid(wbs), s = varStatsMap[wbs] || {};
+    const rc = '[AI draft — confirm] The data shows ' + mfmt(s.cv || 0) + ' (' + (s.cvp || 0).toFixed(1) + '%) cost and ' + (s.svp || 0).toFixed(1) + '% schedule variance — ACWP exceeded BCWP while BCWP trailed BCWS. The numbers show the magnitude, not the reason. ROOT CAUSE REQUIRES ANALYST / CAM INPUT.';
+    const im = '[AI draft — confirm] Estimate at completion is ' + mfmt(s.eac || 0) + ' vs BAC ' + mfmt(s.bac || 0) + ' (VAC ' + mfmt(s.vac || 0) + '). Quantify schedule impact to milestones with the CAM.';
+    const ca = '[AI draft — template] Owner: [name]. Action: [corrective step]. Get-well: [date]. The AI cannot propose a real corrective action — supply the plan.';
+    const set = (f, v) => { const el = document.getElementById('vf-' + f + '-' + sid); if (el) el.value = v; };
+    set('rc', rc); set('im', im); set('ca', ca);
+    const n = varEnsure(wbs); n.rc = rc; n.im = im; n.ca = ca;
+    const banner = document.getElementById('vaib-' + sid);
+    if (banner) banner.innerHTML = '<div class="var-ai-banner">✨ AI-drafted — unverified. The model describes what the data shows; it cannot know the cause. Confirm root cause with the CAM before approving.</div>';
+    varUpdateBadge(wbs);
+  }
+  function varApprove(wbs) {
+    const sid = varSid(wbs), n = varEnsure(wbs); n.approved = true;
+    const ws = document.getElementById('vwf-' + sid); if (ws) { ws.textContent = 'Approved'; ws.classList.add('approved'); }
+    const done = !!(n.rc && n.im && n.ca);
+    const m = document.getElementById('vmsg-' + sid);
+    if (m) m.innerHTML = '<div class="ok">✓ VAR approved — workflow advanced to Approved.' + (done ? '' : ' Narrative still incomplete; finish Root cause, Impact and Corrective action before the period can be exported.') + '</div>';
+    varUpdateBadge(wbs);
+  }
   function camEmail(name) {
     const n = (name || '').trim();
     if (n.includes(' ')) { const parts = n.split(/\s+/); return (parts[0][0] + parts.slice(1).join('')).toLowerCase() + '@dassian.com'; }
