@@ -401,6 +401,7 @@
   function mkItem(o) {
     return Object.assign({
       kind: 'risk', type: 'Issue', status: 'New', requiresApproval: false,
+      riskId: '', category: '', responseStrategy: '', triggers: '',
       owner: 'Jason Bartello', dateRaised: '01/15/2026', dateClosed: '',
       workPackage: '', poWbs: '',
       riskValue: 0, originalValue: 0, currentValue: 0, targetValue: 0,
@@ -523,6 +524,39 @@
     },
   };
 
+  // ---- Backfill PMBOK-conventional register fields ----
+  // The PMBOK Guide risk register conventionally carries a unique Risk ID, a
+  // risk Category (from the Risk Breakdown Structure), a typed Response Strategy
+  // and Triggers/warning signs. These are assigned here so every entry aligns
+  // with those contents. Threat strategies: Avoid/Transfer/Mitigate/Accept/
+  // Escalate; opportunity strategies: Exploit/Share/Enhance/Accept/Escalate.
+  const RISK_META = {
+    'Design of the fuselage is not correct.':        ['Technical — Design', 'Mitigate', 'Design review flags out-of-tolerance measurements; cross-team design mismatch reported'],
+    'Supplier delivery of avionics is at risk.':     ['External — Suppliers / Subcontractors', 'Transfer', 'Supplier misses an interim milestone; quoted lead time extends'],
+    'Software integration may exceed schedule.':     ['Technical — Software Integration', 'Mitigate', 'Nightly build failures rise; integration-defect backlog grows'],
+    'Tooling availability for assembly.':            ['Organizational — Resources', 'Mitigate', 'A competing program reserves shared tooling in the assembly window'],
+    'Re-use existing test harness to cut cost.':     ['Technical — Reuse / Efficiency', 'Exploit', 'Early spike confirms the harness is compatible'],
+    'Air vehicle structural margin is thin.':        ['Technical — Structures', 'Mitigate', 'Coupon-test results trend below allowable margin'],
+    'Industrial facility readiness.':                ['Organizational — Facilities', 'Mitigate', 'Facility-upgrade milestone slips past the readiness need date'],
+    'Bulk-buy raw materials for a discount.':        ['External — Procurement', 'Exploit', 'Supplier opens a volume-pricing window'],
+    'Training material lags schedule.':              ['Organizational — Staffing', 'Mitigate', 'SME hours booked below plan; courseware drafts fall behind'],
+    'Data deliverable format change.':               ['External — Customer / Requirements', 'Mitigate', 'Customer signals a CDRL format revision in review comments'],
+    'Reuse training simulator across sites.':        ['Technical — Reuse', 'Enhance', 'A second site requests simulator access'],
+    'Site activation permits delayed.':              ['External — Regulatory / Permitting', 'Mitigate', 'Permit application enters the backlog queue; authority response overdue'],
+    'Baseline rollup data quality.':                 ['Project Management — Data / Reporting', 'Mitigate', 'Rollup reconciliation shows gaps versus source extracts'],
+  };
+  Object.keys(RISK_DB).forEach(pid => {
+    const db = RISK_DB[pid];
+    const apply = (it, seq, prefix, dflt) => {
+      it.riskId = it.riskId || (pid + '-' + prefix + String(seq).padStart(2, '0'));
+      const m = RISK_META[it.description];
+      if (m) { it.category = it.category || m[0]; it.responseStrategy = it.responseStrategy || m[1]; it.triggers = it.triggers || m[2]; }
+      if (!it.responseStrategy) it.responseStrategy = dflt;
+    };
+    (db.risks || []).forEach((it, i) => apply(it, i + 1, 'R', 'Mitigate'));
+    (db.opportunities || []).forEach((it, i) => apply(it, i + 1, 'O', 'Enhance'));
+  });
+
   // ---- State ----
   let currentProjectId = null;
   let projectList = [];
@@ -577,14 +611,14 @@
 
     // Table
     document.getElementById('tblHead').innerHTML =
-      '<th>' + v.descHeader + '</th><th>Date Raised</th><th>Owner</th><th>Status</th>' +
+      '<th>ID</th><th>' + v.descHeader + '</th><th>Category</th><th>Date Raised</th><th>Owner</th><th>Status</th>' +
       '<th>Original Score</th><th>Current Score</th><th>Target Score</th>';
     const body = document.getElementById('tblBody');
     body.innerHTML = '';
     list.forEach(it => {
       const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + it.shortDesc + '</td><td>' + it.dateRaised + '</td><td>' + it.owner + '</td><td>' + it.status + '</td>' +
+        '<td>' + it.riskId + '</td><td>' + it.shortDesc + '</td><td>' + it.category + '</td><td>' + it.dateRaised + '</td><td>' + it.owner + '</td><td>' + it.status + '</td>' +
         '<td class="' + v.scoreClass + '">' + fmtScore(it.originalScore) + '</td>' +
         '<td class="' + v.scoreClass + '">' + fmtScore(it.currentScore) + '</td>' +
         '<td class="score-good">' + fmtScore(it.targetScore) + '</td>';
@@ -651,8 +685,8 @@
       '<div class="dd-tabs">' + tabHtml + '</div>' +
       '<div class="dd-body">' +
         '<div class="dd-section" id="dd-det"><h3>Risk Details</h3>' +
-          field('Short Description', it.shortDesc) + field('Description', it.description) +
-          field('Project ID', currentProjectId, true) + field('Work Package', it.workPackage) +
+          field('Risk ID', it.riskId, true) + field('Short Description', it.shortDesc) + field('Description', it.description) +
+          field('Project ID', currentProjectId, true) + field('Category (RBS)', it.category) + field('Work Package', it.workPackage) +
           field('Performance Obligation WBS', it.poWbs) + field('Type', it.type) + field('Status', it.status) +
           field('Owner', it.owner) + field('Date Raised', it.dateRaised, true) + field('Date Closed', it.dateClosed, true) +
           moneyField('Risk Value', it.riskValue) + moneyField('Original Value', it.originalValue, true) +
@@ -665,7 +699,9 @@
           field('Target Score', fmtScore(it.targetScore), true) +
         '</div>' +
         '<div class="dd-section" id="dd-mit"><h3>Mitigation</h3>' +
+          field('Response Strategy', it.responseStrategy) +
           '<div class="dd-field"><label>Mitigation Plan</label><div class="val" style="min-height:56px">' + (it.mitigationPlan || '') + '</div></div>' +
+          '<div class="dd-field"><label>Triggers / Warning Signs</label><div class="val" style="min-height:44px">' + (it.triggers || '') + '</div></div>' +
           field('Last Reviewed Date', it.lastReviewed, true) +
         '</div>' +
         '<div class="dd-section" id="dd-tsk"><h3>Tasks(' + tasks.length + '/' + tasks.length + ')</h3>' +
