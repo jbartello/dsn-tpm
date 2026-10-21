@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dassian Total Program Management (TPM)</title>
+<style>
+  :root {
+    --sap-blue: #0a6ed1;
+    --sap-blue-dark: #085caf;
+    --shell-bg: #354a5f;
+    --panel-border: #d9d9d9;
+    --text: #32363a;
+    --text-muted: #6a6d70;
+    --section-bg: #f7f7f7;
+    --good: #107e3e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    color: var(--text); background: var(--section-bg); font-size: 14px; line-height: 1.5;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .shellbar {
+    display: flex; align-items: center; gap: 12px; height: 48px;
+    background: var(--shell-bg); color: #fff; padding: 0 20px;
+  }
+  .shellbar .logo { font-weight: 700; letter-spacing: .5px; }
+  .shellbar .sep { width: 1px; height: 20px; background: rgba(255,255,255,.3); }
+  .shellbar .sub { font-size: 13px; color: #cfd8e3; }
+  .shellbar .tag {
+    margin-left: auto; font-size: 11px; background: rgba(255,255,255,.15);
+    padding: 3px 9px; border-radius: 10px;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 48px; }
+
+  .hero { margin: 8px 0 24px; }
+  .hero h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+  .hero p { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 680px; }
+
+  .sec-label {
+    font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+    color: var(--text-muted); margin: 28px 0 12px;
+  }
+
+  /* Primary entry cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .card {
+    background: #fff; border: 1px solid var(--panel-border); border-radius: 10px;
+    padding: 20px; display: flex; flex-direction: column; transition: box-shadow .15s, transform .15s;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.09); transform: translateY(-2px); }
+  .card .ic {
+    width: 42px; height: 42px; border-radius: 9px; background: #eaf2fb; color: var(--sap-blue);
+    display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 17px; margin: 0 0 6px; }
+  .card p { font-size: 13px; color: var(--text-muted); margin: 0 0 16px; flex: 1; }
+  .card .open {
+    align-self: flex-start; background: var(--sap-blue); color: #fff; font-weight: 600;
+    font-size: 13px; padding: 8px 16px; border-radius: 6px;
+  }
+  .card:hover .open { background: var(--sap-blue-dark); }
+
+  /* Snapshot link groups */
+  .snap-note { font-size: 12px; color: var(--text-muted); margin: 0 0 14px; }
+  .snap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+  .snap-col h3 { font-size: 13px; margin: 0 0 8px; color: var(--text); }
+  .snap-col ul { list-style: none; margin: 0; padding: 0; }
+  .snap-col li { margin: 0 0 4px; }
+  .snap-col a {
+    display: block; font-size: 13px; color: var(--sap-blue); padding: 5px 9px;
+    border: 1px solid var(--panel-border); border-radius: 5px; background: #fff;
+  }
+  .snap-col a:hover { background: #eaf2fb; border-color: var(--sap-blue); }
+
+  footer {
+    margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--panel-border);
+    font-size: 12px; color: var(--text-muted);
+  }
+  footer a { color: var(--sap-blue); }
+  .illus {
+    background: #fff4e5; color: #854f0b; border: 1px solid #f5d9a8; border-radius: 6px;
+    padding: 10px 14px; font-size: 12px; margin: 18px 0 0;
+  }
+</style>
+</head>
+<body>
+  <div class="shellbar">
+    <span class="logo">DASSIAN</span>
+    <span class="sep"></span>
+    <span class="sub">Total Program Management</span>
+    <span class="tag">Prototype</span>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>Total Program Management (TPM)</h1>
+      <p>An interactive prototype for Aerospace &amp; Defense Earned Value Management — program springboard,
+         EVM analytics, baseline &amp; EAC, integrated master schedule with Monte Carlo schedule-risk,
+         and a PMBOK-aligned risk register.</p>
+    </div>
+
+    <div class="sec-label">Live prototypes</div>
+    <div class="grid">
+      <a class="card" href="dassian-tpm-springboard.html">
+        <div class="ic">&#128202;</div>
+        <h2>Program Springboard</h2>
+        <p>The full interactive app: Project Values &amp; Analytics, Project Setup, Baseline &amp; Change,
+           Project EAC, the Integrated Master Schedule with a Monte&nbsp;Carlo schedule-risk assessment,
+           the Variance Analysis Report, and Artifacts &amp; Reports. Switch between the Demo and MFG programs.</p>
+        <span class="open">Open the prototype &rsaquo;</span>
+      </a>
+      <a class="card" href="program-risk-register-prototype.html">
+        <div class="ic">&#9888;</div>
+        <h2>Program Risk Register</h2>
+        <p>Per-project risks and opportunities with a 5&times;5 probability/impact matrix, cause-event-effect
+           statements, scoring waterfall, mitigation tasks, and PMBOK-aligned fields (Risk ID, RBS category,
+           typed response strategy, triggers).</p>
+        <span class="open">Open the register &rsaquo;</span>
+      </a>
+    </div>
+
+    <div class="sec-label">Individual screen snapshots</div>
+    <p class="snap-note">Static, point-in-time captures of individual screens (frozen &mdash; for reference and hand-off).
+       For the current, fully interactive experience, use the live prototypes above.</p>
+    <div class="snap-grid">
+      <div class="snap-col">
+        <h3>Project Setup</h3>
+        <ul>
+          <li><a href="exports/setup-project-header.htm">Project Header</a></li>
+          <li><a href="exports/setup-control-accounts.htm">Control Accounts</a></li>
+          <li><a href="exports/setup-work-packages.htm">Work Packages</a></li>
+          <li><a href="exports/setup-mr-ub.htm">MR / UB</a></li>
+        </ul>
+        <h3 style="margin-top:14px">Project Baseline</h3>
+        <ul>
+          <li><a href="exports/baseline-change-request.htm">Baseline Change Request</a></li>
+          <li><a href="exports/baseline-display.htm">Display Baseline</a></li>
+          <li><a href="exports/baseline-edit-plan.htm">Edit Plan</a></li>
+        </ul>
+      </div>
+      <div class="snap-col">
+        <h3>Core screens</h3>
+        <ul>
+          <li><a href="exports/project-values.htm">Project Values</a></li>
+          <li><a href="exports/project-analytics.htm">Project Analytics</a></li>
+          <li><a href="exports/project-eac.htm">Project EAC</a></li>
+          <li><a href="exports/risk-information.htm">Risk Information</a></li>
+          <li><a href="exports/artifacts-list.htm">Artifacts &amp; Reports</a></li>
+        </ul>
+      </div>
+      <div class="snap-col">
+        <h3>Artifact slide-outs</h3>
+        <ul>
+          <li><a href="exports/artifact-wbs-dictionary.htm">WBS Dictionary</a></li>
+          <li><a href="exports/artifact-ram.htm">RAM</a></li>
+          <li><a href="exports/artifact-cap-timephased.htm">CAP &mdash; Time-Phased</a></li>
+          <li><a href="exports/artifact-cap-summary.htm">CAP &mdash; Summary</a></li>
+          <li><a href="exports/artifact-tripwire.htm">Tripwire</a></li>
+          <li><a href="exports/artifact-control-log.htm">Control Log</a></li>
+        </ul>
+      </div>
+      <div class="snap-col">
+        <h3>Risk register views</h3>
+        <ul>
+          <li><a href="exports/risk-register-risks.htm">Risks</a></li>
+          <li><a href="exports/risk-register-opportunities.htm">Opportunities</a></li>
+          <li><a href="exports/risk-register-detail.htm">Risk Detail</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="illus">
+      All numbers, names, schedules, and narratives in this prototype are illustrative and fabricated to
+      demonstrate the tool&rsquo;s shape &mdash; not real program data.
+    </div>
+
+    <footer>
+      Dassian Total Program Management &middot; prototype &middot;
+      <a href="https://github.com/jbartello/dsn-tpm">github.com/jbartello/dsn-tpm</a>
+    </footer>
+  </div>
+</body>
+</html>
