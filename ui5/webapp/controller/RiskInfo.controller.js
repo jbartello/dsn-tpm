@@ -28,23 +28,39 @@ sap.ui.define([
       this._load();
     },
 
-    _waterfall: function (o) {
-      var rows = [
-        { label: "Original", v: parseFloat(o.OriginalScore) || 0, color: "#e12219" },
-        { label: "Current (mitigated)", v: parseFloat(o.CurrentScore) || 0, color: "#ef8a2b" },
-        { label: "Target (residual)", v: parseFloat(o.TargetScore) || 0, color: "#2e7d0e" }
-      ];
-      var h = '<div style="max-width:34rem">';
-      rows.forEach(function (r) {
-        var pct = Math.max(2, Math.round(r.v * 100));
-        h += '<div style="display:flex;align-items:center;margin:8px 0">'
-          + '<div style="width:11rem;color:#6a6d70;font-size:0.8rem">' + r.label + '</div>'
-          + '<div style="flex:1;background:#eaecee;border-radius:4px;height:1.5rem">'
-          + '<div style="width:' + pct + '%;background:' + r.color + ';height:100%;border-radius:4px"></div></div>'
-          + '<div style="width:3.5rem;text-align:right;font-weight:700;margin-left:8px">' + r.v.toFixed(2) + '</div></div>';
-      });
-      h += '<div style="color:#6a6d70;font-size:0.75rem;margin-top:10px">Score reduction from original exposure, through mitigation, to the target residual score.</div></div>';
-      return h;
+    // True stepped waterfall, replicating the register prototype's SVG: score
+    // bands, the original-score dashed baseline, the stepped current line through
+    // each mitigation task's target score, node dots, and a "today" marker.
+    _waterfall: function (o, tasks) {
+      var W = 600, H = 250, mL = 38, mR = 16, mT = 12, mB = 42, pw = W - mL - mR, ph = H - mT - mB;
+      var yPx = function (s) { return mT + ph - s * ph; };
+      var orig = parseFloat(o.OriginalScore) || 0, tgt = parseFloat(o.TargetScore) || 0;
+      var pts = [{ t: 0, s: orig }];
+      (tasks || []).forEach(function (tk, i) { pts.push({ t: i + 1, s: parseFloat(tk.TargetScore) || 0 }); });
+      if (pts.length === 1) { pts.push({ t: 1, s: tgt }); }
+      var span = pts.length - 1 + 4;
+      var xPx = function (t) { return mL + (t / span) * pw; };
+      var s = "";
+      s += '<rect x="' + mL + '" y="' + yPx(1) + '" width="' + pw + '" height="' + (yPx(0.4) - yPx(1)) + '" fill="#e12219"/>';
+      s += '<rect x="' + mL + '" y="' + yPx(0.4) + '" width="' + pw + '" height="' + (yPx(0.2) - yPx(0.4)) + '" fill="#e2df1e"/>';
+      s += '<rect x="' + mL + '" y="' + yPx(0.2) + '" width="' + pw + '" height="' + (yPx(0) - yPx(0.2)) + '" fill="#2e7d0e"/>';
+      for (var g = 0; g <= 10; g += 2) { var sc = g / 10, y = yPx(sc); s += '<text x="' + (mL - 6) + '" y="' + (y + 3) + '" text-anchor="end" font-size="10" fill="#6a6d70">' + sc.toFixed(1) + '</text>'; }
+      s += '<line x1="' + xPx(0) + '" y1="' + yPx(orig) + '" x2="' + xPx(span) + '" y2="' + yPx(orig) + '" stroke="#5b9bd5" stroke-width="2" stroke-dasharray="6 4"/>';
+      var path = "M" + xPx(pts[0].t) + "," + yPx(pts[0].s);
+      for (var i = 1; i < pts.length; i++) { path += " L" + xPx(pts[i - 1].t) + "," + yPx(pts[i].s) + " L" + xPx(pts[i].t) + "," + yPx(pts[i].s); }
+      path += " L" + xPx(span) + "," + yPx(pts[pts.length - 1].s);
+      s += '<path d="' + path + '" fill="none" stroke="#1d1d1d" stroke-width="2.5"/>';
+      pts.forEach(function (p) { s += '<circle cx="' + xPx(p.t) + '" cy="' + yPx(p.s) + '" r="3.5" fill="#5b9bd5"/>'; });
+      var tx = xPx(span - 0.5);
+      s += '<line x1="' + tx + '" y1="' + mT + '" x2="' + tx + '" y2="' + (mT + ph) + '" stroke="#ffffff" stroke-width="2" stroke-dasharray="5 4"/>';
+      s += '<text x="' + (mL + pw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="#6a6d70">Mitigation Tasks over Time</text>';
+      s += '<text x="11" y="' + (mT + ph / 2) + '" text-anchor="middle" font-size="11" fill="#6a6d70" transform="rotate(-90 11 ' + (mT + ph / 2) + ')">Risk Score</text>';
+      var legend = '<div style="display:flex;gap:16px;font-size:12px;color:#6a6d70;margin-top:6px">'
+        + '<span><span style="display:inline-block;width:18px;height:3px;background:#1d1d1d;vertical-align:middle;margin-right:4px"></span>Current</span>'
+        + '<span><span style="display:inline-block;width:18px;border-top:3px dashed #5b9bd5;vertical-align:middle;margin-right:4px"></span>Original</span>'
+        + '<span><span style="display:inline-block;width:18px;border-top:3px dashed #9aa0a6;vertical-align:middle;margin-right:4px"></span>Today&#39;s Date</span>'
+        + "</div>";
+      return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:600px;height:auto">' + s + "</svg>" + legend;
     },
 
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
@@ -113,8 +129,9 @@ sap.ui.define([
       var o = evt.getSource().getBindingContext("risk").getObject();
       var sel = this.getView().getModel("sel");
       sel.setData(Object.assign({}, o));
-      sel.setProperty("/tasks", (this._tasks && this._tasks[o.ID]) || []);
-      var wf = this.byId("waterfallHtml"); if (wf) { wf.setContent(this._waterfall(o)); }
+      var tasks = (this._tasks && this._tasks[o.ID]) || [];
+      sel.setProperty("/tasks", tasks);
+      var wf = this.byId("waterfallHtml"); if (wf) { wf.setContent(this._waterfall(o, tasks)); }
       this.byId("riskDialog").open();
     },
     onCloseDialog: function () { this.byId("riskDialog").close(); },
