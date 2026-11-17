@@ -1,8 +1,10 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/core/routing/HashChanger",
-  "sap/ui/model/json/JSONModel"
-], function (Controller, HashChanger, JSONModel) {
+  "sap/ui/model/json/JSONModel",
+  "sap/ui/model/Filter",
+  "sap/ui/model/FilterOperator"
+], function (Controller, HashChanger, JSONModel, Filter, FilterOperator) {
   "use strict";
 
   return Controller.extend("dassian.tpm.ui5.controller.MasterSchedule", {
@@ -11,13 +13,19 @@ sap.ui.define([
         iters: "5000", optPct: 10, pesPct: 30, loeFix: true, hasResult: false, curve: []
       }), "mc");
       this.getView().setModel(new JSONModel({ baselineFinish: "—", count: 0, loeCount: 0 }), "sched");
-
-      var model = this.getOwnerComponent().getModel();
+      this._load();
+    },
+    _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
+    onProgramChange: function () { this.getView().getModel("mc").setProperty("/hasResult", false); this._load(); },
+    _load: function () {
+      var prog = this._prog(), model = this.getOwnerComponent().getModel();
+      var tbl = this.byId("schedTable");
+      if (tbl && tbl.getBinding("items")) { tbl.getBinding("items").filter([new Filter("ProgramID", FilterOperator.EQ, prog)]); }
       model.bindList("/ScheduleActivities").requestContexts(0, 500).then(function (ctxs) {
         var acts = ctxs.map(function (c) {
           var o = c.getObject();
-          return { off: o.StartOffset || 0, dur: o.DurationDays || 1, loe: !!o.IsLOE, finish: o.Finish };
-        });
+          return { off: o.StartOffset || 0, dur: o.DurationDays || 1, loe: !!o.IsLOE, finish: o.Finish, prog: o.ProgramID };
+        }).filter(function (a) { return a.prog === prog; });
         this._acts = acts;
         // deterministic project finish = latest-finishing activity
         this._baseOff = acts.reduce(function (m, a) { return Math.max(m, a.off + a.dur - 1); }, 0);

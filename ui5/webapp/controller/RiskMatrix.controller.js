@@ -12,13 +12,16 @@ sap.ui.define([
   var IMPACT = ["Insignificant", "Modest", "Moderate", "Significant", "Unacceptable"]; // col 0 = lowest impact
 
   return Controller.extend("dassian.tpm.ui5.controller.RiskMatrix", {
-    onInit: function () {
-      var model = this.getOwnerComponent().getModel();
-      var lb = model.bindList("/Risks");
-      lb.requestContexts(0, 200).then(function (ctxs) {
+    onInit: function () { this._load(); },
+    _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
+    onProgramChange: function () { this._load(); },
+    _load: function () {
+      var prog = this._prog(), model = this.getOwnerComponent().getModel();
+      model.bindList("/Risks").requestContexts(0, 200).then(function (ctxs) {
         var counts = Array.from({ length: 5 }, function () { return [0, 0, 0, 0, 0]; });
         ctxs.forEach(function (c) {
           var o = c.getObject(), p = o.ProbIndex, i = o.ImpactIndex;
+          if (o.ProgramID !== prog) { return; }
           if (p >= 0 && p < 5 && i >= 0 && i < 5) { counts[p][i]++; }
         });
         this._build(counts);

@@ -16,12 +16,17 @@ sap.ui.define([
   return Controller.extend("dassian.tpm.ui5.controller.EAC", {
     onInit: function () {
       this.getView().setModel(new JSONModel({ items: [], totals: {} }), "eac");
-      var model = this.getOwnerComponent().getModel();
+      this._load();
+    },
+    _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
+    onProgramChange: function () { this._load(); },
+    _load: function () {
+      var prog = this._prog(), model = this.getOwnerComponent().getModel();
       model.bindList("/ControlAccounts").requestContexts(0, 500).then(function (ctxs) {
         var items = [], sBac = 0, sEac = 0, sVac = 0, sEv = 0, sAc = 0;
         ctxs.forEach(function (c) {
           var o = c.getObject();
-          if (o.ProgramID !== "DEMO") { return; }
+          if (o.ProgramID !== prog) { return; }
           var bac = parseFloat(o.BAC) || 0, eac = parseFloat(o.EAC) || 0, vac = parseFloat(o.VAC) || 0;
           var cpi = parseFloat(o.CPI) || 0, spi = parseFloat(o.SPI) || 0;
           var ev = parseFloat(o.EarnedValue) || 0, ac = parseFloat(o.ActualCost) || 0;

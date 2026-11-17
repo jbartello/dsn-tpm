@@ -15,12 +15,17 @@ sap.ui.define([
   return Controller.extend("dassian.tpm.ui5.controller.VAR", {
     onInit: function () {
       this.getView().setModel(new JSONModel({ items: [] }), "narr");
-      var model = this.getOwnerComponent().getModel();
+      this._load();
+    },
+    _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
+    onProgramChange: function () { this._load(); },
+    _load: function () {
+      var prog = this._prog(), model = this.getOwnerComponent().getModel();
       model.bindList("/ControlAccounts").requestContexts(0, 500).then(function (ctxs) {
         var items = [];
         ctxs.forEach(function (c) {
           var o = c.getObject();
-          if (o.ProgramID !== "DEMO") { return; }
+          if (o.ProgramID !== prog) { return; }
           var bcwp = parseFloat(o.EarnedValue) || 0, cpi = parseFloat(o.CPI) || 0, spi = parseFloat(o.SPI) || 0;
           // out of tolerance: has earned value and is behind on cost or schedule
           if (!(bcwp > 0 && (cpi < 0.95 || spi < 0.95))) { return; }

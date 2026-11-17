@@ -1,6 +1,7 @@
 [
   {
-    "ID": "1",
+    "ID": "DEMO-1",
+    "ProgramID": "DEMO",
     "Name": "Airframe Integ., Assy, Test, Checkout",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -9,7 +10,8 @@
     "IsLOE": true
   },
   {
-    "ID": "2",
+    "ID": "DEMO-2",
+    "ProgramID": "DEMO",
     "Name": "Fuselage",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -18,7 +20,8 @@
     "IsLOE": true
   },
   {
-    "ID": "3",
+    "ID": "DEMO-3",
+    "ProgramID": "DEMO",
     "Name": "Wing",
     "Start": "02/01/2022",
     "Finish": "02/27/2026",
@@ -27,7 +30,8 @@
     "IsLOE": true
   },
   {
-    "ID": "4",
+    "ID": "DEMO-4",
+    "ProgramID": "DEMO",
     "Name": "Empennage",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -36,7 +40,8 @@
     "IsLOE": true
   },
   {
-    "ID": "5",
+    "ID": "DEMO-5",
+    "ProgramID": "DEMO",
     "Name": "Nacelle",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -45,7 +50,8 @@
     "IsLOE": false
   },
   {
-    "ID": "6",
+    "ID": "DEMO-6",
+    "ProgramID": "DEMO",
     "Name": "Miscellaneous Structure",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -54,7 +60,8 @@
     "IsLOE": false
   },
   {
-    "ID": "7",
+    "ID": "DEMO-7",
+    "ProgramID": "DEMO",
     "Name": "Engine - Installation, Assy, Test, Chk",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -63,7 +70,8 @@
     "IsLOE": false
   },
   {
-    "ID": "8",
+    "ID": "DEMO-8",
+    "ProgramID": "DEMO",
     "Name": "Vehicle Subsystem Integ. Assy, Test, Chk",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -72,7 +80,8 @@
     "IsLOE": false
   },
   {
-    "ID": "9",
+    "ID": "DEMO-9",
+    "ProgramID": "DEMO",
     "Name": "Flight Control Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -81,7 +90,8 @@
     "IsLOE": false
   },
   {
-    "ID": "10",
+    "ID": "DEMO-10",
+    "ProgramID": "DEMO",
     "Name": "Auxiliary Power Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -90,7 +100,8 @@
     "IsLOE": false
   },
   {
-    "ID": "11",
+    "ID": "DEMO-11",
+    "ProgramID": "DEMO",
     "Name": "Hydraulic Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -99,7 +110,8 @@
     "IsLOE": false
   },
   {
-    "ID": "12",
+    "ID": "DEMO-12",
+    "ProgramID": "DEMO",
     "Name": "Electrical Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -108,7 +120,8 @@
     "IsLOE": false
   },
   {
-    "ID": "13",
+    "ID": "DEMO-13",
+    "ProgramID": "DEMO",
     "Name": "Crew Station Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -117,7 +130,8 @@
     "IsLOE": false
   },
   {
-    "ID": "14",
+    "ID": "DEMO-14",
+    "ProgramID": "DEMO",
     "Name": "Environmental Control Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -126,7 +140,8 @@
     "IsLOE": false
   },
   {
-    "ID": "15",
+    "ID": "DEMO-15",
+    "ProgramID": "DEMO",
     "Name": "Fuel Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -135,7 +150,8 @@
     "IsLOE": false
   },
   {
-    "ID": "16",
+    "ID": "DEMO-16",
+    "ProgramID": "DEMO",
     "Name": "Landing Gear",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -144,7 +160,8 @@
     "IsLOE": false
   },
   {
-    "ID": "17",
+    "ID": "DEMO-17",
+    "ProgramID": "DEMO",
     "Name": "Rotor Group",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -153,7 +170,8 @@
     "IsLOE": false
   },
   {
-    "ID": "18",
+    "ID": "DEMO-18",
+    "ProgramID": "DEMO",
     "Name": "Drive Group",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -162,7 +180,8 @@
     "IsLOE": false
   },
   {
-    "ID": "19",
+    "ID": "DEMO-19",
+    "ProgramID": "DEMO",
     "Name": "Vehicle Subsystem Software",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -171,7 +190,8 @@
     "IsLOE": false
   },
   {
-    "ID": "20",
+    "ID": "DEMO-20",
+    "ProgramID": "DEMO",
     "Name": "Re-Design - Hydraulic Subsystem",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -180,7 +200,8 @@
     "IsLOE": false
   },
   {
-    "ID": "21",
+    "ID": "DEMO-21",
+    "ProgramID": "DEMO",
     "Name": "Avionics Integ., Assy, Test, Checkout",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -189,7 +210,8 @@
     "IsLOE": false
   },
   {
-    "ID": "22",
+    "ID": "DEMO-22",
+    "ProgramID": "DEMO",
     "Name": "Communication/Identification",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -198,7 +220,8 @@
     "IsLOE": false
   },
   {
-    "ID": "23",
+    "ID": "DEMO-23",
+    "ProgramID": "DEMO",
     "Name": "Navigation/Guidance",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -207,7 +230,8 @@
     "IsLOE": false
   },
   {
-    "ID": "24",
+    "ID": "DEMO-24",
+    "ProgramID": "DEMO",
     "Name": "Mission Computer/Processing",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -216,7 +240,8 @@
     "IsLOE": false
   },
   {
-    "ID": "25",
+    "ID": "DEMO-25",
+    "ProgramID": "DEMO",
     "Name": "Fire Control",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -225,7 +250,8 @@
     "IsLOE": false
   },
   {
-    "ID": "26",
+    "ID": "DEMO-26",
+    "ProgramID": "DEMO",
     "Name": "Data Display and Controls",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -234,7 +260,8 @@
     "IsLOE": false
   },
   {
-    "ID": "27",
+    "ID": "DEMO-27",
+    "ProgramID": "DEMO",
     "Name": "Survivability",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -243,7 +270,8 @@
     "IsLOE": false
   },
   {
-    "ID": "28",
+    "ID": "DEMO-28",
+    "ProgramID": "DEMO",
     "Name": "Reconnaissance",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -252,7 +280,8 @@
     "IsLOE": false
   },
   {
-    "ID": "29",
+    "ID": "DEMO-29",
+    "ProgramID": "DEMO",
     "Name": "Automatic Flight Control",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -261,7 +290,8 @@
     "IsLOE": false
   },
   {
-    "ID": "30",
+    "ID": "DEMO-30",
+    "ProgramID": "DEMO",
     "Name": "Health Monitoring System",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -270,7 +300,8 @@
     "IsLOE": false
   },
   {
-    "ID": "31",
+    "ID": "DEMO-31",
+    "ProgramID": "DEMO",
     "Name": "Stores Management",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -279,7 +310,8 @@
     "IsLOE": false
   },
   {
-    "ID": "32",
+    "ID": "DEMO-32",
+    "ProgramID": "DEMO",
     "Name": "Avionics Software",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -288,7 +320,8 @@
     "IsLOE": false
   },
   {
-    "ID": "33",
+    "ID": "DEMO-33",
+    "ProgramID": "DEMO",
     "Name": "Other Avionics Subsystems",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -297,7 +330,8 @@
     "IsLOE": false
   },
   {
-    "ID": "34",
+    "ID": "DEMO-34",
+    "ProgramID": "DEMO",
     "Name": "Subcontract",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -306,7 +340,8 @@
     "IsLOE": false
   },
   {
-    "ID": "35",
+    "ID": "DEMO-35",
+    "ProgramID": "DEMO",
     "Name": "Subcontract",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -315,7 +350,8 @@
     "IsLOE": false
   },
   {
-    "ID": "36",
+    "ID": "DEMO-36",
+    "ProgramID": "DEMO",
     "Name": "Subcontract",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -324,7 +360,8 @@
     "IsLOE": false
   },
   {
-    "ID": "37",
+    "ID": "DEMO-37",
+    "ProgramID": "DEMO",
     "Name": "Subcontract",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -333,7 +370,8 @@
     "IsLOE": false
   },
   {
-    "ID": "38",
+    "ID": "DEMO-38",
+    "ProgramID": "DEMO",
     "Name": "Subcontract",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -342,7 +380,8 @@
     "IsLOE": false
   },
   {
-    "ID": "39",
+    "ID": "DEMO-39",
+    "ProgramID": "DEMO",
     "Name": "System Engineering",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -351,7 +390,8 @@
     "IsLOE": true
   },
   {
-    "ID": "40",
+    "ID": "DEMO-40",
+    "ProgramID": "DEMO",
     "Name": "Project Controls/Contracts/Project Finan",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -360,7 +400,8 @@
     "IsLOE": true
   },
   {
-    "ID": "41",
+    "ID": "DEMO-41",
+    "ProgramID": "DEMO",
     "Name": "Development Test and Evaluation",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -369,7 +410,8 @@
     "IsLOE": false
   },
   {
-    "ID": "42",
+    "ID": "DEMO-42",
+    "ProgramID": "DEMO",
     "Name": "Operational Test and Evaluation",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -378,7 +420,8 @@
     "IsLOE": false
   },
   {
-    "ID": "43",
+    "ID": "DEMO-43",
+    "ProgramID": "DEMO",
     "Name": "Drawing 4",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -387,7 +430,8 @@
     "IsLOE": false
   },
   {
-    "ID": "44",
+    "ID": "DEMO-44",
+    "ProgramID": "DEMO",
     "Name": "Test Facilities",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -396,7 +440,8 @@
     "IsLOE": false
   },
   {
-    "ID": "45",
+    "ID": "DEMO-45",
+    "ProgramID": "DEMO",
     "Name": "Equipment",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -405,7 +450,8 @@
     "IsLOE": false
   },
   {
-    "ID": "46",
+    "ID": "DEMO-46",
+    "ProgramID": "DEMO",
     "Name": "Services",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -414,7 +460,8 @@
     "IsLOE": false
   },
   {
-    "ID": "47",
+    "ID": "DEMO-47",
+    "ProgramID": "DEMO",
     "Name": "Facilities",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -423,7 +470,8 @@
     "IsLOE": false
   },
   {
-    "ID": "48",
+    "ID": "DEMO-48",
+    "ProgramID": "DEMO",
     "Name": "Technical Publications",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -432,7 +480,8 @@
     "IsLOE": false
   },
   {
-    "ID": "49",
+    "ID": "DEMO-49",
+    "ProgramID": "DEMO",
     "Name": "Engineering Data",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -441,7 +490,8 @@
     "IsLOE": false
   },
   {
-    "ID": "50",
+    "ID": "DEMO-50",
+    "ProgramID": "DEMO",
     "Name": "Management Data",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -450,7 +500,8 @@
     "IsLOE": false
   },
   {
-    "ID": "51",
+    "ID": "DEMO-51",
+    "ProgramID": "DEMO",
     "Name": "Support Data",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -459,7 +510,8 @@
     "IsLOE": false
   },
   {
-    "ID": "52",
+    "ID": "DEMO-52",
+    "ProgramID": "DEMO",
     "Name": "Data Depository",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -468,7 +520,8 @@
     "IsLOE": false
   },
   {
-    "ID": "53",
+    "ID": "DEMO-53",
+    "ProgramID": "DEMO",
     "Name": "Test and Measurement Equipment",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -477,7 +530,8 @@
     "IsLOE": false
   },
   {
-    "ID": "54",
+    "ID": "DEMO-54",
+    "ProgramID": "DEMO",
     "Name": "Support and Handling Equipment",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -486,7 +540,8 @@
     "IsLOE": false
   },
   {
-    "ID": "55",
+    "ID": "DEMO-55",
+    "ProgramID": "DEMO",
     "Name": "Test and Measurement Equipment",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -495,7 +550,8 @@
     "IsLOE": false
   },
   {
-    "ID": "56",
+    "ID": "DEMO-56",
+    "ProgramID": "DEMO",
     "Name": "Support and Handling Equipment",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -504,7 +560,8 @@
     "IsLOE": false
   },
   {
-    "ID": "57",
+    "ID": "DEMO-57",
+    "ProgramID": "DEMO",
     "Name": "System Assy, Install., Checkout on site",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -513,7 +570,8 @@
     "IsLOE": false
   },
   {
-    "ID": "58",
+    "ID": "DEMO-58",
+    "ProgramID": "DEMO",
     "Name": "Contractor Technical Support",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -522,7 +580,8 @@
     "IsLOE": true
   },
   {
-    "ID": "59",
+    "ID": "DEMO-59",
+    "ProgramID": "DEMO",
     "Name": "Site Construction",
     "Start": "01/03/2022",
     "Finish": "03/31/2022",
@@ -531,7 +590,8 @@
     "IsLOE": false
   },
   {
-    "ID": "60",
+    "ID": "DEMO-60",
+    "ProgramID": "DEMO",
     "Name": "Site/Ship/Vehicle Conversion",
     "Start": "03/01/2022",
     "Finish": "02/27/2026",
@@ -540,7 +600,8 @@
     "IsLOE": true
   },
   {
-    "ID": "61",
+    "ID": "DEMO-61",
+    "ProgramID": "DEMO",
     "Name": "Sustainment/Interim Contractor Support",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
@@ -549,7 +610,8 @@
     "IsLOE": false
   },
   {
-    "ID": "62",
+    "ID": "DEMO-62",
+    "ProgramID": "DEMO",
     "Name": "Construction/Conversion/Expansion",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -558,7 +620,8 @@
     "IsLOE": true
   },
   {
-    "ID": "63",
+    "ID": "DEMO-63",
+    "ProgramID": "DEMO",
     "Name": "Equipment Acquisition/Modernization",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -567,7 +630,8 @@
     "IsLOE": true
   },
   {
-    "ID": "64",
+    "ID": "DEMO-64",
+    "ProgramID": "DEMO",
     "Name": "Maintenance (Industrial Facilities)",
     "Start": "01/03/2022",
     "Finish": "02/27/2026",
@@ -576,12 +640,173 @@
     "IsLOE": true
   },
   {
-    "ID": "65",
+    "ID": "DEMO-65",
+    "ProgramID": "DEMO",
     "Name": "Warranty",
     "Start": "02/02/2026",
     "Finish": "02/27/2026",
     "DurationDays": 20,
     "StartOffset": 1065,
     "IsLOE": false
+  },
+  {
+    "ID": "MFG-1",
+    "ProgramID": "MFG",
+    "Name": "System Test and Evaluation",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-2",
+    "ProgramID": "MFG",
+    "Name": "Training",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-3",
+    "ProgramID": "MFG",
+    "Name": "Data",
+    "Start": "02/01/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 21,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-4",
+    "ProgramID": "MFG",
+    "Name": "Peculiar Support Equipment",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-5",
+    "ProgramID": "MFG",
+    "Name": "Common Support Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-6",
+    "ProgramID": "MFG",
+    "Name": "Operational/Site Activation",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-7",
+    "ProgramID": "MFG",
+    "Name": "Industrial Facilities",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-8",
+    "ProgramID": "MFG",
+    "Name": "System Test and Evaluation",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-9",
+    "ProgramID": "MFG",
+    "Name": "Training",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-10",
+    "ProgramID": "MFG",
+    "Name": "Data",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-11",
+    "ProgramID": "MFG",
+    "Name": "Peculiar Support Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-12",
+    "ProgramID": "MFG",
+    "Name": "Common Support Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-13",
+    "ProgramID": "MFG",
+    "Name": "Operational/Site Activation",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-14",
+    "ProgramID": "MFG",
+    "Name": "Industrial Facilities",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-15",
+    "ProgramID": "MFG",
+    "Name": "System Test and Evaluation",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
+  },
+  {
+    "ID": "MFG-16",
+    "ProgramID": "MFG",
+    "Name": "Training",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 1065,
+    "IsLOE": true
   }
 ]

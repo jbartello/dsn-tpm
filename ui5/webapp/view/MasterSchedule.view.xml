@@ -9,6 +9,15 @@
   displayBlock="true">
   <Page id="msPage" title="Master Schedule — Monte Carlo" showNavButton="true" navButtonPress=".onNavBack"
         class="sapUiResponsiveContentPadding">
+    <subHeader>
+      <OverflowToolbar>
+        <Label text="Program"/>
+        <Select selectedKey="{ui>/program}" change=".onProgramChange">
+          <core:Item key="DEMO" text="Demo"/>
+          <core:Item key="MFG" text="MFG Program"/>
+        </Select>
+      </OverflowToolbar>
+    </subHeader>
     <content>
       <VBox class="sapUiMediumMargin">
         <Title text="Integrated Master Schedule — Demo program" level="H2" class="sapUiSmallMarginBottom"/>
@@ -67,7 +76,7 @@
           </content>
         </Panel>
 
-        <Table items="{/ScheduleActivities}" growing="true" growingThreshold="15" class="sapUiMediumMarginTop">
+        <Table id="schedTable" items="{/ScheduleActivities}" growing="true" growingThreshold="15" class="sapUiMediumMarginTop">
           <headerToolbar><OverflowToolbar><Title text="Schedule Activities"/></OverflowToolbar></headerToolbar>
           <columns>
             <Column><Text text="ID"/></Column>

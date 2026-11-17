@@ -93,7 +93,8 @@
         <Key>
           <PropertyRef Name="ID"/>
         </Key>
-        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="10"/>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="15"/>
+        <Property Name="ProgramID" Type="Edm.String" MaxLength="10"/>
         <Property Name="Name" Type="Edm.String" MaxLength="60"/>
         <Property Name="Start" Type="Edm.String" MaxLength="12"/>
         <Property Name="Finish" Type="Edm.String" MaxLength="12"/>

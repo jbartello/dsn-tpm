@@ -2,15 +2,25 @@
   controllerName="dassian.tpm.ui5.controller.Analytics"
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
+  xmlns:core="sap.ui.core"
   xmlns:viz="sap.viz.ui5.controls"
   xmlns:vizData="sap.viz.ui5.data"
   xmlns:vizFeeds="sap.viz.ui5.controls.common.feeds"
   displayBlock="true">
   <Page id="analyticsPage" title="Project Analytics — EVM" showNavButton="true" navButtonPress=".onNavBack"
         class="sapUiResponsiveContentPadding">
+    <subHeader>
+      <OverflowToolbar>
+        <Label text="Program"/>
+        <Select selectedKey="{ui>/program}" change=".onProgramChange">
+          <core:Item key="DEMO" text="Demo"/>
+          <core:Item key="MFG" text="MFG Program"/>
+        </Select>
+      </OverflowToolbar>
+    </subHeader>
     <content>
       <VBox class="sapUiMediumMargin">
-        <Title text="Budget (BAC) vs Estimate at Completion (EAC) — Demo program" level="H3" class="sapUiSmallMarginBottom"/>
+        <Title text="Budget (BAC) vs Estimate at Completion (EAC)" level="H3" class="sapUiSmallMarginBottom"/>
         <viz:VizFrame id="bacEacChart" vizType="column" height="380px" width="100%" uiConfig="{applicationSet:'fiori'}">
           <viz:dataset>
             <vizData:FlattenedDataset data="{chart>/items}">
