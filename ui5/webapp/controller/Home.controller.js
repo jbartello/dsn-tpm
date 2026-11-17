@@ -13,14 +13,11 @@ sap.ui.define([
     onOpenControlAccounts: function () {
       this._go("ControlAccounts");
     },
-    onOpenRisks: function () {
-      this._go("Risks");
+    onOpenRiskInfo: function () {
+      this._go("RiskInfo");
     },
     onOpenAnalytics: function () {
       this._go("Analytics");
-    },
-    onOpenRiskMatrix: function () {
-      this._go("RiskMatrix");
     },
     onOpenMasterSchedule: function () {
       this._go("MasterSchedule");

@@ -104,24 +104,14 @@
           "target": "ControlAccountsObjectPage"
         },
         {
-          "pattern": "Risks:?query:",
-          "name": "RisksList",
-          "target": "RisksList"
-        },
-        {
-          "pattern": "Risks({key}):?query:",
-          "name": "RisksObjectPage",
-          "target": "RisksObjectPage"
+          "pattern": "RiskInfo",
+          "name": "RiskInfo",
+          "target": "TargetRiskInfo"
         },
         {
           "pattern": "Analytics",
           "name": "Analytics",
           "target": "TargetAnalytics"
-        },
-        {
-          "pattern": "RiskMatrix",
-          "name": "RiskMatrix",
-          "target": "TargetRiskMatrix"
         },
         {
           "pattern": "MasterSchedule",
@@ -186,13 +176,6 @@
           "type": "View",
           "id": "Analytics",
           "name": "dassian.tpm.ui5.view.Analytics",
-          "viewType": "XML",
-          "controlAggregation": "pages"
-        },
-        "TargetRiskMatrix": {
-          "type": "View",
-          "id": "RiskMatrix",
-          "name": "dassian.tpm.ui5.view.RiskMatrix",
           "viewType": "XML",
           "controlAggregation": "pages"
         },
@@ -281,31 +264,12 @@
           "viewType": "XML",
           "controlAggregation": "pages"
         },
-        "RisksList": {
-          "type": "Component",
-          "id": "RisksList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
-            "settings": {
-              "contextPath": "/Risks",
-              "variantManagement": "Page",
-              "initialLoad": "Enabled",
-              "navigation": {
-                "Risks": { "detail": { "route": "RisksObjectPage" } }
-              },
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": { "type": "ResponsiveTable" }
-                }
-              }
-            }
-          }
-        },
-        "RisksObjectPage": {
-          "type": "Component",
-          "id": "RisksObjectPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": { "settings": { "contextPath": "/Risks" } }
+        "TargetRiskInfo": {
+          "type": "View",
+          "id": "RiskInfo",
+          "name": "dassian.tpm.ui5.view.RiskInfo",
+          "viewType": "XML",
+          "controlAggregation": "pages"
         },
         "ControlAccountsList": {
           "type": "Component",

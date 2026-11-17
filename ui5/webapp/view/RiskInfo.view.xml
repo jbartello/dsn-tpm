@@ -1,0 +1,97 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.RiskInfo"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+  <Page id="riskInfoPage" title="Risk Information" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <subHeader>
+      <OverflowToolbar>
+        <Label text="Program"/>
+        <Select selectedKey="{ui>/program}" change=".onProgramChange">
+          <core:Item key="DEMO" text="Demo"/>
+          <core:Item key="MFG" text="MFG Program"/>
+        </Select>
+        <ToolbarSpacer/>
+        <SegmentedButton selectedKey="{risk>/kind}" selectionChange=".onKindChange">
+          <items>
+            <SegmentedButtonItem key="Risk" text="Risks ({risk>/riskCount})"/>
+            <SegmentedButtonItem key="Opportunity" text="Opportunities ({risk>/oppCount})"/>
+          </items>
+        </SegmentedButton>
+      </OverflowToolbar>
+    </subHeader>
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Probability × Impact" level="H3" class="sapUiTinyMarginBottom"/>
+        <VBox id="matrixHost" class="sapUiSmallMarginBottom"/>
+
+        <Table items="{risk>/items}" growing="true" growingThreshold="20" class="sapUiMediumMarginTop">
+          <headerToolbar><OverflowToolbar><Title text="{= ${risk>/kind} === 'Risk' ? 'Risks' : 'Opportunities' } Register"/></OverflowToolbar></headerToolbar>
+          <columns>
+            <Column><Text text="ID"/></Column>
+            <Column><Text text="Title"/></Column>
+            <Column><Text text="Category (RBS)"/></Column>
+            <Column><Text text="Response"/></Column>
+            <Column><Text text="Owner"/></Column>
+            <Column><Text text="Status"/></Column>
+            <Column hAlign="End"><Text text="Current Score"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem type="Navigation" press=".onRiskPress">
+              <cells>
+                <Text text="{risk>ID}"/>
+                <Text text="{risk>Title}"/>
+                <Text text="{risk>Category}"/>
+                <Text text="{risk>ResponseStrategy}"/>
+                <Text text="{risk>Owner}"/>
+                <Text text="{risk>Status}"/>
+                <ObjectNumber number="{risk>CurrentScore}" state="{= ${risk>ScoreCriticality} === 1 ? 'Error' : (${risk>ScoreCriticality} === 2 ? 'Warning' : 'Success') }"/>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+
+      <Dialog id="riskDialog" title="{sel>/ID} — {sel>/Description}" contentWidth="42rem" stretch="{device>/system/phone}">
+        <content>
+          <IconTabBar expandable="false">
+            <items>
+              <IconTabFilter text="Risk Details" key="det">
+                <VBox class="sapUiSmallMargin">
+                  <Label text="Type"/><Text text="{sel>/Kind}"/>
+                  <Label text="Category (RBS)" class="sapUiSmallMarginTop"/><Text text="{sel>/Category}"/>
+                  <Label text="Owner" class="sapUiSmallMarginTop"/><Text text="{sel>/Owner}"/>
+                  <Label text="Status" class="sapUiSmallMarginTop"/><Text text="{sel>/Status}"/>
+                  <Label text="Work Package" class="sapUiSmallMarginTop"/><Text text="{sel>/WorkPackage}"/>
+                  <Label text="Cause" class="sapUiSmallMarginTop"/><Text text="{sel>/Cause}"/>
+                  <Label text="Event" class="sapUiSmallMarginTop"/><Text text="{sel>/Event}"/>
+                  <Label text="Effect" class="sapUiSmallMarginTop"/><Text text="{sel>/Effect}"/>
+                </VBox>
+              </IconTabFilter>
+              <IconTabFilter text="Scoring" key="sco">
+                <VBox class="sapUiSmallMargin">
+                  <Label text="Probability"/><Text text="{sel>/Probability}"/>
+                  <Label text="Impact" class="sapUiSmallMarginTop"/><Text text="{sel>/Impact}"/>
+                  <Label text="Original Score" class="sapUiSmallMarginTop"/><Text text="{sel>/OriginalScore}"/>
+                  <Label text="Current Score" class="sapUiSmallMarginTop"/><Text text="{sel>/CurrentScore}"/>
+                  <Label text="Target Score" class="sapUiSmallMarginTop"/><Text text="{sel>/TargetScore}"/>
+                </VBox>
+              </IconTabFilter>
+              <IconTabFilter text="Mitigation" key="mit">
+                <VBox class="sapUiSmallMargin">
+                  <Label text="Response Strategy"/><Text text="{sel>/ResponseStrategy}"/>
+                  <Label text="Mitigation Plan" class="sapUiSmallMarginTop"/><Text text="{sel>/MitigationPlan}"/>
+                  <Label text="Triggers / Warning Signs" class="sapUiSmallMarginTop"/><Text text="{sel>/Triggers}"/>
+                  <Label text="Target Value (USD)" class="sapUiSmallMarginTop"/><Text text="{sel>/TargetValue}"/>
+                </VBox>
+              </IconTabFilter>
+            </items>
+          </IconTabBar>
+        </content>
+        <beginButton><Button text="Close" press=".onCloseDialog"/></beginButton>
+      </Dialog>
+    </content>
+  </Page>
+</mvc:View>
