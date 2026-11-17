@@ -68,6 +68,13 @@
                   <Label text="Cause" class="sapUiSmallMarginTop"/><Text text="{sel>/Cause}"/>
                   <Label text="Event" class="sapUiSmallMarginTop"/><Text text="{sel>/Event}"/>
                   <Label text="Effect" class="sapUiSmallMarginTop"/><Text text="{sel>/Effect}"/>
+                  <Title text="Risk Values (USD)" level="H5" class="sapUiMediumMarginTop sapUiTinyMarginBottom"/>
+                  <HBox wrap="Wrap">
+                    <VBox class="mcStatBox"><Text text="Risk Value" class="mcStatLbl"/><Title text="{sel>/RiskValue}" level="H5"/></VBox>
+                    <VBox class="mcStatBox"><Text text="Original Value" class="mcStatLbl"/><Title text="{sel>/OriginalValue}" level="H5"/></VBox>
+                    <VBox class="mcStatBox"><Text text="Current Mitigated" class="mcStatLbl"/><Title text="{sel>/CurrentValue}" level="H5"/></VBox>
+                    <VBox class="mcStatBox"><Text text="Target Value" class="mcStatLbl"/><Title text="{sel>/TargetValue}" level="H5"/></VBox>
+                  </HBox>
                 </VBox>
               </IconTabFilter>
               <IconTabFilter text="Scoring" key="sco">
@@ -86,6 +93,35 @@
                   <Label text="Triggers / Warning Signs" class="sapUiSmallMarginTop"/><Text text="{sel>/Triggers}"/>
                   <Label text="Target Value (USD)" class="sapUiSmallMarginTop"/><Text text="{sel>/TargetValue}"/>
                 </VBox>
+              </IconTabFilter>
+              <IconTabFilter text="Tasks" key="tsk">
+                <Table items="{sel>/tasks}" class="sapUiSmallMargin" noDataText="No mitigation tasks.">
+                  <columns>
+                    <Column><Text text="Description"/></Column>
+                    <Column><Text text="Start"/></Column>
+                    <Column><Text text="End"/></Column>
+                    <Column><Text text="Assigned To"/></Column>
+                    <Column hAlign="End"><Text text="Target Score"/></Column>
+                    <Column><Text text="Status"/></Column>
+                    <Column hAlign="End"><Text text="Target Value"/></Column>
+                  </columns>
+                  <items>
+                    <ColumnListItem>
+                      <cells>
+                        <Text text="{sel>Desc}"/>
+                        <Text text="{sel>Start}"/>
+                        <Text text="{sel>End}"/>
+                        <Text text="{sel>Assigned}"/>
+                        <Text text="{sel>TargetScore}"/>
+                        <Text text="{sel>Status}"/>
+                        <Text text="{sel>TargetValue}"/>
+                      </cells>
+                    </ColumnListItem>
+                  </items>
+                </Table>
+              </IconTabFilter>
+              <IconTabFilter text="Waterfall" key="wat">
+                <core:HTML id="waterfallHtml" class="sapUiSmallMargin"/>
               </IconTabFilter>
             </items>
           </IconTabBar>

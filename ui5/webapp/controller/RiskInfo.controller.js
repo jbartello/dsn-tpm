@@ -22,7 +22,29 @@ sap.ui.define([
     onInit: function () {
       this.getView().setModel(new JSONModel({ kind: "Risk", items: [], riskCount: 0, oppCount: 0 }), "risk");
       this.getView().setModel(new JSONModel({}), "sel");
+      var tm = new JSONModel();
+      tm.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/risktasks.json"));
+      tm.attachRequestCompleted(function () { this._tasks = tm.getData() || {}; }.bind(this));
       this._load();
+    },
+
+    _waterfall: function (o) {
+      var rows = [
+        { label: "Original", v: parseFloat(o.OriginalScore) || 0, color: "#e12219" },
+        { label: "Current (mitigated)", v: parseFloat(o.CurrentScore) || 0, color: "#ef8a2b" },
+        { label: "Target (residual)", v: parseFloat(o.TargetScore) || 0, color: "#2e7d0e" }
+      ];
+      var h = '<div style="max-width:34rem">';
+      rows.forEach(function (r) {
+        var pct = Math.max(2, Math.round(r.v * 100));
+        h += '<div style="display:flex;align-items:center;margin:8px 0">'
+          + '<div style="width:11rem;color:#6a6d70;font-size:0.8rem">' + r.label + '</div>'
+          + '<div style="flex:1;background:#eaecee;border-radius:4px;height:1.5rem">'
+          + '<div style="width:' + pct + '%;background:' + r.color + ';height:100%;border-radius:4px"></div></div>'
+          + '<div style="width:3.5rem;text-align:right;font-weight:700;margin-left:8px">' + r.v.toFixed(2) + '</div></div>';
+      });
+      h += '<div style="color:#6a6d70;font-size:0.75rem;margin-top:10px">Score reduction from original exposure, through mitigation, to the target residual score.</div></div>';
+      return h;
     },
 
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
@@ -88,8 +110,11 @@ sap.ui.define([
     },
 
     onRiskPress: function (evt) {
-      var ctx = evt.getSource().getBindingContext("risk");
-      this.getView().getModel("sel").setData(Object.assign({}, ctx.getObject()));
+      var o = evt.getSource().getBindingContext("risk").getObject();
+      var sel = this.getView().getModel("sel");
+      sel.setData(Object.assign({}, o));
+      sel.setProperty("/tasks", (this._tasks && this._tasks[o.ID]) || []);
+      var wf = this.byId("waterfallHtml"); if (wf) { wf.setContent(this._waterfall(o)); }
       this.byId("riskDialog").open();
     },
     onCloseDialog: function () { this.byId("riskDialog").close(); },
