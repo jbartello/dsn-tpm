@@ -66,4 +66,8 @@ Every module is reachable from the tile launchpad; Control Accounts / Risk Regis
 
 ## Production path
 
-Replace the mock with an **ABAP RAP** service: CDS views for Control Accounts, Work Packages, WBS, Risks, Schedule Activities, exposed as OData V4, with the same UI annotations moved to CDS metadata extensions. The Fiori elements front end stays essentially unchanged.
+Replace the mock with an **ABAP RAP** service: CDS views for the entities,
+exposed as OData V4, with the UI annotations moved to CDS metadata extensions.
+The Fiori elements front end stays essentially unchanged. See **[PRODUCTION.md](PRODUCTION.md)**
+for the full entity→CDS mapping, service exposure, RAP behavior, and what changes
+in `webapp/` — plus an example CDS view in [docs/C_TPMControlAccount.cds](docs/C_TPMControlAccount.cds).
