@@ -41,9 +41,9 @@
     },
     "contentDensities": { "compact": true, "cozy": true },
     "rootView": {
-      "viewName": "dassian.tpm.ui5.view.App",
+      "viewName": "sap.fe.core.rootView.NavContainer",
       "type": "XML",
-      "id": "App",
+      "id": "appRootView",
       "async": true
     },
     "models": {
