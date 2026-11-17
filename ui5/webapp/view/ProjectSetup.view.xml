@@ -1,0 +1,64 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.ProjectSetup"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:f="sap.ui.layout.form"
+  displayBlock="true">
+  <Page id="setupPage" title="Project Setup" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <subHeader>
+      <OverflowToolbar>
+        <Label text="Program"/>
+        <Select selectedKey="{ui>/program}" change=".onProgramChange">
+          <core:Item key="DEMO" text="Demo"/>
+          <core:Item key="MFG" text="MFG Program"/>
+        </Select>
+      </OverflowToolbar>
+    </subHeader>
+    <content>
+      <VBox class="sapUiMediumMargin">
+
+        <Panel headerText="Project Header" class="sapUiSmallMarginBottom" expandable="true" expanded="true">
+          <f:SimpleForm layout="ResponsiveGridLayout" editable="true"
+                        labelSpanXL="5" labelSpanL="5" labelSpanM="5" columnsXL="2" columnsL="2" columnsM="2">
+            <Label text="Reporting Level"/>
+            <Select selectedKey="{set>/header/reporting}" items="{set>/opts/reporting}"><core:Item key="{set>}" text="{set>}"/></Select>
+            <Label text="Program Manager"/>
+            <Input value="{set>/header/pm}"/>
+            <Label text="PMB Version"/>
+            <Select selectedKey="{set>/header/pmbVer}" items="{set>/opts/pmbVer}"><core:Item key="{set>}" text="{set>}"/></Select>
+            <Label text="EAC Version"/>
+            <Select selectedKey="{set>/header/eacVer}" items="{set>/opts/eacVer}"><core:Item key="{set>}" text="{set>}"/></Select>
+            <Label text="Extract Profile"/>
+            <Select selectedKey="{set>/header/extract}" items="{set>/opts/extract}"><core:Item key="{set>}" text="{set>}"/></Select>
+            <Label text="OBS"/>
+            <Input value="{set>/header/obs}"/>
+          </f:SimpleForm>
+        </Panel>
+
+        <Panel headerText="Variance Thresholds — /DSN/PPCN" class="sapUiSmallMarginBottom" expandable="true" expanded="true">
+          <headerToolbar>
+            <OverflowToolbar>
+              <Title text="Variance Thresholds — /DSN/PPCN"/>
+              <ToolbarSpacer/>
+              <Button text="Copy thresholds from another project" icon="sap-icon://copy" press=".onCopyThresholds"/>
+            </OverflowToolbar>
+          </headerToolbar>
+          <VBox>
+            <Text text="Period thresholds apply to the current accounting period; cumulative thresholds apply to project-to-date. Upper/Lower limits bound positive/negative variance; % drives each object's Red/Yellow/Green status (CPR Format 5). Variance at Complete is cumulative only. Blank = 0." class="sapUiTinyMarginBottom"/>
+            <core:HTML id="threshHtml"/>
+          </VBox>
+        </Panel>
+
+        <Panel headerText="WBS Structure &amp; Classification (EIA-748)" expandable="true" expanded="true">
+          <VBox>
+            <Text text="Each WBS element is classified as a Control Account (CA), Work Package (WP), or Management Reserve / Undistributed Budget (MR/UB). A work package must sit below a control account; MR/UB cannot live inside the control-account hierarchy." class="sapUiTinyMarginBottom"/>
+            <core:HTML id="wbsHtml"/>
+          </VBox>
+        </Panel>
+
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

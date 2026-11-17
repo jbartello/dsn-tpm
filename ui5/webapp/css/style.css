@@ -50,3 +50,29 @@ svg.chart [data-tip] { cursor: pointer; }
 .rc-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
 .rc-legend .ln { width: 18px; border-top: 3px solid; display: inline-block; }
 .rc-legend .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+
+/* Project Setup: variance threshold matrix (/DSN/PPCN) */
+.ps-th-wrap { overflow-x: auto; }
+table.ps-th-tbl { border-collapse: collapse; font-size: 0.75rem; white-space: nowrap; }
+table.ps-th-tbl th, table.ps-th-tbl td { border: 1px solid #e6e6e6; padding: 5px 8px; text-align: right; }
+table.ps-th-tbl thead th { background: #fafafa; text-align: center; font-weight: 700; color: #32363a; }
+table.ps-th-tbl thead .ps-th-grp { background: #eef3f8; }
+table.ps-th-tbl thead .ps-th-red { color: #bb0000; }
+table.ps-th-tbl thead .ps-th-yel { color: #e9730c; }
+table.ps-th-tbl .ps-th-corner { border: none; background: #fff; }
+td.ps-th-var { text-align: left; font-weight: 700; background: #f7f9fb; vertical-align: middle; }
+td.ps-th-lim { text-align: left; color: #6a6d70; }
+td.ps-th-empty { background: repeating-linear-gradient(45deg, #f7f7f7, #f7f7f7 5px, #f0f0f0 5px, #f0f0f0 10px); }
+input.ps-th-in { width: 86px; text-align: right; font-family: inherit; font-size: 0.75rem; font-variant-numeric: tabular-nums; border: 1px solid #cdd8e3; border-radius: 4px; padding: 4px 6px; color: #32363a; }
+input.ps-th-in:focus { outline: none; border-color: #0a6ed1; box-shadow: 0 0 0 2px #d6e6f8; }
+
+/* Project Setup: WBS classification table */
+table.wbs-tbl { border-collapse: collapse; font-size: 0.8rem; width: 100%; }
+table.wbs-tbl th, table.wbs-tbl td { border-bottom: 1px solid #ededed; padding: 7px 10px; text-align: left; }
+table.wbs-tbl thead th { color: #6a6d70; font-weight: 600; background: #fafafa; }
+table.wbs-tbl .wbs-code { font-variant-numeric: tabular-nums; color: #0a6ed1; }
+table.wbs-tbl .wbs-num { text-align: right; font-variant-numeric: tabular-nums; }
+.wbs-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.68rem; font-weight: 600; }
+.wbs-ca { background: #e8f0fb; color: #0a4a8f; }
+.wbs-wp { background: #eaf4ec; color: #19632c; }
+.wbs-mrub { background: #f4eef9; color: #5b3a8a; }

@@ -115,6 +115,11 @@
           "target": "TargetRiskInfo"
         },
         {
+          "pattern": "ProjectSetup",
+          "name": "ProjectSetup",
+          "target": "TargetProjectSetup"
+        },
+        {
           "pattern": "Analytics",
           "name": "Analytics",
           "target": "TargetAnalytics"
@@ -252,6 +257,13 @@
           "type": "View",
           "id": "RiskInfo",
           "name": "dassian.tpm.ui5.view.RiskInfo",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetProjectSetup": {
+          "type": "View",
+          "id": "ProjectSetup",
+          "name": "dassian.tpm.ui5.view.ProjectSetup",
           "viewType": "XML",
           "controlAggregation": "pages"
         },
