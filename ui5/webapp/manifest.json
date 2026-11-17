@@ -48,7 +48,8 @@
         "sap.fe.templates": {},
         "sap.fe.core": {},
         "sap.ui.layout": {},
-        "sap.viz": {}
+        "sap.viz": {},
+        "sap.ui.table": {}
       }
     },
     "contentDensities": { "compact": true, "cozy": true },
@@ -166,6 +167,11 @@
           "pattern": "Artifacts({key}):?query:",
           "name": "ArtifactsObjectPage",
           "target": "ArtifactsObjectPage"
+        },
+        {
+          "pattern": "Reports",
+          "name": "Reports",
+          "target": "TargetReports"
         }
       ],
       "targets": {
@@ -267,6 +273,13 @@
           "id": "ArtifactsObjectPage",
           "name": "sap.fe.templates.ObjectPage",
           "options": { "settings": { "contextPath": "/Artifacts" } }
+        },
+        "TargetReports": {
+          "type": "View",
+          "id": "Reports",
+          "name": "dassian.tpm.ui5.view.Reports",
+          "viewType": "XML",
+          "controlAggregation": "pages"
         },
         "RisksList": {
           "type": "Component",

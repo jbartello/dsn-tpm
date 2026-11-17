@@ -13,6 +13,7 @@ framework:
     - name: sap.ushell
     - name: sap.ui.layout
     - name: sap.viz
+    - name: sap.ui.table
     - name: themelib_sap_horizon
 server:
   customMiddleware:

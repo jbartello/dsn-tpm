@@ -1,0 +1,30 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.Reports"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:table="sap.ui.table"
+  displayBlock="true">
+  <Page id="reportsPage" title="Artifact Reports — Demo program" showNavButton="true" navButtonPress=".onNavBack">
+    <content>
+      <IconTabBar id="reportTabs" expandable="false" stretchContentHeight="true" class="sapUiResponsiveContentPadding">
+        <items>
+          <IconTabFilter text="WBS Dictionary" key="wbs">
+            <table:Table id="wbsTable" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="10" enableColumnReordering="true"/>
+          </IconTabFilter>
+          <IconTabFilter text="RAM" key="ram">
+            <table:Table id="ramTable" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="10"/>
+          </IconTabFilter>
+          <IconTabFilter text="CAP Summary" key="cap">
+            <table:Table id="capTable" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="10"/>
+          </IconTabFilter>
+          <IconTabFilter text="Tripwire" key="tripwire">
+            <table:Table id="tripTable" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="10"/>
+          </IconTabFilter>
+          <IconTabFilter text="Control Log" key="controllog">
+            <table:Table id="clTable" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="10"/>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

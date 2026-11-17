@@ -39,6 +39,9 @@ sap.ui.define([
     },
     onOpenArtifacts: function () {
       this._go("Artifacts");
+    },
+    onOpenReports: function () {
+      this._go("Reports");
     }
   });
 });

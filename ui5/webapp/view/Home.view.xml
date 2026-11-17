@@ -62,6 +62,11 @@
               <NumericContent value="10" valueColor="Neutral" icon="sap-icon://documents"/>
             </TileContent>
           </GenericTile>
+          <GenericTile header="Report Viewer" subheader="WBS · RAM · CAP · Tripwire · Log" press=".onOpenReports">
+            <TileContent>
+              <NumericContent value="5" valueColor="Good" icon="sap-icon://table-chart"/>
+            </TileContent>
+          </GenericTile>
         </f:GridContainer>
       </VBox>
     </content>
