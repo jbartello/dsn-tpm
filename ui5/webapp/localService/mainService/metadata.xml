@@ -53,6 +53,42 @@
         </NavigationProperty>
       </EntityType>
 
+      <EntityType Name="Risk">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="20"/>
+        <Property Name="ProgramID" Type="Edm.String" MaxLength="10"/>
+        <Property Name="ProjectID" Type="Edm.String" MaxLength="20"/>
+        <Property Name="Kind" Type="Edm.String" MaxLength="12"/>
+        <Property Name="Title" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="250"/>
+        <Property Name="Category" Type="Edm.String" MaxLength="60"/>
+        <Property Name="ResponseStrategy" Type="Edm.String" MaxLength="20"/>
+        <Property Name="Triggers" Type="Edm.String" MaxLength="250"/>
+        <Property Name="Owner" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="20"/>
+        <Property Name="WorkPackage" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Probability" Type="Edm.String" MaxLength="20"/>
+        <Property Name="Impact" Type="Edm.String" MaxLength="20"/>
+        <Property Name="ProbIndex" Type="Edm.Int32"/>
+        <Property Name="ImpactIndex" Type="Edm.Int32"/>
+        <Property Name="OriginalScore" Type="Edm.Decimal" Precision="5" Scale="4"/>
+        <Property Name="CurrentScore" Type="Edm.Decimal" Precision="5" Scale="4"/>
+        <Property Name="TargetScore" Type="Edm.Decimal" Precision="5" Scale="4"/>
+        <Property Name="RiskValue" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="OriginalValue" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="CurrentValue" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="TargetValue" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="Cause" Type="Edm.String" MaxLength="250"/>
+        <Property Name="Event" Type="Edm.String" MaxLength="250"/>
+        <Property Name="Effect" Type="Edm.String" MaxLength="250"/>
+        <Property Name="MitigationPlan" Type="Edm.String" MaxLength="500"/>
+        <Property Name="DateRaised" Type="Edm.String" MaxLength="12"/>
+        <Property Name="LastReviewed" Type="Edm.String" MaxLength="12"/>
+        <Property Name="ScoreCriticality" Type="Edm.Int32"/>
+      </EntityType>
+
       <EntityContainer Name="Container">
         <EntitySet Name="Programs" EntityType="dassian.tpm.Program">
           <NavigationPropertyBinding Path="Projects" Target="Projects"/>
@@ -64,6 +100,7 @@
         <EntitySet Name="ControlAccounts" EntityType="dassian.tpm.ControlAccount">
           <NavigationPropertyBinding Path="Project" Target="Projects"/>
         </EntitySet>
+        <EntitySet Name="Risks" EntityType="dassian.tpm.Risk"/>
       </EntityContainer>
 
     </Schema>

@@ -167,6 +167,107 @@
         <Annotation Term="Common.Label" String="Control Account Manager"/>
       </Annotations>
 
+      <!-- ============================ Risk ============================ -->
+      <Annotations Target="dassian.tpm.Risk">
+
+        <Annotation Term="UI.HeaderInfo">
+          <Record Type="UI.HeaderInfoType">
+            <PropertyValue Property="TypeName" String="Risk"/>
+            <PropertyValue Property="TypeNamePlural" String="Risks"/>
+            <PropertyValue Property="Title">
+              <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Description"/></Record>
+            </PropertyValue>
+            <PropertyValue Property="Description">
+              <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/></Record>
+            </PropertyValue>
+          </Record>
+        </Annotation>
+
+        <Annotation Term="UI.SelectionFields">
+          <Collection>
+            <PropertyPath>Kind</PropertyPath>
+            <PropertyPath>ProgramID</PropertyPath>
+            <PropertyPath>ProjectID</PropertyPath>
+            <PropertyPath>Category</PropertyPath>
+            <PropertyPath>Status</PropertyPath>
+          </Collection>
+        </Annotation>
+
+        <Annotation Term="UI.DataPoint" Qualifier="CurrentScore">
+          <Record Type="UI.DataPointType">
+            <PropertyValue Property="Title" String="Current Score"/>
+            <PropertyValue Property="Value" Path="CurrentScore"/>
+            <PropertyValue Property="Criticality" Path="ScoreCriticality"/>
+          </Record>
+        </Annotation>
+
+        <Annotation Term="UI.LineItem">
+          <Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/><PropertyValue Property="Label" String="Risk ID"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Kind"/><PropertyValue Property="Label" String="Type"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Title"/><PropertyValue Property="Label" String="Title"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Category"/><PropertyValue Property="Label" String="Category (RBS)"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ResponseStrategy"/><PropertyValue Property="Label" String="Response"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Owner"/><PropertyValue Property="Label" String="Owner"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Status"/><PropertyValue Property="Label" String="Status"/></Record>
+            <Record Type="UI.DataFieldForAnnotation"><PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#CurrentScore"/><PropertyValue Property="Label" String="Score"/></Record>
+          </Collection>
+        </Annotation>
+
+        <Annotation Term="UI.FieldGroup" Qualifier="Identity">
+          <Record Type="UI.FieldGroupType"><PropertyValue Property="Data"><Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Kind"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Category"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Owner"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Status"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="WorkPackage"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="DateRaised"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="LastReviewed"/></Record>
+          </Collection></PropertyValue></Record>
+        </Annotation>
+        <Annotation Term="UI.FieldGroup" Qualifier="Statement">
+          <Record Type="UI.FieldGroupType"><PropertyValue Property="Data"><Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Cause"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Event"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Effect"/></Record>
+          </Collection></PropertyValue></Record>
+        </Annotation>
+        <Annotation Term="UI.FieldGroup" Qualifier="Assessment">
+          <Record Type="UI.FieldGroupType"><PropertyValue Property="Data"><Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Probability"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Impact"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="OriginalScore"/></Record>
+            <Record Type="UI.DataFieldForAnnotation"><PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#CurrentScore"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="TargetScore"/></Record>
+          </Collection></PropertyValue></Record>
+        </Annotation>
+        <Annotation Term="UI.FieldGroup" Qualifier="Response">
+          <Record Type="UI.FieldGroupType"><PropertyValue Property="Data"><Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ResponseStrategy"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="MitigationPlan"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Triggers"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="TargetValue"/></Record>
+          </Collection></PropertyValue></Record>
+        </Annotation>
+
+        <Annotation Term="UI.Facets">
+          <Collection>
+            <Record Type="UI.ReferenceFacet"><PropertyValue Property="ID" String="RiskIdentity"/><PropertyValue Property="Label" String="General Information"/><PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Identity"/></Record>
+            <Record Type="UI.ReferenceFacet"><PropertyValue Property="ID" String="RiskStatement"/><PropertyValue Property="Label" String="Risk Statement (Cause / Event / Effect)"/><PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Statement"/></Record>
+            <Record Type="UI.ReferenceFacet"><PropertyValue Property="ID" String="RiskAssessment"/><PropertyValue Property="Label" String="Assessment"/><PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Assessment"/></Record>
+            <Record Type="UI.ReferenceFacet"><PropertyValue Property="ID" String="RiskResponse"/><PropertyValue Property="Label" String="Response"/><PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Response"/></Record>
+          </Collection>
+        </Annotation>
+
+      </Annotations>
+
+      <Annotations Target="dassian.tpm.Risk/Kind"><Annotation Term="Common.Label" String="Type"/></Annotations>
+      <Annotations Target="dassian.tpm.Risk/ProgramID"><Annotation Term="Common.Label" String="Program"/></Annotations>
+      <Annotations Target="dassian.tpm.Risk/ProjectID"><Annotation Term="Common.Label" String="Project"/></Annotations>
+      <Annotations Target="dassian.tpm.Risk/Category"><Annotation Term="Common.Label" String="Category (RBS)"/></Annotations>
+      <Annotations Target="dassian.tpm.Risk/ResponseStrategy"><Annotation Term="Common.Label" String="Response Strategy"/></Annotations>
+
     </Schema>
   </edmx:DataServices>
 </edmx:Edmx>

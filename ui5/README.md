@@ -40,16 +40,22 @@ npm start
 
 | Prototype screen | UI5 realization | Status |
 |---|---|---|
-| Project Values (Control Account summary) | FE **List Report + Object Page** on `ControlAccount` | ✅ Phase 1 |
-| Project Analytics (EVM charts) | Custom OP section with `sap.viz` VizFrame charts | ▢ Phase 2 |
-| Risk Register (risks/opps, 5×5 matrix) | FE List Report on `Risk` + custom matrix section | ▢ Phase 2 |
+| Project Values (Control Account summary) | FE **List Report + Object Page** on `ControlAccount` | ✅ Phase 1 (list verified) |
+| Risk Register (risks & opportunities) | FE **List Report + Object Page** on `Risk`, with PMBOK fields (Risk ID, RBS category, response strategy, triggers) and cause/event/effect | ✅ Phase 2 (list verified) |
+| Risk 5×5 probability/impact matrix | Custom section/page (freestyle) | ▢ Phase 3 |
+| Project Analytics (EVM charts) | Custom OP section with `sap.viz` VizFrame charts | ▢ Phase 3 |
+| Springboard launchpad | FLP sandbox (`sap.ushell`) — single entry linking both apps | ▢ Phase 4 |
 | Project Setup (header / CA / WP / MR-UB) | FE Object Page with sub-sections | ▢ Phase 3 |
 | Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ Phase 3 |
 | Project EAC | FE Object Page + editable table | ▢ Phase 3 |
 | Master Schedule + Monte Carlo | Custom page: `sap.gantt` + VizFrame S-curve | ▢ Phase 4 |
 | Variance Analysis Report | FE List Report + custom expandable narrative | ▢ Phase 4 |
 | Artifacts & slide-outs | FE List Report + dialogs | ▢ Phase 4 |
-| Springboard launchpad | FLP sandbox (`sap.ushell`) with tiles | ▢ Phase 4 |
+| Springboard launchpad (duplicate row removed) | — | — |
+
+### Known items / next up
+- **Object Page detail sections:** header + facet layout render, but the field-group sections don't bind on a *deep link* yet (both entities). To resolve next — likely the correct fix is reaching the object page through list→detail navigation inside the FLP sandbox (which supplies the shell app-state service). Standalone `index.html` lacks `navigationService.storeInnerAppStateAsync`, which is why the unified launchpad is being done as an **FLP sandbox** (Phase 4) rather than a hand-rolled home.
+- **Reach the two apps today:** `index.html` opens Control Accounts; `index.html#/Risks` opens the Risk Register.
 
 ## Production path
 

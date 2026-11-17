@@ -7,6 +7,16 @@
     "applicationVersion": { "version": "0.1.0" },
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
+    "crossNavigation": {
+      "inbounds": {
+        "tpm-display": {
+          "semanticObject": "tpm",
+          "action": "display",
+          "title": "{{appTitle}}",
+          "signature": { "parameters": {}, "additionalParameters": "allowed" }
+        }
+      }
+    },
     "dataSources": {
       "mainService": {
         "uri": "/odata/mainService/",
@@ -81,9 +91,45 @@
           "pattern": "ControlAccounts({key}):?query:",
           "name": "ControlAccountsObjectPage",
           "target": "ControlAccountsObjectPage"
+        },
+        {
+          "pattern": "Risks:?query:",
+          "name": "RisksList",
+          "target": "RisksList"
+        },
+        {
+          "pattern": "Risks({key}):?query:",
+          "name": "RisksObjectPage",
+          "target": "RisksObjectPage"
         }
       ],
       "targets": {
+        "RisksList": {
+          "type": "Component",
+          "id": "RisksList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "contextPath": "/Risks",
+              "variantManagement": "Page",
+              "initialLoad": "Enabled",
+              "navigation": {
+                "Risks": { "detail": { "route": "RisksObjectPage" } }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": { "type": "ResponsiveTable" }
+                }
+              }
+            }
+          }
+        },
+        "RisksObjectPage": {
+          "type": "Component",
+          "id": "RisksObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": { "settings": { "contextPath": "/Risks" } }
+        },
         "ControlAccountsList": {
           "type": "Component",
           "id": "ControlAccountsList",
