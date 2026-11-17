@@ -32,9 +32,10 @@ sap.ui.define([
           var ev = parseFloat(o.EarnedValue) || 0, ac = parseFloat(o.ActualCost) || 0;
           var ieacCpi = cpi > 0 ? bac / cpi : null;                               // IEAC = BAC / CPI
           var ieacComp = (cpi > 0 && spi > 0) ? ac + (bac - ev) / (cpi * spi) : null; // composite CPI×SPI
+          var etc = eac > 0 ? eac - ac : null;                                   // ETC = EAC − ACWP
           items.push({
             wbs: o.ID, desc: o.Description, cam: o.Manager,
-            bacT: fmtM(bac), eacT: fmtM(eac), vacT: fmtM(vac), vac: vac,
+            bacT: fmtM(bac), acwpT: fmtM(ac), etcT: fmtM(etc), eacT: fmtM(eac), vacT: fmtM(vac), vac: vac,
             ieacCpiT: fmtM(ieacCpi), ieacCompT: fmtM(ieacComp),
             cpiT: cpi.toFixed(3), spiT: spi.toFixed(3)
           });
@@ -45,7 +46,7 @@ sap.ui.define([
         this.getView().getModel("eac").setData({
           items: items,
           totals: {
-            bacT: fmtM(sBac), eacT: fmtM(sEac), vacT: fmtM(sVac), vac: sVac,
+            bacT: fmtM(sBac), acwpT: fmtM(sAc), etcT: fmtM(sEac - sAc), eacT: fmtM(sEac), vacT: fmtM(sVac), vac: sVac,
             progCpiT: progCpi.toFixed(3), progIeacT: fmtM(progIeac)
           }
         });

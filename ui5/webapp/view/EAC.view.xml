@@ -20,6 +20,8 @@
         <Title text="Estimate at Completion — Demo program" level="H2" class="sapUiSmallMarginBottom"/>
         <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
           <VBox class="mcStatBox"><Text text="Total BAC" class="mcStatLbl"/><Title text="{eac>/totals/bacT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="ACWP to date" class="mcStatLbl"/><Title text="{eac>/totals/acwpT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="ETC" class="mcStatLbl"/><Title text="{eac>/totals/etcT}" level="H4"/></VBox>
           <VBox class="mcStatBox"><Text text="Contract EAC" class="mcStatLbl"/><Title text="{eac>/totals/eacT}" level="H4"/></VBox>
           <VBox class="mcStatBox"><Text text="VAC" class="mcStatLbl"/><Title text="{eac>/totals/vacT}" level="H4"/></VBox>
           <VBox class="mcStatBox"><Text text="Program CPI" class="mcStatLbl"/><Title text="{eac>/totals/progCpiT}" level="H4"/></VBox>
@@ -32,6 +34,8 @@
             <Column><Text text="WBS / CA"/></Column>
             <Column><Text text="Description"/></Column>
             <Column hAlign="End"><Text text="BAC"/></Column>
+            <Column hAlign="End"><Text text="ACWP"/></Column>
+            <Column hAlign="End"><Text text="ETC"/></Column>
             <Column hAlign="End"><Text text="Contract EAC"/></Column>
             <Column hAlign="End"><Text text="IEAC (CPI)"/></Column>
             <Column hAlign="End"><Text text="IEAC (CPI×SPI)"/></Column>
@@ -43,6 +47,8 @@
                 <Text text="{eac>wbs}"/>
                 <Text text="{eac>desc}"/>
                 <Text text="{eac>bacT}"/>
+                <Text text="{eac>acwpT}"/>
+                <Text text="{eac>etcT}"/>
                 <Text text="{eac>eacT}"/>
                 <Text text="{eac>ieacCpiT}"/>
                 <Text text="{eac>ieacCompT}"/>
@@ -51,7 +57,7 @@
             </ColumnListItem>
           </items>
         </Table>
-        <Text text="IEAC (CPI) = BAC ÷ CPI.  IEAC (CPI×SPI) = ACWP + (BAC − BCWP) ÷ (CPI × SPI).  Illustrative; not-started accounts show —." class="sapUiSmallMarginTop"/>
+        <Text text="EAC = ACWP + ETC (actuals-to-date plus estimate-to-complete).  IEAC (CPI) = BAC ÷ CPI.  IEAC (CPI×SPI) = ACWP + (BAC − BCWP) ÷ (CPI × SPI).  Illustrative; not-started accounts show —." class="sapUiSmallMarginTop"/>
       </VBox>
     </content>
   </Page>
