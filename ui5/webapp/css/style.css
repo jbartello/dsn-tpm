@@ -28,3 +28,8 @@
   min-width: 7.5rem;
 }
 .mcStatLbl { color: #6a6d70; font-size: 0.72rem; }
+
+/* Risk Information: register score colour (red for risks, purple for opportunities) */
+.scoreCell { font-weight: 700; }
+.kindRisk .scoreCell { color: #c0271a; }
+.kindOpp .scoreCell { color: #6b4ba8; }

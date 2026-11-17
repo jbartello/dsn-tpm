@@ -25,9 +25,9 @@
     <content>
       <VBox class="sapUiMediumMargin">
         <Title text="Probability × Impact" level="H3" class="sapUiTinyMarginBottom"/>
-        <VBox id="matrixHost" class="sapUiSmallMarginBottom"/>
+        <core:HTML id="matrixHtml" class="sapUiSmallMarginBottom"/>
 
-        <Table items="{risk>/items}" growing="true" growingThreshold="20" class="sapUiMediumMarginTop">
+        <Table id="riskTable" items="{risk>/items}" growing="true" growingThreshold="20" class="sapUiMediumMarginTop">
           <headerToolbar><OverflowToolbar><Title text="{= ${risk>/kind} === 'Risk' ? 'Risks' : 'Opportunities' } Register"/></OverflowToolbar></headerToolbar>
           <columns>
             <Column><Text text="ID"/></Column>
@@ -47,7 +47,7 @@
                 <Text text="{risk>ResponseStrategy}"/>
                 <Text text="{risk>Owner}"/>
                 <Text text="{risk>Status}"/>
-                <ObjectNumber number="{risk>CurrentScore}" state="{= ${risk>ScoreCriticality} === 1 ? 'Error' : (${risk>ScoreCriticality} === 2 ? 'Warning' : 'Success') }"/>
+                <Text text="{risk>CurrentScore}" class="scoreCell"/>
               </cells>
             </ColumnListItem>
           </items>

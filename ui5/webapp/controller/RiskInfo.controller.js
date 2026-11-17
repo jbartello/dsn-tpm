@@ -1,15 +1,22 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/core/routing/HashChanger",
-  "sap/ui/model/json/JSONModel",
-  "sap/m/VBox",
-  "sap/m/HBox",
-  "sap/m/Text"
-], function (Controller, HashChanger, JSONModel, VBox, HBox, Text) {
+  "sap/ui/model/json/JSONModel"
+], function (Controller, HashChanger, JSONModel) {
   "use strict";
 
   var PROB = ["Near Certain", "Highly Likely", "Likely", "Unlikely", "Remote"];
   var IMPACT = ["Insignificant", "Modest", "Moderate", "Significant", "Unacceptable"];
+  // colour tier per cell (row 0 = Near Certain), matches the prototype
+  var TIER = [
+    [3, 4, 4, 5, 5],
+    [2, 3, 4, 5, 5],
+    [0, 2, 3, 4, 5],
+    [0, 0, 2, 3, 4],
+    [0, 0, 2, 2, 3]
+  ];
+  var RISK_PALETTE = { 0: "#2e7d0e", 1: "#4fa015", 2: "#8cc63e", 3: "#e2df1e", 4: "#ef8a2b", 5: "#e12219" };
+  var OPP_PALETTE  = { 0: "#d6e3f7", 1: "#a9c5ec", 2: "#6f9fdc", 3: "#5577c9", 4: "#6b4ba8", 5: "#4b2c87" };
 
   return Controller.extend("dassian.tpm.ui5.controller.RiskInfo", {
     onInit: function () {
@@ -19,14 +26,13 @@ sap.ui.define([
     },
 
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
+    _kind: function () { return this.getView().getModel("risk").getProperty("/kind"); },
     onProgramChange: function () { this._load(); },
-    onKindChange: function (evt) {
-      this.getView().getModel("risk").setProperty("/kind", evt.getParameter("selectedKey"));
-      this._load();
-    },
+    // SegmentedButton two-way-binds selectedKey to risk>/kind already; just reload.
+    onKindChange: function () { this._load(); },
 
     _load: function () {
-      var prog = this._prog(), kind = this.getView().getModel("risk").getProperty("/kind");
+      var prog = this._prog(), kind = this._kind();
       var model = this.getOwnerComponent().getModel();
       model.bindList("/Risks").requestContexts(0, 300).then(function (ctxs) {
         var items = [], counts = Array.from({ length: 5 }, function () { return [0, 0, 0, 0, 0]; });
@@ -44,29 +50,41 @@ sap.ui.define([
         m.setProperty("/items", items);
         m.setProperty("/riskCount", nRisk);
         m.setProperty("/oppCount", nOpp);
-        this._buildMatrix(counts);
+        this._renderMatrix(counts, kind);
+        this._colourScores(kind);
       }.bind(this));
     },
 
-    _zone: function (p, i) { var s = (5 - p) * (i + 1); return s >= 15 ? "riskHigh" : (s >= 6 ? "riskMed" : "riskLow"); },
-    _buildMatrix: function (counts) {
-      var host = this.byId("matrixHost"); if (!host) { return; }
-      host.destroyItems();
+    _renderMatrix: function (counts, kind) {
+      var pal = kind === "Opportunity" ? OPP_PALETTE : RISK_PALETTE;
+      var h = '<div style="display:inline-block">';
       for (var p = 0; p < 5; p++) {
-        var row = new HBox({ alignItems: "Center" });
-        row.addItem(new Text({ text: PROB[p] }).addStyleClass("riskRowLabel"));
+        h += '<div style="display:flex;align-items:center">';
+        h += '<div style="width:7.5rem;color:#6a6d70;font-size:0.8rem">' + PROB[p] + '</div>';
         for (var i = 0; i < 5; i++) {
-          var cell = new VBox({ justifyContent: "Center", alignItems: "Center" });
-          cell.addStyleClass("riskCell").addStyleClass(this._zone(p, i));
-          cell.addItem(new Text({ text: counts[p][i] ? String(counts[p][i]) : "" }));
-          row.addItem(cell);
+          var tier = TIER[p][i], bg = pal[tier];
+          var white = kind === "Opportunity" && tier >= 4;
+          var n = counts[p][i];
+          h += '<div style="width:4.6rem;height:3.2rem;margin:2px;border-radius:4px;display:flex;align-items:center;'
+            + 'justify-content:center;font-weight:700;background:' + bg + ';color:' + (white ? "#fff" : "#1d1d1d") + '">'
+            + (n ? n : "") + "</div>";
         }
-        host.addItem(row);
+        h += "</div>";
       }
-      var labelRow = new HBox();
-      labelRow.addItem(new Text({ text: "" }).addStyleClass("riskRowLabel"));
-      IMPACT.forEach(function (im) { labelRow.addItem(new Text({ text: im }).addStyleClass("riskColLabel")); });
-      host.addItem(labelRow);
+      h += '<div style="display:flex"><div style="width:7.5rem"></div>';
+      IMPACT.forEach(function (im) {
+        h += '<div style="width:4.6rem;margin:2px;text-align:center;color:#6a6d70;font-size:0.72rem">' + im + "</div>";
+      });
+      h += "</div></div>";
+      var ctrl = this.byId("matrixHtml");
+      if (ctrl) { ctrl.setContent(h); }
+    },
+
+    _colourScores: function (kind) {
+      var t = this.byId("riskTable");
+      if (!t) { return; }
+      t.toggleStyleClass("kindOpp", kind === "Opportunity");
+      t.toggleStyleClass("kindRisk", kind !== "Opportunity");
     },
 
     onRiskPress: function (evt) {
