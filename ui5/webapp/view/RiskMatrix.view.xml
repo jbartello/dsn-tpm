@@ -1,0 +1,16 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.RiskMatrix"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  displayBlock="true">
+  <Page id="riskMatrixPage" title="Risk Matrix — 5×5" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Program Risk Matrix (probability × impact)" level="H2" class="sapUiSmallMarginBottom"/>
+        <Text text="Cells are shaded by inherent risk zone; the number is how many register entries fall in that cell." class="sapUiSmallMarginBottom"/>
+        <VBox id="matrixHost"/>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

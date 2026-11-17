@@ -15,6 +15,12 @@ sap.ui.define([
     },
     onOpenRisks: function () {
       this._go("Risks");
+    },
+    onOpenAnalytics: function () {
+      this._go("Analytics");
+    },
+    onOpenRiskMatrix: function () {
+      this._go("RiskMatrix");
     }
   });
 });

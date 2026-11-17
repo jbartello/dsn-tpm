@@ -1,0 +1,54 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.Analytics"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:viz="sap.viz.ui5.controls"
+  xmlns:vizData="sap.viz.ui5.data"
+  xmlns:vizFeeds="sap.viz.ui5.controls.common.feeds"
+  displayBlock="true">
+  <Page id="analyticsPage" title="Project Analytics — EVM" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Budget (BAC) vs Estimate at Completion (EAC) — Demo program" level="H3" class="sapUiSmallMarginBottom"/>
+        <viz:VizFrame id="bacEacChart" vizType="column" height="380px" width="100%" uiConfig="{applicationSet:'fiori'}">
+          <viz:dataset>
+            <vizData:FlattenedDataset data="{chart>/items}">
+              <vizData:dimensions>
+                <vizData:DimensionDefinition name="Control Account" value="{chart>name}"/>
+              </vizData:dimensions>
+              <vizData:measures>
+                <vizData:MeasureDefinition name="BAC" value="{chart>bac}"/>
+                <vizData:MeasureDefinition name="EAC" value="{chart>eac}"/>
+              </vizData:measures>
+            </vizData:FlattenedDataset>
+          </viz:dataset>
+          <viz:feeds>
+            <vizFeeds:FeedItem uid="valueAxis" type="Measure" values="BAC,EAC"/>
+            <vizFeeds:FeedItem uid="categoryAxis" type="Dimension" values="Control Account"/>
+          </viz:feeds>
+        </viz:VizFrame>
+
+        <Title text="Cost vs Schedule Performance (CPI / SPI) by Control Account" level="H3" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
+        <viz:VizFrame id="cpiSpiChart" vizType="scatter" height="380px" width="100%" uiConfig="{applicationSet:'fiori'}">
+          <viz:dataset>
+            <vizData:FlattenedDataset data="{chart>/perf}">
+              <vizData:dimensions>
+                <vizData:DimensionDefinition name="Control Account" value="{chart>name}"/>
+              </vizData:dimensions>
+              <vizData:measures>
+                <vizData:MeasureDefinition name="CPI" value="{chart>cpi}"/>
+                <vizData:MeasureDefinition name="SPI" value="{chart>spi}"/>
+              </vizData:measures>
+            </vizData:FlattenedDataset>
+          </viz:dataset>
+          <viz:feeds>
+            <vizFeeds:FeedItem uid="valueAxis" type="Measure" values="CPI"/>
+            <vizFeeds:FeedItem uid="valueAxis2" type="Measure" values="SPI"/>
+            <vizFeeds:FeedItem uid="regionColor" type="Dimension" values="Control Account"/>
+          </viz:feeds>
+        </viz:VizFrame>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

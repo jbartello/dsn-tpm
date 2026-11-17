@@ -1,0 +1,19 @@
+/* Risk matrix heatmap cells */
+.riskCell {
+  width: 4.6rem;
+  height: 3.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.riskHigh { background: #bb0000; }
+.riskMed  { background: #e9730c; }
+.riskLow  { background: #107e3e; }
+.riskAxisRow { color: #6a6d70; font-size: 0.75rem; }
+.riskRowLabel { width: 7.5rem; color: #6a6d70; font-size: 0.8rem; }
+.riskColLabel { width: 4.6rem; margin: 2px; text-align: center; color: #6a6d70; font-size: 0.72rem; }

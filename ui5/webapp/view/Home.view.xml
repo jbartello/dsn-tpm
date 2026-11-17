@@ -22,6 +22,16 @@
               <NumericContent value="13" valueColor="Critical" icon="sap-icon://alert"/>
             </TileContent>
           </GenericTile>
+          <GenericTile header="Project Analytics" subheader="EVM charts" press=".onOpenAnalytics">
+            <TileContent>
+              <NumericContent value="EVM" valueColor="Good" icon="sap-icon://bar-chart"/>
+            </TileContent>
+          </GenericTile>
+          <GenericTile header="Risk Matrix" subheader="5×5 probability / impact" press=".onOpenRiskMatrix">
+            <TileContent>
+              <NumericContent value="5×5" valueColor="Critical" icon="sap-icon://heatmap-chart"/>
+            </TileContent>
+          </GenericTile>
         </f:GridContainer>
       </VBox>
     </content>

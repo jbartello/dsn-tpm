@@ -42,8 +42,8 @@ npm start
 |---|---|---|
 | Project Values (Control Account summary) | FE **List Report + Object Page** on `ControlAccount` | ✅ Phase 1 (list verified) |
 | Risk Register (risks & opportunities) | FE **List Report + Object Page** on `Risk`, with PMBOK fields (Risk ID, RBS category, response strategy, triggers) and cause/event/effect | ✅ Phase 2 (list verified) |
-| Risk 5×5 probability/impact matrix | Custom section/page (freestyle) | ▢ Phase 3 |
-| Project Analytics (EVM charts) | Custom OP section with `sap.viz` VizFrame charts | ▢ Phase 3 |
+| Risk 5×5 probability/impact matrix | Custom freestyle page: zone-shaded 5×5 heatmap built from `Risk` data | ✅ Phase 4 |
+| Project Analytics (EVM charts) | Custom freestyle page: `sap.viz` VizFrame (BAC vs EAC column, CPI/SPI scatter) | ✅ Phase 4 |
 | Springboard launchpad | FLP sandbox (`sap.ushell`) — single entry linking both apps | ▢ Phase 4 |
 | Project Setup (header / CA / WP / MR-UB) | FE Object Page with sub-sections | ▢ Phase 3 |
 | Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ Phase 3 |

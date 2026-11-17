@@ -46,10 +46,15 @@
         "sap.m": {},
         "sap.ui.core": {},
         "sap.fe.templates": {},
-        "sap.fe.core": {}
+        "sap.fe.core": {},
+        "sap.ui.layout": {},
+        "sap.viz": {}
       }
     },
     "contentDensities": { "compact": true, "cozy": true },
+    "resources": {
+      "css": [ { "uri": "css/style.css" } ]
+    },
     "rootView": {
       "viewName": "sap.fe.core.rootView.NavContainer",
       "type": "XML",
@@ -106,6 +111,16 @@
           "pattern": "Risks({key}):?query:",
           "name": "RisksObjectPage",
           "target": "RisksObjectPage"
+        },
+        {
+          "pattern": "Analytics",
+          "name": "Analytics",
+          "target": "TargetAnalytics"
+        },
+        {
+          "pattern": "RiskMatrix",
+          "name": "RiskMatrix",
+          "target": "TargetRiskMatrix"
         }
       ],
       "targets": {
@@ -113,6 +128,20 @@
           "type": "View",
           "id": "Home",
           "name": "dassian.tpm.ui5.view.Home",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetAnalytics": {
+          "type": "View",
+          "id": "Analytics",
+          "name": "dassian.tpm.ui5.view.Analytics",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetRiskMatrix": {
+          "type": "View",
+          "id": "RiskMatrix",
+          "name": "dassian.tpm.ui5.view.RiskMatrix",
           "viewType": "XML",
           "controlAggregation": "pages"
         },
