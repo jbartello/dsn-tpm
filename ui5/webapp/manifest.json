@@ -126,6 +126,11 @@
           "pattern": "MasterSchedule",
           "name": "MasterSchedule",
           "target": "TargetMasterSchedule"
+        },
+        {
+          "pattern": "VAR",
+          "name": "VAR",
+          "target": "TargetVAR"
         }
       ],
       "targets": {
@@ -154,6 +159,13 @@
           "type": "View",
           "id": "MasterSchedule",
           "name": "dassian.tpm.ui5.view.MasterSchedule",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetVAR": {
+          "type": "View",
+          "id": "VAR",
+          "name": "dassian.tpm.ui5.view.VAR",
           "viewType": "XML",
           "controlAggregation": "pages"
         },

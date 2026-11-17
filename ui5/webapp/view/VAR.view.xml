@@ -1,0 +1,66 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.VAR"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  displayBlock="true">
+  <Page id="varPage" title="Variance Analysis Report — Format 5" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Out-of-tolerance control accounts — Demo program" level="H2"/>
+        <Text text="Click a control account to expand its CPR/IPMR Format 5 narrative: earned-value figures, root cause, impact, corrective action and get-well date, with an AI-draft helper and an approve workflow." class="sapUiSmallMarginBottom sapUiSmallMarginTop"/>
+
+        <VBox items="{narr>/items}">
+          <Panel expandable="true" expanded="false" class="sapUiSmallMarginBottom" width="auto">
+            <headerToolbar>
+              <OverflowToolbar>
+                <ObjectIdentifier title="{narr>wbs}" text="{narr>desc} · CAM {narr>cam}"/>
+                <ToolbarSpacer/>
+                <ObjectStatus text="CPI {narr>cpiT}" state="{= ${narr>cpi} &lt; 0.95 ? 'Error' : 'Success' }" class="sapUiTinyMarginEnd"/>
+                <ObjectStatus text="SPI {narr>spiT}" state="{= ${narr>spi} &lt; 0.95 ? 'Error' : 'Success' }" class="sapUiTinyMarginEnd"/>
+                <ObjectStatus
+                  text="{= ${narr>rc} &amp;&amp; ${narr>im} &amp;&amp; ${narr>ca} ? 'Narrative complete' : 'Narrative pending' }"
+                  state="{= ${narr>rc} &amp;&amp; ${narr>im} &amp;&amp; ${narr>ca} ? 'Success' : 'Warning' }"
+                  icon="{= ${narr>rc} &amp;&amp; ${narr>im} &amp;&amp; ${narr>ca} ? 'sap-icon://sys-enter-2' : 'sap-icon://pending' }"/>
+              </OverflowToolbar>
+            </headerToolbar>
+            <content>
+              <VBox class="sapUiSmallMargin">
+                <HBox wrap="Wrap">
+                  <VBox class="mcStatBox"><Text text="BCWS" class="mcStatLbl"/><Title text="{narr>bcwsT}" level="H4"/></VBox>
+                  <VBox class="mcStatBox"><Text text="BCWP" class="mcStatLbl"/><Title text="{narr>bcwpT}" level="H4"/></VBox>
+                  <VBox class="mcStatBox"><Text text="ACWP" class="mcStatLbl"/><Title text="{narr>acwpT}" level="H4"/></VBox>
+                  <VBox class="mcStatBox"><Text text="CV" class="mcStatLbl"/><Title text="{narr>cvT}" level="H4"/></VBox>
+                  <VBox class="mcStatBox"><Text text="SV" class="mcStatLbl"/><Title text="{narr>svT}" level="H4"/></VBox>
+                  <VBox class="mcStatBox"><Text text="VAC" class="mcStatLbl"/><Title text="{narr>vacT}" level="H4"/></VBox>
+                </HBox>
+
+                <MessageStrip
+                  class="sapUiSmallMarginTop"
+                  visible="{narr>aiDrafted}"
+                  type="Information" showIcon="true"
+                  text="AI-drafted — unverified. The model describes what the data shows; it cannot know the cause. Confirm root cause with the CAM before approving."/>
+
+                <Button text="AI draft narrative" icon="sap-icon://discussion-2" press=".onAiDraft" class="sapUiSmallMarginTop" width="12rem"/>
+
+                <Label text="Root cause" class="sapUiSmallMarginTop"/>
+                <TextArea value="{narr>rc}" rows="3" width="100%" growing="true"/>
+                <Label text="Cost / schedule impact" class="sapUiSmallMarginTop"/>
+                <TextArea value="{narr>im}" rows="2" width="100%" growing="true"/>
+                <Label text="Corrective action plan" class="sapUiSmallMarginTop"/>
+                <TextArea value="{narr>ca}" rows="3" width="100%" growing="true"/>
+                <Label text="Get-well date" class="sapUiSmallMarginTop"/>
+                <Input value="{narr>gw}" placeholder="YYYY-MM" width="10rem"/>
+
+                <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiMediumMarginTop" wrap="Wrap">
+                  <Text text="{= 'Workflow: ' + (${narr>approved} ? 'Approved' : 'Auto-opened') + ' → In analysis → Review → Approved' }"/>
+                  <Button text="Approve VAR" type="Emphasized" icon="sap-icon://accept" press=".onApprove" enabled="{= !${narr>approved} }"/>
+                </HBox>
+              </VBox>
+            </content>
+          </Panel>
+        </VBox>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

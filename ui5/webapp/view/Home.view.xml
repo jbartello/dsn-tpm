@@ -37,6 +37,11 @@
               <NumericContent value="65" valueColor="Neutral" icon="sap-icon://gantt-bars"/>
             </TileContent>
           </GenericTile>
+          <GenericTile header="Variance Analysis" subheader="Format 5 VAR narratives" press=".onOpenVAR">
+            <TileContent>
+              <NumericContent value="VAR" valueColor="Critical" icon="sap-icon://notes"/>
+            </TileContent>
+          </GenericTile>
         </f:GridContainer>
       </VBox>
     </content>

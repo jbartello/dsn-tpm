@@ -49,7 +49,7 @@ npm start
 | Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ Phase 3 |
 | Project EAC | FE Object Page + editable table | ▢ Phase 3 |
 | Master Schedule + Monte Carlo | Custom freestyle page: activity table + Monte Carlo schedule-risk (triangular durations, P-values, completion-confidence S-curve via VizFrame, LOE toggle) | ✅ Phase 5 |
-| Variance Analysis Report | FE List Report + custom expandable narrative | ▢ Phase 4 |
+| Variance Analysis Report | Custom freestyle page: expandable Format-5 narrative per out-of-tolerance CA (EVM stat grid, AI-draft, reactive completeness, approve workflow) | ✅ Phase 6 |
 | Artifacts & slide-outs | FE List Report + dialogs | ▢ Phase 4 |
 | Springboard launchpad (tile home) | In-app `GenericTile` launchpad routing to each app | ✅ Phase 3 |
 | Object Pages (Control Account, Risk) | FE Object Page, all fields binding | ✅ Phase 3 (fixed) |

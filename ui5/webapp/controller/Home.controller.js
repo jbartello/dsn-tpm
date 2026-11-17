@@ -24,6 +24,9 @@ sap.ui.define([
     },
     onOpenMasterSchedule: function () {
       this._go("MasterSchedule");
+    },
+    onOpenVAR: function () {
+      this._go("VAR");
     }
   });
 });
