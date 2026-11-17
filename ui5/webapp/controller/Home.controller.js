@@ -11,7 +11,7 @@ sap.ui.define([
       HashChanger.getInstance().setHash(hash);
     },
     onOpenControlAccounts: function () {
-      this._go("ControlAccounts");
+      this._go("ProjectValues");
     },
     onOpenRiskInfo: function () {
       this._go("RiskInfo");

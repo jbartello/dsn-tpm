@@ -1,0 +1,83 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.ProjectValues"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:micro="sap.suite.ui.microchart"
+  displayBlock="true">
+  <Page id="pvPage" title="Project Values" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <subHeader>
+      <OverflowToolbar>
+        <Label text="Program"/>
+        <Select selectedKey="{ui>/program}" change=".onProgramChange">
+          <core:Item key="DEMO" text="Demo"/>
+          <core:Item key="MFG" text="MFG Program"/>
+        </Select>
+      </OverflowToolbar>
+    </subHeader>
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+          <VBox class="mcStatBox"><Text text="BAC" class="mcStatLbl"/><Title text="{pv>/kpi/bacT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="EAC" class="mcStatLbl"/><Title text="{pv>/kpi/eacT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="VAC" class="mcStatLbl"/><ObjectStatus text="{pv>/kpi/vacT}" state="{pv>/kpi/vacState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="CPI" class="mcStatLbl"/><ObjectStatus text="{pv>/kpi/cpiT}" state="{pv>/kpi/cpiState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="SPI" class="mcStatLbl"/><ObjectStatus text="{pv>/kpi/spiT}" state="{pv>/kpi/spiState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="Cost Variance" class="mcStatLbl"/><Title text="{pv>/kpi/cvT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="Schedule Variance" class="mcStatLbl"/><Title text="{pv>/kpi/svT}" level="H4"/></VBox>
+        </HBox>
+
+        <HBox wrap="Wrap" class="sapUiSmallMarginBottom" alignItems="Start">
+          <VBox class="mcStatBox sapUiMediumMarginEnd">
+            <Text text="% Complete ** (placeholder · SAP % Complete)" class="mcStatLbl sapUiTinyMarginBottom"/>
+            <micro:RadialMicroChart size="L" percentage="{pv>/pct}"/>
+          </VBox>
+          <VBox class="mcStatBox">
+            <Text text="Cost by Type (BAC) ** (placeholder · SAP REC / Non-REC)" class="mcStatLbl sapUiTinyMarginBottom"/>
+            <micro:ComparisonMicroChart size="L" width="22rem">
+              <micro:data>
+                <micro:ComparisonMicroChartData title="REC" value="{pv>/rec}" color="Good" displayValue="{pv>/recT}"/>
+                <micro:ComparisonMicroChartData title="Non-REC" value="{pv>/nonrec}" color="Critical" displayValue="{pv>/nonrecT}"/>
+              </micro:data>
+            </micro:ComparisonMicroChart>
+          </VBox>
+        </HBox>
+
+        <Table items="{pv>/rows}" growing="true" growingThreshold="20" class="sapUiMediumMarginTop">
+          <headerToolbar><OverflowToolbar><Title text="Control Account Summary"/></OverflowToolbar></headerToolbar>
+          <columns>
+            <Column><Text text="WBS / CA"/></Column>
+            <Column><Text text="Description"/></Column>
+            <Column><Text text="CAM"/></Column>
+            <Column hAlign="End"><Text text="BCWS"/></Column>
+            <Column hAlign="End"><Text text="BCWP"/></Column>
+            <Column hAlign="End"><Text text="ACWP"/></Column>
+            <Column hAlign="End"><Text text="BAC"/></Column>
+            <Column hAlign="End"><Text text="EAC"/></Column>
+            <Column hAlign="End"><Text text="VAC"/></Column>
+            <Column hAlign="End"><Text text="CPI"/></Column>
+            <Column hAlign="End"><Text text="SPI"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{pv>wbs}"/>
+                <Text text="{pv>desc}"/>
+                <Text text="{pv>cam}"/>
+                <Text text="{pv>pvT}"/>
+                <Text text="{pv>evT}"/>
+                <Text text="{pv>acT}"/>
+                <Text text="{pv>bacT}"/>
+                <Text text="{pv>eacT}"/>
+                <ObjectNumber number="{pv>vacT}" state="{= ${pv>vac} &lt; 0 ? 'Error' : 'Success' }"/>
+                <ObjectNumber number="{pv>cpiT}" state="{pv>cpiState}"/>
+                <ObjectNumber number="{pv>spiT}" state="{pv>spiState}"/>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

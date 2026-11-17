@@ -49,7 +49,8 @@
         "sap.fe.core": {},
         "sap.ui.layout": {},
         "sap.viz": {},
-        "sap.ui.table": {}
+        "sap.ui.table": {},
+        "sap.suite.ui.microchart": {}
       }
     },
     "contentDensities": { "compact": true, "cozy": true },
@@ -102,6 +103,11 @@
           "pattern": "ControlAccounts({key}):?query:",
           "name": "ControlAccountsObjectPage",
           "target": "ControlAccountsObjectPage"
+        },
+        {
+          "pattern": "ProjectValues",
+          "name": "ProjectValues",
+          "target": "TargetProjectValues"
         },
         {
           "pattern": "RiskInfo",
@@ -159,6 +165,13 @@
           "type": "View",
           "id": "Home",
           "name": "dassian.tpm.ui5.view.Home",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetProjectValues": {
+          "type": "View",
+          "id": "ProjectValues",
+          "name": "dassian.tpm.ui5.view.ProjectValues",
           "viewType": "XML",
           "controlAggregation": "pages"
         },

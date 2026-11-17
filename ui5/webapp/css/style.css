@@ -33,3 +33,6 @@
 .scoreCell { font-weight: 700; }
 .kindRisk .scoreCell { color: #c0271a; }
 .kindOpp .scoreCell { color: #6b4ba8; }
+
+/* Project Values KPI values (match the title-size figures) */
+.pvKpiVal .sapMObjStatusText { font-size: 1.25rem; font-weight: 700; }
