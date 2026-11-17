@@ -42,6 +42,16 @@
               <NumericContent value="VAR" valueColor="Critical" icon="sap-icon://notes"/>
             </TileContent>
           </GenericTile>
+          <GenericTile header="Project Setup" subheader="Projects &amp; control accounts" press=".onOpenSetup">
+            <TileContent unit="projects">
+              <NumericContent value="4" valueColor="Neutral" icon="sap-icon://settings"/>
+            </TileContent>
+          </GenericTile>
+          <GenericTile header="Project EAC" subheader="Estimate at completion" press=".onOpenEac">
+            <TileContent>
+              <NumericContent value="EAC" valueColor="Neutral" icon="sap-icon://money-bills"/>
+            </TileContent>
+          </GenericTile>
         </f:GridContainer>
       </VBox>
     </content>

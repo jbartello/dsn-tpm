@@ -1,0 +1,48 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.EAC"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  displayBlock="true">
+  <Page id="eacPage" title="Project EAC — Estimate at Completion" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Estimate at Completion — Demo program" level="H2" class="sapUiSmallMarginBottom"/>
+        <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+          <VBox class="mcStatBox"><Text text="Total BAC" class="mcStatLbl"/><Title text="{eac>/totals/bacT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="Contract EAC" class="mcStatLbl"/><Title text="{eac>/totals/eacT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="VAC" class="mcStatLbl"/><Title text="{eac>/totals/vacT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="Program CPI" class="mcStatLbl"/><Title text="{eac>/totals/progCpiT}" level="H4"/></VBox>
+          <VBox class="mcStatBox"><Text text="IEAC (BAC/CPI)" class="mcStatLbl"/><Title text="{eac>/totals/progIeacT}" level="H4"/></VBox>
+        </HBox>
+
+        <Table items="{eac>/items}" class="sapUiMediumMarginTop">
+          <headerToolbar><OverflowToolbar><Title text="Control Account EAC analysis"/></OverflowToolbar></headerToolbar>
+          <columns>
+            <Column><Text text="WBS / CA"/></Column>
+            <Column><Text text="Description"/></Column>
+            <Column hAlign="End"><Text text="BAC"/></Column>
+            <Column hAlign="End"><Text text="Contract EAC"/></Column>
+            <Column hAlign="End"><Text text="IEAC (CPI)"/></Column>
+            <Column hAlign="End"><Text text="IEAC (CPI×SPI)"/></Column>
+            <Column hAlign="End"><Text text="VAC"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{eac>wbs}"/>
+                <Text text="{eac>desc}"/>
+                <Text text="{eac>bacT}"/>
+                <Text text="{eac>eacT}"/>
+                <Text text="{eac>ieacCpiT}"/>
+                <Text text="{eac>ieacCompT}"/>
+                <ObjectNumber number="{eac>vacT}" state="{= ${eac>vac} &lt; 0 ? 'Error' : 'Success' }"/>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+        <Text text="IEAC (CPI) = BAC ÷ CPI.  IEAC (CPI×SPI) = ACWP + (BAC − BCWP) ÷ (CPI × SPI).  Illustrative; not-started accounts show —." class="sapUiSmallMarginTop"/>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

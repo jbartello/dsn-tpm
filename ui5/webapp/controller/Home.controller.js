@@ -27,6 +27,12 @@ sap.ui.define([
     },
     onOpenVAR: function () {
       this._go("VAR");
+    },
+    onOpenSetup: function () {
+      this._go("Projects");
+    },
+    onOpenEac: function () {
+      this._go("EAC");
     }
   });
 });

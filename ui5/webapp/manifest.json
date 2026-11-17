@@ -131,6 +131,21 @@
           "pattern": "VAR",
           "name": "VAR",
           "target": "TargetVAR"
+        },
+        {
+          "pattern": "Projects:?query:",
+          "name": "ProjectsList",
+          "target": "ProjectsList"
+        },
+        {
+          "pattern": "Projects({key}):?query:",
+          "name": "ProjectsObjectPage",
+          "target": "ProjectsObjectPage"
+        },
+        {
+          "pattern": "EAC",
+          "name": "EAC",
+          "target": "TargetEAC"
         }
       ],
       "targets": {
@@ -166,6 +181,32 @@
           "type": "View",
           "id": "VAR",
           "name": "dassian.tpm.ui5.view.VAR",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "ProjectsList": {
+          "type": "Component",
+          "id": "ProjectsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "contextPath": "/Projects",
+              "variantManagement": "Page",
+              "initialLoad": "Enabled",
+              "navigation": { "Projects": { "detail": { "route": "ProjectsObjectPage" } } }
+            }
+          }
+        },
+        "ProjectsObjectPage": {
+          "type": "Component",
+          "id": "ProjectsObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": { "settings": { "contextPath": "/Projects" } }
+        },
+        "TargetEAC": {
+          "type": "View",
+          "id": "EAC",
+          "name": "dassian.tpm.ui5.view.EAC",
           "viewType": "XML",
           "controlAggregation": "pages"
         },

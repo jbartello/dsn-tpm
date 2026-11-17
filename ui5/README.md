@@ -45,9 +45,9 @@ npm start
 | Risk 5×5 probability/impact matrix | Custom freestyle page: zone-shaded 5×5 heatmap built from `Risk` data | ✅ Phase 4 |
 | Project Analytics (EVM charts) | Custom freestyle page: `sap.viz` VizFrame (BAC vs EAC column, CPI/SPI scatter) | ✅ Phase 4 |
 | Springboard launchpad | FLP sandbox (`sap.ushell`) — single entry linking both apps | ▢ Phase 4 |
-| Project Setup (header / CA / WP / MR-UB) | FE Object Page with sub-sections | ▢ Phase 3 |
-| Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ Phase 3 |
-| Project EAC | FE Object Page + editable table | ▢ Phase 3 |
+| Project Setup | FE List Report + Object Page on `Project`: Project Header section + embedded Control Accounts table (navigation) | ✅ Phase 7 |
+| Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ future |
+| Project EAC | Custom freestyle page: BAC / Contract EAC / IEAC(CPI) / IEAC(CPI×SPI) / VAC per CA + program rollup | ✅ Phase 7 |
 | Master Schedule + Monte Carlo | Custom freestyle page: activity table + Monte Carlo schedule-risk (triangular durations, P-values, completion-confidence S-curve via VizFrame, LOE toggle) | ✅ Phase 5 |
 | Variance Analysis Report | Custom freestyle page: expandable Format-5 narrative per out-of-tolerance CA (EVM stat grid, AI-draft, reactive completeness, approve workflow) | ✅ Phase 6 |
 | Artifacts & slide-outs | FE List Report + dialogs | ▢ Phase 4 |
