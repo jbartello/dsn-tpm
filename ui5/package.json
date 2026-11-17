@@ -1,0 +1,19 @@
+{
+  "name": "dassian-tpm-ui5",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dassian Total Program Management — SAP Fiori elements / UI5 port of the TPM prototype",
+  "scripts": {
+    "start": "ui5 serve --open index.html",
+    "build": "ui5 build --clean-dest"
+  },
+  "devDependencies": {
+    "@ui5/cli": "^3.11.0",
+    "@sap-ux/ui5-middleware-fe-mockserver": "^2.1.0"
+  },
+  "ui5": {
+    "dependencies": [
+      "@sap-ux/ui5-middleware-fe-mockserver"
+    ]
+  }
+}

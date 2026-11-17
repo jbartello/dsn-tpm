@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:DataServices>
+    <Schema Namespace="dassian.tpm" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+
+      <EntityType Name="Program">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="10"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="120"/>
+        <NavigationProperty Name="Projects" Type="Collection(dassian.tpm.Project)" Partner="Program"/>
+      </EntityType>
+
+      <EntityType Name="Project">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="20"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="120"/>
+        <Property Name="ProgramID" Type="Edm.String" MaxLength="10"/>
+        <NavigationProperty Name="Program" Type="dassian.tpm.Program" Partner="Projects">
+          <ReferentialConstraint Property="ProgramID" ReferencedProperty="ID"/>
+        </NavigationProperty>
+        <NavigationProperty Name="ControlAccounts" Type="Collection(dassian.tpm.ControlAccount)" Partner="Project"/>
+      </EntityType>
+
+      <EntityType Name="ControlAccount">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="30"/>
+        <Property Name="ProgramID" Type="Edm.String" MaxLength="10"/>
+        <Property Name="ProjectID" Type="Edm.String" MaxLength="20"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="120"/>
+        <Property Name="Manager" Type="Edm.String" MaxLength="60"/>
+        <Property Name="PlannedValue" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="EarnedValue" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="ActualCost" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="ScheduleVariance" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="CostVariance" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="SPI" Type="Edm.Decimal" Precision="9" Scale="3"/>
+        <Property Name="CPI" Type="Edm.Decimal" Precision="9" Scale="3"/>
+        <Property Name="BAC" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="EAC" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="VAC" Type="Edm.Decimal" Precision="18" Scale="2"/>
+        <Property Name="CPICriticality" Type="Edm.Int32"/>
+        <Property Name="SPICriticality" Type="Edm.Int32"/>
+        <Property Name="VACCriticality" Type="Edm.Int32"/>
+        <NavigationProperty Name="Project" Type="dassian.tpm.Project" Partner="ControlAccounts">
+          <ReferentialConstraint Property="ProjectID" ReferencedProperty="ID"/>
+        </NavigationProperty>
+      </EntityType>
+
+      <EntityContainer Name="Container">
+        <EntitySet Name="Programs" EntityType="dassian.tpm.Program">
+          <NavigationPropertyBinding Path="Projects" Target="Projects"/>
+        </EntitySet>
+        <EntitySet Name="Projects" EntityType="dassian.tpm.Project">
+          <NavigationPropertyBinding Path="Program" Target="Programs"/>
+          <NavigationPropertyBinding Path="ControlAccounts" Target="ControlAccounts"/>
+        </EntitySet>
+        <EntitySet Name="ControlAccounts" EntityType="dassian.tpm.ControlAccount">
+          <NavigationPropertyBinding Path="Project" Target="Projects"/>
+        </EntitySet>
+      </EntityContainer>
+
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>

@@ -1,0 +1,25 @@
+specVersion: "3.0"
+metadata:
+  name: dassian.tpm.ui5
+type: application
+framework:
+  name: SAPUI5
+  version: "1.120.20"
+  libraries:
+    - name: sap.m
+    - name: sap.ui.core
+    - name: sap.fe.core
+    - name: sap.fe.templates
+    - name: sap.ushell
+    - name: themelib_sap_horizon
+server:
+  customMiddleware:
+    - name: sap-fe-mockserver
+      beforeMiddleware: csp
+      configuration:
+        mountPath: /
+        services:
+          - urlPath: /odata/mainService
+            metadataPath: ./webapp/localService/mainService/metadata.xml
+            mockdataPath: ./webapp/localService/mainService/data
+            generateMockData: true

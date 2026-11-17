@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/UI.xml">
+    <edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="UI"/>
+  </edmx:Reference>
+  <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+    <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
+  </edmx:Reference>
+  <edmx:DataServices>
+    <Schema Namespace="dassian.tpm.annotations" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+
+      <Annotations Target="dassian.tpm.ControlAccount">
+
+        <!-- Object-page / list header -->
+        <Annotation Term="UI.HeaderInfo">
+          <Record Type="UI.HeaderInfoType">
+            <PropertyValue Property="TypeName" String="Control Account"/>
+            <PropertyValue Property="TypeNamePlural" String="Control Accounts"/>
+            <PropertyValue Property="Title">
+              <Record Type="UI.DataField">
+                <PropertyValue Property="Value" Path="Description"/>
+              </Record>
+            </PropertyValue>
+            <PropertyValue Property="Description">
+              <Record Type="UI.DataField">
+                <PropertyValue Property="Value" Path="ID"/>
+              </Record>
+            </PropertyValue>
+          </Record>
+        </Annotation>
+
+        <!-- Filter bar fields -->
+        <Annotation Term="UI.SelectionFields">
+          <Collection>
+            <PropertyPath>ProgramID</PropertyPath>
+            <PropertyPath>ProjectID</PropertyPath>
+            <PropertyPath>Manager</PropertyPath>
+          </Collection>
+        </Annotation>
+
+        <!-- KPI data points used in the table (coloured by criticality) -->
+        <Annotation Term="UI.DataPoint" Qualifier="CPI">
+          <Record Type="UI.DataPointType">
+            <PropertyValue Property="Title" String="CPI"/>
+            <PropertyValue Property="Value" Path="CPI"/>
+            <PropertyValue Property="Criticality" Path="CPICriticality"/>
+          </Record>
+        </Annotation>
+        <Annotation Term="UI.DataPoint" Qualifier="SPI">
+          <Record Type="UI.DataPointType">
+            <PropertyValue Property="Title" String="SPI"/>
+            <PropertyValue Property="Value" Path="SPI"/>
+            <PropertyValue Property="Criticality" Path="SPICriticality"/>
+          </Record>
+        </Annotation>
+        <Annotation Term="UI.DataPoint" Qualifier="VAC">
+          <Record Type="UI.DataPointType">
+            <PropertyValue Property="Title" String="VAC"/>
+            <PropertyValue Property="Value" Path="VAC"/>
+            <PropertyValue Property="Criticality" Path="VACCriticality"/>
+          </Record>
+        </Annotation>
+
+        <!-- Responsive table columns -->
+        <Annotation Term="UI.LineItem">
+          <Collection>
+            <Record Type="UI.DataField">
+              <PropertyValue Property="Value" Path="ID"/>
+              <PropertyValue Property="Label" String="WBS / CA"/>
+            </Record>
+            <Record Type="UI.DataField">
+              <PropertyValue Property="Value" Path="Description"/>
+              <PropertyValue Property="Label" String="Description"/>
+            </Record>
+            <Record Type="UI.DataField">
+              <PropertyValue Property="Value" Path="Manager"/>
+              <PropertyValue Property="Label" String="CAM"/>
+            </Record>
+            <Record Type="UI.DataField">
+              <PropertyValue Property="Value" Path="BAC"/>
+              <PropertyValue Property="Label" String="BAC"/>
+            </Record>
+            <Record Type="UI.DataField">
+              <PropertyValue Property="Value" Path="EAC"/>
+              <PropertyValue Property="Label" String="EAC"/>
+            </Record>
+            <Record Type="UI.DataFieldForAnnotation">
+              <PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#VAC"/>
+              <PropertyValue Property="Label" String="VAC"/>
+            </Record>
+            <Record Type="UI.DataFieldForAnnotation">
+              <PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#CPI"/>
+              <PropertyValue Property="Label" String="CPI"/>
+            </Record>
+            <Record Type="UI.DataFieldForAnnotation">
+              <PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#SPI"/>
+              <PropertyValue Property="Label" String="SPI"/>
+            </Record>
+          </Collection>
+        </Annotation>
+
+        <!-- Object-page field groups -->
+        <Annotation Term="UI.FieldGroup" Qualifier="Identity">
+          <Record Type="UI.FieldGroupType">
+            <PropertyValue Property="Data">
+              <Collection>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Description"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Manager"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ProgramID"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ProjectID"/></Record>
+              </Collection>
+            </PropertyValue>
+          </Record>
+        </Annotation>
+        <Annotation Term="UI.FieldGroup" Qualifier="EVM">
+          <Record Type="UI.FieldGroupType">
+            <PropertyValue Property="Data">
+              <Collection>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="PlannedValue"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="EarnedValue"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ActualCost"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ScheduleVariance"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="CostVariance"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="BAC"/></Record>
+                <Record Type="UI.DataField"><PropertyValue Property="Value" Path="EAC"/></Record>
+                <Record Type="UI.DataFieldForAnnotation">
+                  <PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#VAC"/>
+                </Record>
+                <Record Type="UI.DataFieldForAnnotation">
+                  <PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#CPI"/>
+                </Record>
+                <Record Type="UI.DataFieldForAnnotation">
+                  <PropertyValue Property="Target" AnnotationPath="@UI.DataPoint#SPI"/>
+                </Record>
+              </Collection>
+            </PropertyValue>
+          </Record>
+        </Annotation>
+
+        <!-- Object-page layout -->
+        <Annotation Term="UI.Facets">
+          <Collection>
+            <Record Type="UI.ReferenceFacet">
+              <PropertyValue Property="ID" String="IdentityFacet"/>
+              <PropertyValue Property="Label" String="General Information"/>
+              <PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Identity"/>
+            </Record>
+            <Record Type="UI.ReferenceFacet">
+              <PropertyValue Property="ID" String="EVMFacet"/>
+              <PropertyValue Property="Label" String="Earned Value"/>
+              <PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#EVM"/>
+            </Record>
+          </Collection>
+        </Annotation>
+
+      </Annotations>
+
+      <!-- Value helps for filter fields -->
+      <Annotations Target="dassian.tpm.ControlAccount/ProgramID">
+        <Annotation Term="Common.Label" String="Program"/>
+      </Annotations>
+      <Annotations Target="dassian.tpm.ControlAccount/ProjectID">
+        <Annotation Term="Common.Label" String="Project"/>
+      </Annotations>
+      <Annotations Target="dassian.tpm.ControlAccount/Manager">
+        <Annotation Term="Common.Label" String="Control Account Manager"/>
+      </Annotations>
+
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>

@@ -1,0 +1,12 @@
+[
+  {
+    "ID": "DEMO",
+    "Name": "Demo",
+    "Description": "Demo Program"
+  },
+  {
+    "ID": "MFG",
+    "Name": "MFG Program",
+    "Description": "Manufacturing Program"
+  }
+]
