@@ -40,15 +40,14 @@ Two entry points:
 - **`index.html`** — the app standalone (a tile launchpad home routes to each module).
 - **`flp.html`** — the app inside the full **Fiori Launchpad shell** (`sap.ushell` sandbox): SAP shell bar, user menu, with the app embedded. Boots straight into the app via the `#tpm-display` intent.
 
-Every module is reachable from the tile launchpad; Control Accounts / Risk Register / Project Setup / Baseline Change / Artifacts are Fiori elements List Reports + Object Pages, the rest are custom freestyle pages. A Demo / MFG program switch drives the custom pages.
+Every module is reachable from the tile launchpad (9 tiles, matching the prototype's screens). Project Values / Project Setup / Baseline Change are Fiori elements List Reports + Object Pages; Risk Information, Project Analytics, Master Schedule + Monte Carlo, Variance Analysis, Project EAC and Artifacts & Reports are custom freestyle pages. A Demo / MFG program switch drives the custom pages.
 
 ## Module → page mapping
 
 | Prototype screen | UI5 realization | Status |
 |---|---|---|
-| Project Values (Control Account summary) | FE **List Report + Object Page** on `ControlAccount` | ✅ Phase 1 (list verified) |
-| Risk Register (risks & opportunities) | FE **List Report + Object Page** on `Risk`, with PMBOK fields (Risk ID, RBS category, response strategy, triggers) and cause/event/effect | ✅ Phase 2 (list verified) |
-| Risk 5×5 probability/impact matrix | Custom freestyle page: zone-shaded 5×5 heatmap built from `Risk` data | ✅ Phase 4 |
+| Project Values (Control Account summary) | FE **List Report + Object Page** on `ControlAccount` | ✅ |
+| **Risk Information** | One screen: 5×5 probability/impact matrix + Risks/Opportunities register + detail dialog (Details / Scoring / Mitigation), program-aware. PMBOK fields on `Risk` (Risk ID, RBS category, response strategy, triggers) and cause/event/effect | ✅ |
 | Project Analytics (EVM charts) | Custom freestyle page: `sap.viz` VizFrame (BAC vs EAC column, CPI/SPI scatter) | ✅ Phase 4 |
 | Springboard launchpad | FLP sandbox (`sap.ushell`) — single entry linking both apps | ▢ Phase 4 |
 | Project Setup | FE List Report + Object Page on `Project`: Project Header section + embedded Control Accounts table (navigation) | ✅ Phase 7 |
@@ -56,13 +55,13 @@ Every module is reachable from the tile launchpad; Control Accounts / Risk Regis
 | Project EAC | Custom freestyle page: BAC / Contract EAC / IEAC(CPI) / IEAC(CPI×SPI) / VAC per CA + program rollup | ✅ Phase 7 |
 | Master Schedule + Monte Carlo | Custom freestyle page: activity table + Monte Carlo schedule-risk (triangular durations, P-values, completion-confidence S-curve via VizFrame, LOE toggle) | ✅ Phase 5 |
 | Variance Analysis Report | Custom freestyle page: expandable Format-5 narrative per out-of-tolerance CA (EVM stat grid, AI-draft, reactive completeness, approve workflow) | ✅ Phase 6 |
-| Artifacts & Reports | FE List Report + Object Page on `Artifact` (10-document catalog) | ✅ Phase 8 |
+| Artifacts & Reports | One screen: the 10-document catalog where opening a row shows that report — WBS Dictionary / RAM / CAP / Tripwire / Control Log open an embedded data grid; IMS / VAR navigate to their module | ✅ |
 | Springboard launchpad (tile home) | In-app `GenericTile` launchpad routing to each app | ✅ Phase 3 |
 | Object Pages (Control Account, Risk) | FE Object Page, all fields binding | ✅ Phase 3 (fixed) |
 
 ### Phase 3 notes
 - **Object pages fixed.** The blank numeric fields were an `Edm.Decimal` representation bug: OData V4 carries decimals as JSON **strings**, but the mock emitted numbers, so UI5's Decimal type rendered them empty. Decimal mock fields are now strings; Control Account and Risk object pages fully populate.
-- **Launchpad.** The entry page (`index.html`) is a tile springboard (Control Accounts, Risk Register) that routes into each FE app and back. This is an **in-app** launchpad, not the full `sap.ushell` FLP shell — the FLP sandbox (`sandbox2.js`) needs extra spaces/pages config in this npm distribution, which can be added later for the exact FLP chrome. The standalone runtime logs a non-fatal `navigationService.storeInnerAppStateAsync` message (the full shell app-state service isn't present); navigation still completes.
+- **Launchpad.** `index.html` is the tile springboard; `flp.html` runs the same app inside the full `sap.ushell` Fiori Launchpad shell. The standalone runtime logs a non-fatal `navigationService.storeInnerAppStateAsync` message; navigation still completes.
 
 ## Production path
 
