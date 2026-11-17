@@ -46,11 +46,11 @@ npm start
 | Project Analytics (EVM charts) | Custom freestyle page: `sap.viz` VizFrame (BAC vs EAC column, CPI/SPI scatter) | ✅ Phase 4 |
 | Springboard launchpad | FLP sandbox (`sap.ushell`) — single entry linking both apps | ▢ Phase 4 |
 | Project Setup | FE List Report + Object Page on `Project`: Project Header section + embedded Control Accounts table (navigation) | ✅ Phase 7 |
-| Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ future |
+| Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` (9 BCR/FCR records) | ✅ Phase 8 |
 | Project EAC | Custom freestyle page: BAC / Contract EAC / IEAC(CPI) / IEAC(CPI×SPI) / VAC per CA + program rollup | ✅ Phase 7 |
 | Master Schedule + Monte Carlo | Custom freestyle page: activity table + Monte Carlo schedule-risk (triangular durations, P-values, completion-confidence S-curve via VizFrame, LOE toggle) | ✅ Phase 5 |
 | Variance Analysis Report | Custom freestyle page: expandable Format-5 narrative per out-of-tolerance CA (EVM stat grid, AI-draft, reactive completeness, approve workflow) | ✅ Phase 6 |
-| Artifacts & slide-outs | FE List Report + dialogs | ▢ Phase 4 |
+| Artifacts & Reports | FE List Report + Object Page on `Artifact` (10-document catalog) | ✅ Phase 8 |
 | Springboard launchpad (tile home) | In-app `GenericTile` launchpad routing to each app | ✅ Phase 3 |
 | Object Pages (Control Account, Risk) | FE Object Page, all fields binding | ✅ Phase 3 (fixed) |
 

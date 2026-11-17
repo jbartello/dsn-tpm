@@ -52,6 +52,16 @@
               <NumericContent value="EAC" valueColor="Neutral" icon="sap-icon://money-bills"/>
             </TileContent>
           </GenericTile>
+          <GenericTile header="Baseline Change" subheader="Change request log" press=".onOpenBcr">
+            <TileContent unit="requests">
+              <NumericContent value="9" valueColor="Neutral" icon="sap-icon://request"/>
+            </TileContent>
+          </GenericTile>
+          <GenericTile header="Artifacts &amp; Reports" subheader="Program document catalog" press=".onOpenArtifacts">
+            <TileContent unit="artifacts">
+              <NumericContent value="10" valueColor="Neutral" icon="sap-icon://documents"/>
+            </TileContent>
+          </GenericTile>
         </f:GridContainer>
       </VBox>
     </content>

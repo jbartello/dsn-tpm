@@ -312,6 +312,89 @@
       <Annotations Target="dassian.tpm.Risk/Category"><Annotation Term="Common.Label" String="Category (RBS)"/></Annotations>
       <Annotations Target="dassian.tpm.Risk/ResponseStrategy"><Annotation Term="Common.Label" String="Response Strategy"/></Annotations>
 
+      <!-- ============================ Baseline Change Request ============================ -->
+      <Annotations Target="dassian.tpm.BaselineChange">
+        <Annotation Term="UI.HeaderInfo">
+          <Record Type="UI.HeaderInfoType">
+            <PropertyValue Property="TypeName" String="Change Request"/>
+            <PropertyValue Property="TypeNamePlural" String="Change Requests"/>
+            <PropertyValue Property="Title"><Record Type="UI.DataField"><PropertyValue Property="Value" Path="Title"/></Record></PropertyValue>
+            <PropertyValue Property="Description"><Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/></Record></PropertyValue>
+          </Record>
+        </Annotation>
+        <Annotation Term="UI.SelectionFields">
+          <Collection><PropertyPath>ProgramID</PropertyPath><PropertyPath>Type</PropertyPath><PropertyPath>Status</PropertyPath></Collection>
+        </Annotation>
+        <Annotation Term="UI.LineItem">
+          <Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/><PropertyValue Property="Label" String="BCR ID"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Title"/><PropertyValue Property="Label" String="Title"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Type"/><PropertyValue Property="Label" String="Type"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Status"/><PropertyValue Property="Label" String="Status"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="DateSubmitted"/><PropertyValue Property="Label" String="Submitted"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Originator"/><PropertyValue Property="Label" String="Originator"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Priority"/><PropertyValue Property="Label" String="Priority"/></Record>
+          </Collection>
+        </Annotation>
+        <Annotation Term="UI.FieldGroup" Qualifier="Details">
+          <Record Type="UI.FieldGroupType"><PropertyValue Property="Data"><Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ID"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Title"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Type"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Status"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Priority"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Originator"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="DateSubmitted"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="CustomerDirected"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="ProgramID"/></Record>
+          </Collection></PropertyValue></Record>
+        </Annotation>
+        <Annotation Term="UI.Facets">
+          <Collection>
+            <Record Type="UI.ReferenceFacet"><PropertyValue Property="ID" String="BcrDetails"/><PropertyValue Property="Label" String="Change Request Details"/><PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Details"/></Record>
+          </Collection>
+        </Annotation>
+      </Annotations>
+      <Annotations Target="dassian.tpm.BaselineChange/ProgramID"><Annotation Term="Common.Label" String="Program"/></Annotations>
+
+      <!-- ============================ Artifact ============================ -->
+      <Annotations Target="dassian.tpm.Artifact">
+        <Annotation Term="UI.HeaderInfo">
+          <Record Type="UI.HeaderInfoType">
+            <PropertyValue Property="TypeName" String="Artifact"/>
+            <PropertyValue Property="TypeNamePlural" String="Artifacts"/>
+            <PropertyValue Property="Title"><Record Type="UI.DataField"><PropertyValue Property="Value" Path="Name"/></Record></PropertyValue>
+            <PropertyValue Property="Description"><Record Type="UI.DataField"><PropertyValue Property="Value" Path="Category"/></Record></PropertyValue>
+          </Record>
+        </Annotation>
+        <Annotation Term="UI.SelectionFields">
+          <Collection><PropertyPath>Category</PropertyPath><PropertyPath>Status</PropertyPath></Collection>
+        </Annotation>
+        <Annotation Term="UI.LineItem">
+          <Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Name"/><PropertyValue Property="Label" String="Artifact"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Category"/><PropertyValue Property="Label" String="Category"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Owner"/><PropertyValue Property="Label" String="Owner"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="LastUpdated"/><PropertyValue Property="Label" String="Last Updated"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Status"/><PropertyValue Property="Label" String="Status"/></Record>
+          </Collection>
+        </Annotation>
+        <Annotation Term="UI.FieldGroup" Qualifier="Details">
+          <Record Type="UI.FieldGroupType"><PropertyValue Property="Data"><Collection>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Name"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Category"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Owner"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="LastUpdated"/></Record>
+            <Record Type="UI.DataField"><PropertyValue Property="Value" Path="Status"/></Record>
+          </Collection></PropertyValue></Record>
+        </Annotation>
+        <Annotation Term="UI.Facets">
+          <Collection>
+            <Record Type="UI.ReferenceFacet"><PropertyValue Property="ID" String="ArtDetails"/><PropertyValue Property="Label" String="Details"/><PropertyValue Property="Target" AnnotationPath="@UI.FieldGroup#Details"/></Record>
+          </Collection>
+        </Annotation>
+      </Annotations>
+
     </Schema>
   </edmx:DataServices>
 </edmx:Edmx>

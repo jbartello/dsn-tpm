@@ -33,6 +33,12 @@ sap.ui.define([
     },
     onOpenEac: function () {
       this._go("EAC");
+    },
+    onOpenBcr: function () {
+      this._go("BaselineChanges");
+    },
+    onOpenArtifacts: function () {
+      this._go("Artifacts");
     }
   });
 });

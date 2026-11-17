@@ -1,0 +1,101 @@
+[
+  {
+    "ID": "BCR-2026-002",
+    "ProgramID": "DEMO",
+    "Title": "Reallocate Management Reserve for sensor re-qualification",
+    "Type": "BCR-M",
+    "Status": "Approved",
+    "DateSubmitted": "03/14/2026",
+    "Originator": "Jason Bartello",
+    "Priority": "Routine",
+    "CustomerDirected": false
+  },
+  {
+    "ID": "BCR-2026-005",
+    "ProgramID": "DEMO",
+    "Title": "Internal replan — Air Vehicle integration sequence",
+    "Type": "BCR-P",
+    "Status": "Approved",
+    "DateSubmitted": "04/02/2026",
+    "Originator": "Allen Ytzen",
+    "Priority": "Routine",
+    "CustomerDirected": false
+  },
+  {
+    "ID": "BCR-2026-008",
+    "ProgramID": "DEMO",
+    "Title": "Customer-directed scope add — additional data deliverable",
+    "Type": "BCR-C",
+    "Status": "Submitted",
+    "DateSubmitted": "05/20/2026",
+    "Originator": "Jason Bartello",
+    "Priority": "Urgent",
+    "CustomerDirected": true
+  },
+  {
+    "ID": "BCR-2026-011",
+    "ProgramID": "DEMO",
+    "Title": "Forecast update — labor rate escalation",
+    "Type": "FCR",
+    "Status": "In Review",
+    "DateSubmitted": "06/05/2026",
+    "Originator": "Richard Reed",
+    "Priority": "Routine",
+    "CustomerDirected": false
+  },
+  {
+    "ID": "BCR-2026-013",
+    "ProgramID": "DEMO",
+    "Title": "Allocate remaining MR to Training risk reserve",
+    "Type": "BCR-M",
+    "Status": "Draft",
+    "DateSubmitted": "06/14/2026",
+    "Originator": "Allen Ytzen",
+    "Priority": "Routine",
+    "CustomerDirected": false
+  },
+  {
+    "ID": "BCR-2026-003",
+    "ProgramID": "MFG",
+    "Title": "Internal replan — Common Support Equipment de-scope",
+    "Type": "BCR-P",
+    "Status": "Approved",
+    "DateSubmitted": "03/28/2026",
+    "Originator": "Richard Reed",
+    "Priority": "Routine",
+    "CustomerDirected": false
+  },
+  {
+    "ID": "BCR-2026-006",
+    "ProgramID": "MFG",
+    "Title": "MR allocation to System Test & Evaluation overrun",
+    "Type": "BCR-M",
+    "Status": "Approved",
+    "DateSubmitted": "04/22/2026",
+    "Originator": "EHAYES",
+    "Priority": "Urgent",
+    "CustomerDirected": false
+  },
+  {
+    "ID": "BCR-2026-010",
+    "ProgramID": "MFG",
+    "Title": "Contingency release for Site Activation scope growth",
+    "Type": "BCR-C",
+    "Status": "Rejected",
+    "DateSubmitted": "05/12/2026",
+    "Originator": "Tim LaRue",
+    "Priority": "Routine",
+    "CustomerDirected": true
+  },
+  {
+    "ID": "BCR-2026-012",
+    "ProgramID": "MFG",
+    "Title": "Forecast update — raw material price increase",
+    "Type": "FCR",
+    "Status": "In Review",
+    "DateSubmitted": "06/03/2026",
+    "Originator": "Richard Reed",
+    "Priority": "Routine",
+    "CustomerDirected": false
+  }
+]

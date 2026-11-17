@@ -1,0 +1,82 @@
+[
+  {
+    "ID": "ART-01",
+    "Name": "WBS Dictionary",
+    "Category": "Baseline",
+    "Owner": "P. Nguyen",
+    "LastUpdated": "05/30/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-02",
+    "Name": "Responsibility Assignment Matrix (RAM)",
+    "Category": "Baseline",
+    "Owner": "P. Nguyen",
+    "LastUpdated": "05/30/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-03",
+    "Name": "Integrated Master Schedule (IMS)",
+    "Category": "Schedule",
+    "Owner": "P. Nguyen",
+    "LastUpdated": "06/05/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-04",
+    "Name": "Schedule 14-Point Assessment",
+    "Category": "Schedule",
+    "Owner": "P. Nguyen",
+    "LastUpdated": "06/10/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-05",
+    "Name": "Control Account Plans (CAP)",
+    "Category": "Baseline",
+    "Owner": "EHAYES",
+    "LastUpdated": "05/28/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-06",
+    "Name": "Tripwire Report",
+    "Category": "EVM",
+    "Owner": "J. Bartello",
+    "LastUpdated": "06/08/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-07",
+    "Name": "Program Control Log",
+    "Category": "EVM",
+    "Owner": "J. Bartello",
+    "LastUpdated": "06/09/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-08",
+    "Name": "Basis of Estimate (BOE)",
+    "Category": "Cost",
+    "Owner": "R. Reed",
+    "LastUpdated": "05/20/2026",
+    "Status": "Current"
+  },
+  {
+    "ID": "ART-09",
+    "Name": "Variance Analysis Report (VAR)",
+    "Category": "EVM",
+    "Owner": "J. Bartello",
+    "LastUpdated": "06/01/2026",
+    "Status": "Draft"
+  },
+  {
+    "ID": "ART-10",
+    "Name": "Work Authorization Documents (WAD)",
+    "Category": "Baseline",
+    "Owner": "T. LaRue",
+    "LastUpdated": "05/15/2026",
+    "Status": "Current"
+  }
+]

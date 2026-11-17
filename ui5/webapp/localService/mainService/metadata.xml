@@ -102,6 +102,33 @@
         <Property Name="IsLOE" Type="Edm.Boolean"/>
       </EntityType>
 
+      <EntityType Name="BaselineChange">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="20"/>
+        <Property Name="ProgramID" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Title" Type="Edm.String" MaxLength="150"/>
+        <Property Name="Type" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="20"/>
+        <Property Name="DateSubmitted" Type="Edm.String" MaxLength="12"/>
+        <Property Name="Originator" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Priority" Type="Edm.String" MaxLength="20"/>
+        <Property Name="CustomerDirected" Type="Edm.Boolean"/>
+      </EntityType>
+
+      <EntityType Name="Artifact">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="10"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="80"/>
+        <Property Name="Category" Type="Edm.String" MaxLength="20"/>
+        <Property Name="Owner" Type="Edm.String" MaxLength="40"/>
+        <Property Name="LastUpdated" Type="Edm.String" MaxLength="12"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="20"/>
+      </EntityType>
+
       <EntityContainer Name="Container">
         <EntitySet Name="Programs" EntityType="dassian.tpm.Program">
           <NavigationPropertyBinding Path="Projects" Target="Projects"/>
@@ -115,6 +142,8 @@
         </EntitySet>
         <EntitySet Name="Risks" EntityType="dassian.tpm.Risk"/>
         <EntitySet Name="ScheduleActivities" EntityType="dassian.tpm.ScheduleActivity"/>
+        <EntitySet Name="BaselineChanges" EntityType="dassian.tpm.BaselineChange"/>
+        <EntitySet Name="Artifacts" EntityType="dassian.tpm.Artifact"/>
       </EntityContainer>
 
     </Schema>
