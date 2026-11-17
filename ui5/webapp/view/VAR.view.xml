@@ -17,7 +17,15 @@
     </subHeader>
     <content>
       <VBox class="sapUiMediumMargin">
-        <Title text="Out-of-tolerance control accounts — Demo program" level="H2"/>
+        <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+          <VBox class="mcStatBox"><Text text="Cost Performance (CPI)" class="mcStatLbl"/><ObjectStatus text="{narr>/sum/cpiT}" state="{narr>/sum/cpiState}" class="pvKpiVal"/><Text text="{narr>/sum/cpiSub}" class="mcStatLbl"/></VBox>
+          <VBox class="mcStatBox"><Text text="Schedule Performance (SPI)" class="mcStatLbl"/><ObjectStatus text="{narr>/sum/spiT}" state="{narr>/sum/spiState}" class="pvKpiVal"/><Text text="{narr>/sum/spiSub}" class="mcStatLbl"/></VBox>
+          <VBox class="mcStatBox"><Text text="Cost Variance" class="mcStatLbl"/><ObjectStatus text="{narr>/sum/cvT}" state="{narr>/sum/cvState}" class="pvKpiVal"/><Text text="Program rollup" class="mcStatLbl"/></VBox>
+          <VBox class="mcStatBox"><Text text="Schedule Variance" class="mcStatLbl"/><ObjectStatus text="{narr>/sum/svT}" state="{narr>/sum/svState}" class="pvKpiVal"/><Text text="Program rollup" class="mcStatLbl"/></VBox>
+          <VBox class="mcStatBox"><Text text="Variance Alerts" class="mcStatLbl"/><ObjectStatus text="{narr>/sum/alerts}" state="{narr>/sum/alertState}" class="pvKpiVal"/><Text text="{narr>/sum/alertSub}" class="mcStatLbl"/></VBox>
+        </HBox>
+
+        <Title text="Variance Narrative — out-of-tolerance WBS" level="H2"/>
         <Text text="Click a control account to expand its CPR/IPMR Format 5 narrative: earned-value figures, root cause, impact, corrective action and get-well date, with an AI-draft helper and an approve workflow." class="sapUiSmallMarginBottom sapUiSmallMarginTop"/>
 
         <VBox items="{narr>/items}">
@@ -36,6 +44,12 @@
             </headerToolbar>
             <content>
               <VBox class="sapUiSmallMargin">
+                <Text text="{narr>narr}" class="sapUiSmallMarginBottom"/>
+                <HBox justifyContent="SpaceBetween" alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
+                  <Text text="{= '▶ Recommend a corrective-action review with the control account manager (' + ${narr>cam} + ').' }"/>
+                  <Button text="{= ${narr>notified} ? 'Workflow created' : 'Notify CAM' }" icon="{= ${narr>notified} ? 'sap-icon://accept' : 'sap-icon://email' }"
+                          press=".onNotifyCAM" enabled="{= !${narr>notified} }"/>
+                </HBox>
                 <HBox wrap="Wrap">
                   <VBox class="mcStatBox"><Text text="BCWS" class="mcStatLbl"/><Title text="{narr>bcwsT}" level="H4"/></VBox>
                   <VBox class="mcStatBox"><Text text="BCWP" class="mcStatLbl"/><Title text="{narr>bcwpT}" level="H4"/></VBox>
@@ -70,6 +84,36 @@
             </content>
           </Panel>
         </VBox>
+
+        <Table items="{narr>/all}" class="sapUiMediumMarginTop">
+          <headerToolbar><OverflowToolbar><Title text="Control Account Variance"/></OverflowToolbar></headerToolbar>
+          <columns>
+            <Column><Text text="WBS"/></Column>
+            <Column><Text text="Description"/></Column>
+            <Column><Text text="CAM"/></Column>
+            <Column hAlign="End"><Text text="CV %"/></Column>
+            <Column hAlign="End"><Text text="SV %"/></Column>
+            <Column hAlign="End"><Text text="CPI"/></Column>
+            <Column hAlign="End"><Text text="SPI"/></Column>
+            <Column><Text text="Trend"/></Column>
+            <Column><Text text="Status"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{narr>wbs}"/>
+                <Text text="{narr>desc}"/>
+                <Text text="{narr>cam}"/>
+                <ObjectNumber number="{narr>cvpT}" state="{narr>cvState}"/>
+                <ObjectNumber number="{narr>svpT}" state="{narr>svState}"/>
+                <Text text="{narr>cpiT}"/>
+                <Text text="{narr>spiT}"/>
+                <ObjectStatus text="{narr>trend}" state="{narr>trendState}"/>
+                <ObjectStatus text="{narr>status}" state="{narr>statusState}"/>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
       </VBox>
     </content>
   </Page>
