@@ -1,0 +1,45 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.ArtifactsReports"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:table="sap.ui.table"
+  displayBlock="true">
+  <Page id="artReportsPage" title="Project Artifacts &amp; Reports" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Text text="Program document catalog. Select an artifact to open its report; WBS Dictionary, RAM, CAP, Tripwire and Control Log open an embedded data grid, the schedule and VAR artifacts open their module." class="sapUiSmallMarginBottom"/>
+        <Table items="{/Artifacts}" growing="true" growingThreshold="20">
+          <headerToolbar><OverflowToolbar><Title text="Artifacts &amp; Reports"/></OverflowToolbar></headerToolbar>
+          <columns>
+            <Column><Text text="Artifact"/></Column>
+            <Column><Text text="Category"/></Column>
+            <Column><Text text="Owner"/></Column>
+            <Column><Text text="Last Updated"/></Column>
+            <Column><Text text="Status"/></Column>
+            <Column hAlign="End"><Text text=""/></Column>
+          </columns>
+          <items>
+            <ColumnListItem type="Navigation" press=".onOpenArtifact">
+              <cells>
+                <Text text="{Name}"/>
+                <Text text="{Category}"/>
+                <Text text="{Owner}"/>
+                <Text text="{LastUpdated}"/>
+                <ObjectStatus text="{Status}" state="{= ${Status} === 'Current' ? 'Success' : 'Warning' }"/>
+                <Button text="Open" type="Transparent" icon="sap-icon://display" press=".onOpenArtifact"/>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+
+      <Dialog id="reportDialog" title="Report" contentWidth="90%" contentHeight="80%" stretch="{device>/system/phone}" resizable="true">
+        <content>
+          <table:Table id="reportGrid" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="12" enableColumnReordering="true"/>
+        </content>
+        <beginButton><Button text="Close" press=".onCloseReport"/></beginButton>
+      </Dialog>
+    </content>
+  </Page>
+</mvc:View>

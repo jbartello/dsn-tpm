@@ -149,19 +149,9 @@
           "target": "BaselineChangesObjectPage"
         },
         {
-          "pattern": "Artifacts:?query:",
-          "name": "ArtifactsList",
-          "target": "ArtifactsList"
-        },
-        {
-          "pattern": "Artifacts({key}):?query:",
-          "name": "ArtifactsObjectPage",
-          "target": "ArtifactsObjectPage"
-        },
-        {
-          "pattern": "Reports",
-          "name": "Reports",
-          "target": "TargetReports"
+          "pattern": "Artifacts",
+          "name": "Artifacts",
+          "target": "TargetArtifacts"
         }
       ],
       "targets": {
@@ -238,29 +228,10 @@
           "name": "sap.fe.templates.ObjectPage",
           "options": { "settings": { "contextPath": "/BaselineChanges" } }
         },
-        "ArtifactsList": {
-          "type": "Component",
-          "id": "ArtifactsList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
-            "settings": {
-              "contextPath": "/Artifacts",
-              "variantManagement": "Page",
-              "initialLoad": "Enabled",
-              "navigation": { "Artifacts": { "detail": { "route": "ArtifactsObjectPage" } } }
-            }
-          }
-        },
-        "ArtifactsObjectPage": {
-          "type": "Component",
-          "id": "ArtifactsObjectPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": { "settings": { "contextPath": "/Artifacts" } }
-        },
-        "TargetReports": {
+        "TargetArtifacts": {
           "type": "View",
-          "id": "Reports",
-          "name": "dassian.tpm.ui5.view.Reports",
+          "id": "Artifacts",
+          "name": "dassian.tpm.ui5.view.ArtifactsReports",
           "viewType": "XML",
           "controlAggregation": "pages"
         },
