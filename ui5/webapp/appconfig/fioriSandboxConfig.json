@@ -1,0 +1,42 @@
+{
+  "defaultRenderer": "fiori2",
+  "ushell": { "spaces": { "enabled": false } },
+  "renderers": {
+    "fiori2": { "componentData": { "config": { "enableSearch": false, "rootIntent": "Shell-home" } } }
+  },
+  "services": {
+    "LaunchPage": {
+      "adapter": {
+        "config": {
+          "groups": [{
+            "id": "tpmGroup",
+            "title": "Total Program Management",
+            "isPreset": true,
+            "isVisible": true,
+            "isGroupLocked": false,
+            "tiles": [{
+              "id": "tpmTile",
+              "tileType": "sap.ushell.ui.tile.StaticTile",
+              "properties": {
+                "title": "Total Program Management",
+                "subtitle": "A&D Earned Value Management",
+                "icon": "sap-icon://home",
+                "targetURL": "#tpm-display"
+              }
+            }]
+          }]
+        }
+      }
+    }
+  },
+  "applications": {
+    "tpm-display": {
+      "title": "Total Program Management",
+      "description": "A&D Earned Value Management",
+      "additionalInformation": "SAPUI5.Component=dassian.tpm.ui5",
+      "applicationType": "URL",
+      "url": "../",
+      "navigationMode": "embedded"
+    }
+  }
+}

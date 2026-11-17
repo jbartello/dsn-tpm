@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Dassian TPM — Fiori Launchpad</title>
+  <style> html, body { height: 100%; margin: 0; padding: 0; } </style>
+  <script type="text/javascript">
+    window["sap-ushell-config"] = {
+      defaultRenderer: "fiori2",
+      ushell: { spaces: { enabled: false } },
+      renderers: {
+        fiori2: { componentData: { config: { enableSearch: false, rootIntent: "Shell-home" } } }
+      },
+      services: {
+        LaunchPage: {
+          adapter: {
+            config: {
+              groups: [{
+                id: "tpmGroup", title: "Total Program Management", isPreset: true, isVisible: true, isGroupLocked: false,
+                tiles: [{
+                  id: "tpmTile",
+                  tileType: "sap.ushell.ui.tile.StaticTile",
+                  properties: {
+                    title: "Total Program Management",
+                    subtitle: "A&D Earned Value Management",
+                    icon: "sap-icon://BusinessSuiteInAppSymbols/icon-program",
+                    targetURL: "#tpm-display"
+                  }
+                }]
+              }]
+            }
+          }
+        }
+      },
+      applications: {
+        "tpm-display": {
+          title: "Total Program Management",
+          description: "A&D Earned Value Management",
+          additionalInformation: "SAPUI5.Component=dassian.tpm.ui5",
+          applicationType: "URL",
+          url: "../",
+          navigationMode: "embedded"
+        }
+      }
+    };
+  </script>
+  <script src="resources/sap/ushell/bootstrap/sandbox2.js" id="sap-ushell-bootstrap"></script>
+  <script
+    id="sap-ui-bootstrap"
+    src="resources/sap-ui-core.js"
+    data-sap-ui-libs="sap.m, sap.ushell, sap.fe.templates"
+    data-sap-ui-theme="sap_horizon"
+    data-sap-ui-compat-version="edge"
+    data-sap-ui-async="true"
+    data-sap-ui-frame-options="allow"
+    data-sap-ui-resource-roots='{ "dassian.tpm.ui5": "./" }'
+    data-sap-ui-on-init="module:dassian/tpm/ui5/flpboot">
+  </script>
+</head>
+<body class="sapUiBody" id="content"></body>
+</html>

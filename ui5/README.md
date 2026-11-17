@@ -34,7 +34,13 @@ npm install
 npm start
 ```
 
-`npm start` launches the UI5 dev server with the OData mock and opens the app. The Control Accounts list is live, filterable by Program / Project / CAM, with CPI/SPI/VAC coloured by status; click a row for the Control Account object page.
+`npm start` launches the UI5 dev server with the OData mock and opens the app.
+
+Two entry points:
+- **`index.html`** — the app standalone (a tile launchpad home routes to each module).
+- **`flp.html`** — the app inside the full **Fiori Launchpad shell** (`sap.ushell` sandbox): SAP shell bar, user menu, with the app embedded. Boots straight into the app via the `#tpm-display` intent.
+
+Every module is reachable from the tile launchpad; Control Accounts / Risk Register / Project Setup / Baseline Change / Artifacts are Fiori elements List Reports + Object Pages, the rest are custom freestyle pages. A Demo / MFG program switch drives the custom pages.
 
 ## Module → page mapping
 
