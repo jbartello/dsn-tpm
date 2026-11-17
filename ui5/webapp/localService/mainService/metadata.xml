@@ -89,6 +89,19 @@
         <Property Name="ScoreCriticality" Type="Edm.Int32"/>
       </EntityType>
 
+      <EntityType Name="ScheduleActivity">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" Nullable="false" MaxLength="10"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Start" Type="Edm.String" MaxLength="12"/>
+        <Property Name="Finish" Type="Edm.String" MaxLength="12"/>
+        <Property Name="DurationDays" Type="Edm.Int32"/>
+        <Property Name="StartOffset" Type="Edm.Int32"/>
+        <Property Name="IsLOE" Type="Edm.Boolean"/>
+      </EntityType>
+
       <EntityContainer Name="Container">
         <EntitySet Name="Programs" EntityType="dassian.tpm.Program">
           <NavigationPropertyBinding Path="Projects" Target="Projects"/>
@@ -101,6 +114,7 @@
           <NavigationPropertyBinding Path="Project" Target="Projects"/>
         </EntitySet>
         <EntitySet Name="Risks" EntityType="dassian.tpm.Risk"/>
+        <EntitySet Name="ScheduleActivities" EntityType="dassian.tpm.ScheduleActivity"/>
       </EntityContainer>
 
     </Schema>

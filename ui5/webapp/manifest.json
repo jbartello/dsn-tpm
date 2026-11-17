@@ -121,6 +121,11 @@
           "pattern": "RiskMatrix",
           "name": "RiskMatrix",
           "target": "TargetRiskMatrix"
+        },
+        {
+          "pattern": "MasterSchedule",
+          "name": "MasterSchedule",
+          "target": "TargetMasterSchedule"
         }
       ],
       "targets": {
@@ -142,6 +147,13 @@
           "type": "View",
           "id": "RiskMatrix",
           "name": "dassian.tpm.ui5.view.RiskMatrix",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetMasterSchedule": {
+          "type": "View",
+          "id": "MasterSchedule",
+          "name": "dassian.tpm.ui5.view.MasterSchedule",
           "viewType": "XML",
           "controlAggregation": "pages"
         },

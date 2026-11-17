@@ -21,6 +21,9 @@ sap.ui.define([
     },
     onOpenRiskMatrix: function () {
       this._go("RiskMatrix");
+    },
+    onOpenMasterSchedule: function () {
+      this._go("MasterSchedule");
     }
   });
 });

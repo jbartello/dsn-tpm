@@ -48,7 +48,7 @@ npm start
 | Project Setup (header / CA / WP / MR-UB) | FE Object Page with sub-sections | ▢ Phase 3 |
 | Project Baseline / Change Request | FE List Report + Object Page on `BaselineChange` | ▢ Phase 3 |
 | Project EAC | FE Object Page + editable table | ▢ Phase 3 |
-| Master Schedule + Monte Carlo | Custom page: `sap.gantt` + VizFrame S-curve | ▢ Phase 4 |
+| Master Schedule + Monte Carlo | Custom freestyle page: activity table + Monte Carlo schedule-risk (triangular durations, P-values, completion-confidence S-curve via VizFrame, LOE toggle) | ✅ Phase 5 |
 | Variance Analysis Report | FE List Report + custom expandable narrative | ▢ Phase 4 |
 | Artifacts & slide-outs | FE List Report + dialogs | ▢ Phase 4 |
 | Springboard launchpad (tile home) | In-app `GenericTile` launchpad routing to each app | ✅ Phase 3 |

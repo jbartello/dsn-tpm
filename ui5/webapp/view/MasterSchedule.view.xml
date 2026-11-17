@@ -1,0 +1,96 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.MasterSchedule"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:viz="sap.viz.ui5.controls"
+  xmlns:vizData="sap.viz.ui5.data"
+  xmlns:vizFeeds="sap.viz.ui5.controls.common.feeds"
+  displayBlock="true">
+  <Page id="msPage" title="Master Schedule — Monte Carlo" showNavButton="true" navButtonPress=".onNavBack"
+        class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Integrated Master Schedule — Demo program" level="H2" class="sapUiSmallMarginBottom"/>
+        <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+          <ObjectStatus title="Plan finish" text="{sched>/baselineFinish}" class="sapUiMediumMarginEnd"/>
+          <ObjectStatus title="Activities" text="{sched>/count}" class="sapUiMediumMarginEnd"/>
+          <ObjectStatus title="Level of effort" text="{sched>/loeCount}" class="sapUiMediumMarginEnd"/>
+        </HBox>
+
+        <Panel headerText="Schedule Risk — Monte Carlo">
+          <content>
+            <VBox class="sapUiSmallMargin">
+              <HBox wrap="Wrap" alignItems="Center">
+                <Label text="Iterations" class="sapUiTinyMarginEnd"/>
+                <Select selectedKey="{mc>/iters}" class="sapUiSmallMarginEnd">
+                  <core:Item key="2000" text="2,000"/>
+                  <core:Item key="5000" text="5,000"/>
+                  <core:Item key="10000" text="10,000"/>
+                  <core:Item key="20000" text="20,000"/>
+                </Select>
+                <Label text="Optimistic %" class="sapUiTinyMarginEnd"/>
+                <Input value="{mc>/optPct}" type="Number" width="3.5rem" class="sapUiSmallMarginEnd"/>
+                <Label text="Pessimistic %" class="sapUiTinyMarginEnd"/>
+                <Input value="{mc>/pesPct}" type="Number" width="3.5rem" class="sapUiSmallMarginEnd"/>
+                <CheckBox selected="{mc>/loeFix}" text="Hold level-of-effort fixed" class="sapUiSmallMarginEnd"/>
+                <Button text="Run simulation" type="Emphasized" icon="sap-icon://play" press=".onRun"/>
+              </HBox>
+
+              <HBox wrap="Wrap" class="sapUiMediumMarginTop" visible="{= ${mc>/hasResult} }">
+                <VBox class="mcStatBox"><Text text="Plan finish" class="mcStatLbl"/><Title text="{mc>/baseDate}" level="H3"/><Text text="deterministic" class="mcStatLbl"/></VBox>
+                <VBox class="mcStatBox"><Text text="P50" class="mcStatLbl"/><Title text="{mc>/p50}" level="H3"/><Text text="{mc>/p50slip}" class="mcStatLbl"/></VBox>
+                <VBox class="mcStatBox"><Text text="P80" class="mcStatLbl"/><Title text="{mc>/p80}" level="H3"/><Text text="{mc>/p80slip}" class="mcStatLbl"/></VBox>
+                <VBox class="mcStatBox"><Text text="P90" class="mcStatLbl"/><Title text="{mc>/p90}" level="H3"/><Text text="{mc>/p90slip}" class="mcStatLbl"/></VBox>
+                <VBox class="mcStatBox"><Text text="On-time vs plan" class="mcStatLbl"/><Title text="{mc>/pOnTime}" level="H3"/><Text text="confidence" class="mcStatLbl"/></VBox>
+              </HBox>
+
+              <viz:VizFrame id="scurve" vizType="line" height="320px" width="100%" visible="{= ${mc>/hasResult} }" uiConfig="{applicationSet:'fiori'}">
+                <viz:dataset>
+                  <vizData:FlattenedDataset data="{mc>/curve}">
+                    <vizData:dimensions>
+                      <vizData:DimensionDefinition name="Slip (workdays)" value="{mc>slip}"/>
+                    </vizData:dimensions>
+                    <vizData:measures>
+                      <vizData:MeasureDefinition name="Confidence %" value="{mc>prob}"/>
+                    </vizData:measures>
+                  </vizData:FlattenedDataset>
+                </viz:dataset>
+                <viz:feeds>
+                  <vizFeeds:FeedItem uid="valueAxis" type="Measure" values="Confidence %"/>
+                  <vizFeeds:FeedItem uid="categoryAxis" type="Dimension" values="Slip (workdays)"/>
+                </viz:feeds>
+              </viz:VizFrame>
+
+              <Text text="{mc>/note}" class="sapUiSmallMarginTop"/>
+            </VBox>
+          </content>
+        </Panel>
+
+        <Table items="{/ScheduleActivities}" growing="true" growingThreshold="15" class="sapUiMediumMarginTop">
+          <headerToolbar><OverflowToolbar><Title text="Schedule Activities"/></OverflowToolbar></headerToolbar>
+          <columns>
+            <Column><Text text="ID"/></Column>
+            <Column><Text text="Activity"/></Column>
+            <Column hAlign="End"><Text text="Duration (wd)"/></Column>
+            <Column><Text text="Start"/></Column>
+            <Column><Text text="Finish"/></Column>
+            <Column><Text text="Type"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{ID}"/>
+                <Text text="{Name}"/>
+                <Text text="{DurationDays}"/>
+                <Text text="{Start}"/>
+                <Text text="{Finish}"/>
+                <ObjectStatus text="{= ${IsLOE} ? 'LOE' : 'Discrete' }" state="{= ${IsLOE} ? 'Information' : 'None' }"/>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

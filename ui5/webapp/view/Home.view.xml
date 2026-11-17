@@ -32,6 +32,11 @@
               <NumericContent value="5×5" valueColor="Critical" icon="sap-icon://heatmap-chart"/>
             </TileContent>
           </GenericTile>
+          <GenericTile header="Master Schedule" subheader="Monte Carlo schedule risk" press=".onOpenMasterSchedule">
+            <TileContent unit="activities">
+              <NumericContent value="65" valueColor="Neutral" icon="sap-icon://gantt-bars"/>
+            </TileContent>
+          </GenericTile>
         </f:GridContainer>
       </VBox>
     </content>

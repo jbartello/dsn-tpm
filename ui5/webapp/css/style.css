@@ -17,3 +17,14 @@
 .riskAxisRow { color: #6a6d70; font-size: 0.75rem; }
 .riskRowLabel { width: 7.5rem; color: #6a6d70; font-size: 0.8rem; }
 .riskColLabel { width: 4.6rem; margin: 2px; text-align: center; color: #6a6d70; font-size: 0.72rem; }
+
+/* Monte Carlo result tiles */
+.mcStatBox {
+  background: #f7f7f7;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  margin: 0 0.6rem 0.6rem 0;
+  min-width: 7.5rem;
+}
+.mcStatLbl { color: #6a6d70; font-size: 0.72rem; }

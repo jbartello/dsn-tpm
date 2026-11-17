@@ -1,0 +1,587 @@
+[
+  {
+    "ID": "1",
+    "Name": "Airframe Integ., Assy, Test, Checkout",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "2",
+    "Name": "Fuselage",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "3",
+    "Name": "Wing",
+    "Start": "02/01/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1064,
+    "StartOffset": 21,
+    "IsLOE": true
+  },
+  {
+    "ID": "4",
+    "Name": "Empennage",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "5",
+    "Name": "Nacelle",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "6",
+    "Name": "Miscellaneous Structure",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "7",
+    "Name": "Engine - Installation, Assy, Test, Chk",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "8",
+    "Name": "Vehicle Subsystem Integ. Assy, Test, Chk",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "9",
+    "Name": "Flight Control Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "10",
+    "Name": "Auxiliary Power Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "11",
+    "Name": "Hydraulic Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "12",
+    "Name": "Electrical Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "13",
+    "Name": "Crew Station Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "14",
+    "Name": "Environmental Control Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "15",
+    "Name": "Fuel Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "16",
+    "Name": "Landing Gear",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "17",
+    "Name": "Rotor Group",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "18",
+    "Name": "Drive Group",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "19",
+    "Name": "Vehicle Subsystem Software",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "20",
+    "Name": "Re-Design - Hydraulic Subsystem",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "21",
+    "Name": "Avionics Integ., Assy, Test, Checkout",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "22",
+    "Name": "Communication/Identification",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "23",
+    "Name": "Navigation/Guidance",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "24",
+    "Name": "Mission Computer/Processing",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "25",
+    "Name": "Fire Control",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "26",
+    "Name": "Data Display and Controls",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "27",
+    "Name": "Survivability",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "28",
+    "Name": "Reconnaissance",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "29",
+    "Name": "Automatic Flight Control",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "30",
+    "Name": "Health Monitoring System",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "31",
+    "Name": "Stores Management",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "32",
+    "Name": "Avionics Software",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "33",
+    "Name": "Other Avionics Subsystems",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "34",
+    "Name": "Subcontract",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "35",
+    "Name": "Subcontract",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "36",
+    "Name": "Subcontract",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "37",
+    "Name": "Subcontract",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "38",
+    "Name": "Subcontract",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "39",
+    "Name": "System Engineering",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "40",
+    "Name": "Project Controls/Contracts/Project Finan",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "41",
+    "Name": "Development Test and Evaluation",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "42",
+    "Name": "Operational Test and Evaluation",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "43",
+    "Name": "Drawing 4",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "44",
+    "Name": "Test Facilities",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "45",
+    "Name": "Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "46",
+    "Name": "Services",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "47",
+    "Name": "Facilities",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "48",
+    "Name": "Technical Publications",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "49",
+    "Name": "Engineering Data",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "50",
+    "Name": "Management Data",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "51",
+    "Name": "Support Data",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "52",
+    "Name": "Data Depository",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "53",
+    "Name": "Test and Measurement Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "54",
+    "Name": "Support and Handling Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "55",
+    "Name": "Test and Measurement Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "56",
+    "Name": "Support and Handling Equipment",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "57",
+    "Name": "System Assy, Install., Checkout on site",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "58",
+    "Name": "Contractor Technical Support",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "59",
+    "Name": "Site Construction",
+    "Start": "01/03/2022",
+    "Finish": "03/31/2022",
+    "DurationDays": 64,
+    "StartOffset": 0,
+    "IsLOE": false
+  },
+  {
+    "ID": "60",
+    "Name": "Site/Ship/Vehicle Conversion",
+    "Start": "03/01/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1044,
+    "StartOffset": 41,
+    "IsLOE": true
+  },
+  {
+    "ID": "61",
+    "Name": "Sustainment/Interim Contractor Support",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  },
+  {
+    "ID": "62",
+    "Name": "Construction/Conversion/Expansion",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "63",
+    "Name": "Equipment Acquisition/Modernization",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "64",
+    "Name": "Maintenance (Industrial Facilities)",
+    "Start": "01/03/2022",
+    "Finish": "02/27/2026",
+    "DurationDays": 1085,
+    "StartOffset": 0,
+    "IsLOE": true
+  },
+  {
+    "ID": "65",
+    "Name": "Warranty",
+    "Start": "02/02/2026",
+    "Finish": "02/27/2026",
+    "DurationDays": 20,
+    "StartOffset": 1065,
+    "IsLOE": false
+  }
+]
