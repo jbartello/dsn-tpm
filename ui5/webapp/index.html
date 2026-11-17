@@ -4,6 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dassian TPM — Fiori</title>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    /* Anchor the component with a viewport-relative height, then cascade 100%
+       down the UIArea / root-view / NavContainer chain so the app fills the screen.
+       (The container has no data-height, so these rules are not overridden by an
+       inline style.) */
+    #rootComponentContainer { height: 100vh; }
+    #rootComponentContainer > div { height: 100%; }
+    #rootComponentContainer > div > .sapUiView { height: 100%; }
+    #rootComponentContainer .sapMNav,
+    #rootComponentContainer .sapMNavItem { height: 100%; }
+  </style>
   <script
     id="sap-ui-bootstrap"
     src="resources/sap-ui-core.js"
@@ -20,7 +32,6 @@
     data-sap-ui-component
     data-id="rootComponentContainer"
     data-name="dassian.tpm.ui5"
-    data-height="100%"
     data-settings='{ "id": "dassian.tpm.ui5" }'>
   </div>
 </body>
