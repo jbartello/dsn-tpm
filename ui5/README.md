@@ -51,11 +51,12 @@ npm start
 | Master Schedule + Monte Carlo | Custom page: `sap.gantt` + VizFrame S-curve | ▢ Phase 4 |
 | Variance Analysis Report | FE List Report + custom expandable narrative | ▢ Phase 4 |
 | Artifacts & slide-outs | FE List Report + dialogs | ▢ Phase 4 |
-| Springboard launchpad (duplicate row removed) | — | — |
+| Springboard launchpad (tile home) | In-app `GenericTile` launchpad routing to each app | ✅ Phase 3 |
+| Object Pages (Control Account, Risk) | FE Object Page, all fields binding | ✅ Phase 3 (fixed) |
 
-### Known items / next up
-- **Object Page detail sections:** header + facet layout render, but the field-group sections don't bind on a *deep link* yet (both entities). To resolve next — likely the correct fix is reaching the object page through list→detail navigation inside the FLP sandbox (which supplies the shell app-state service). Standalone `index.html` lacks `navigationService.storeInnerAppStateAsync`, which is why the unified launchpad is being done as an **FLP sandbox** (Phase 4) rather than a hand-rolled home.
-- **Reach the two apps today:** `index.html` opens Control Accounts; `index.html#/Risks` opens the Risk Register.
+### Phase 3 notes
+- **Object pages fixed.** The blank numeric fields were an `Edm.Decimal` representation bug: OData V4 carries decimals as JSON **strings**, but the mock emitted numbers, so UI5's Decimal type rendered them empty. Decimal mock fields are now strings; Control Account and Risk object pages fully populate.
+- **Launchpad.** The entry page (`index.html`) is a tile springboard (Control Accounts, Risk Register) that routes into each FE app and back. This is an **in-app** launchpad, not the full `sap.ushell` FLP shell — the FLP sandbox (`sandbox2.js`) needs extra spaces/pages config in this npm distribution, which can be added later for the exact FLP chrome. The standalone runtime logs a non-fatal `navigationService.storeInnerAppStateAsync` message (the full shell app-state service isn't present); navigation still completes.
 
 ## Production path
 

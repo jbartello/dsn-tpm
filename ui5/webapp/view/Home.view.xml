@@ -1,0 +1,29 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.Home"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:f="sap.f"
+  displayBlock="true">
+  <Page id="homePage" title="Dassian Total Program Management" showHeader="true" class="sapUiResponsiveContentPadding">
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Title text="Program Workspace" level="H2" class="sapUiSmallMarginBottom"/>
+        <f:GridContainer snapToRow="true">
+          <f:layout>
+            <f:GridContainerSettings rowSize="7rem" columnSize="7rem" gap="0.75rem"/>
+          </f:layout>
+          <GenericTile header="Control Accounts" subheader="Project Values · EVM" press=".onOpenControlAccounts">
+            <TileContent unit="accounts">
+              <NumericContent value="39" valueColor="Neutral" icon="sap-icon://table-view"/>
+            </TileContent>
+          </GenericTile>
+          <GenericTile header="Risk Register" subheader="Risks &amp; Opportunities" press=".onOpenRisks">
+            <TileContent unit="items">
+              <NumericContent value="13" valueColor="Critical" icon="sap-icon://alert"/>
+            </TileContent>
+          </GenericTile>
+        </f:GridContainer>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

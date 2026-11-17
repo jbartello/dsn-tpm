@@ -84,6 +84,11 @@
       "routes": [
         {
           "pattern": ":?query:",
+          "name": "Home",
+          "target": "TargetHome"
+        },
+        {
+          "pattern": "ControlAccounts:?query:",
           "name": "ControlAccountsList",
           "target": "ControlAccountsList"
         },
@@ -104,6 +109,13 @@
         }
       ],
       "targets": {
+        "TargetHome": {
+          "type": "View",
+          "id": "Home",
+          "name": "dassian.tpm.ui5.view.Home",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
         "RisksList": {
           "type": "Component",
           "id": "RisksList",
