@@ -139,8 +139,9 @@ sap.ui.define([
       var that = this, n;
       if (this._isCA(id)) { return "it is a control account"; }
       if (this._isWP(id)) { return "it is a work package"; }
+      // MR/UB may not sit INSIDE a control account (no CA ancestor). A control
+      // account at a LEVEL BELOW is allowed — MR/UB is held at a summary level.
       if ((n = this._findAnc(id, function (a) { return that._isCA(a); }))) { return "a control account exists above it (" + n + ")"; }
-      if ((n = this._findDesc(id, function (a) { return that._isCA(a); }))) { return "a control account exists below it (" + n + ")"; }
       return "";
     },
 

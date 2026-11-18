@@ -53,7 +53,7 @@
 
         <Panel headerText="WBS Structure &amp; Classification (EIA-748)" expandable="true" expanded="true">
           <VBox>
-            <Text text="Select a WBS element, then classify it as a Control Account, Work Package, or Management Reserve / Undistributed Budget and maintain its attributes. The structure rules are enforced: a work package must sit below a control account; control accounts cannot nest; MR/UB cannot live inside the control-account hierarchy." class="sapUiSmallMarginBottom"/>
+            <Text text="Select a WBS element, then classify it as a Control Account, Work Package, or Management Reserve / Undistributed Budget and maintain its attributes. The structure rules are enforced: a work package must sit below a control account; control accounts cannot nest; MR/UB cannot sit inside a control account (no control account above it), but may be held at a summary level above control accounts." class="sapUiSmallMarginBottom"/>
             <SegmentedButton selectedKey="{ps>/mode}" selectionChange=".onModeChange" class="sapUiSmallMarginBottom">
               <items>
                 <SegmentedButtonItem key="ca" text="Control Accounts"/>
