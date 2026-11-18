@@ -1,12 +1,27 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/core/routing/HashChanger",
-  "sap/ui/model/json/JSONModel"
-], function (Controller, HashChanger, JSONModel) {
+  "sap/ui/model/json/JSONModel",
+  "sap/m/MessageToast"
+], function (Controller, HashChanger, JSONModel, MessageToast) {
   "use strict";
 
   var PROB = ["Near Certain", "Highly Likely", "Likely", "Unlikely", "Remote"];
   var IMPACT = ["Insignificant", "Modest", "Moderate", "Significant", "Unacceptable"];
+  // scoring values aligned to the arrays above (PROB index 0 = highest; IMPACT index 0 = lowest)
+  var PROB_VAL = [0.95, 0.80, 0.50, 0.30, 0.10];
+  var IMPACT_VAL = [0.10, 0.30, 0.50, 0.80, 0.95];
+  var STATUSES = ["New", "Open", "In Process", "Mitigating", "Closed"];
+  var STRATEGIES = ["Mitigate", "Avoid", "Transfer", "Accept", "Exploit", "Enhance", "Share"];
+
+  function fmtScore(v) {
+    var s = (Math.round(v * 10000) / 10000).toString();
+    return s;
+  }
+  function todayStr() {
+    var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return p(d.getMonth() + 1) + "/" + p(d.getDate()) + "/" + d.getFullYear();
+  }
   // colour tier per cell (row 0 = Near Certain), matches the prototype
   var TIER = [
     [3, 4, 4, 5, 5],
@@ -21,7 +36,8 @@ sap.ui.define([
   return Controller.extend("dassian.tpm.ui5.controller.RiskInfo", {
     onInit: function () {
       this.getView().setModel(new JSONModel({ kind: "Risk", items: [], riskCount: 0, oppCount: 0 }), "risk");
-      this.getView().setModel(new JSONModel({}), "sel");
+      this.getView().setModel(new JSONModel({ edit: false, isNew: false, tasks: [] }), "sel");
+      this.getView().setModel(new JSONModel({ prob: PROB, impact: IMPACT, statuses: STATUSES, strategies: STRATEGIES }), "cfg");
       var tm = new JSONModel();
       tm.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/risktasks.json"));
       tm.attachRequestCompleted(function () { this._tasks = tm.getData() || {}; }.bind(this));
@@ -128,12 +144,123 @@ sap.ui.define([
     onRiskPress: function (evt) {
       var o = evt.getSource().getBindingContext("risk").getObject();
       var sel = this.getView().getModel("sel");
-      sel.setData(Object.assign({}, o));
-      var tasks = (this._tasks && this._tasks[o.ID]) || [];
-      sel.setProperty("/tasks", tasks);
-      var wf = this.byId("waterfallHtml"); if (wf) { wf.setContent(this._waterfall(o, tasks)); }
+      var data = Object.assign({ edit: false, isNew: false }, o);
+      var tasks = ((this._tasks && this._tasks[o.ID]) || []).map(function (t) { return Object.assign({}, t); });
+      data.tasks = tasks;
+      sel.setData(data);
+      this._refreshWaterfall();
       this.byId("riskDialog").open();
     },
+
+    // ---- Create / Edit / Save ----
+    _projectId: function () {
+      var items = this.getView().getModel("risk").getProperty("/items") || [];
+      if (items.length && items[0].ProjectID) { return items[0].ProjectID; }
+      return this._prog() === "DEMO" ? "JTB001" : "DD-0001";
+    },
+    _nextId: function () {
+      var risk = this.getView().getModel("risk");
+      var n = (risk.getProperty("/riskCount") || 0) + (risk.getProperty("/oppCount") || 0) + 1;
+      return this._projectId() + "-R" + (n < 10 ? "0" + n : "" + n);
+    },
+    onCreateRisk: function () {
+      var kind = this._kind();
+      var r = {
+        ID: this._nextId(), ProgramID: this._prog(), ProjectID: this._projectId(), Kind: kind,
+        Title: "", Description: "", Category: "", ResponseStrategy: "Mitigate", Triggers: "",
+        Owner: "", Status: "New", WorkPackage: "",
+        Probability: "Likely", Impact: "Moderate", ProbIndex: 2, ImpactIndex: 2,
+        OriginalScore: "0.25", CurrentScore: "0.25", TargetScore: "0",
+        RiskValue: "0", OriginalValue: "0", CurrentValue: "0", TargetValue: "0",
+        Cause: "", Event: "", Effect: "", MitigationPlan: "", DateRaised: todayStr(), LastReviewed: "",
+        edit: true, isNew: true, tasks: []
+      };
+      this.getView().getModel("sel").setData(r);
+      this._refreshWaterfall();
+      this.byId("riskDialog").open();
+    },
+    onEditRisk: function () { this.getView().getModel("sel").setProperty("/edit", true); },
+
+    // Recompute Current Score (and Original, for a brand-new risk) from Probability × Impact.
+    onScoreChange: function () {
+      var sel = this.getView().getModel("sel"), d = sel.getData();
+      var pi = PROB.indexOf(d.Probability), ii = IMPACT.indexOf(d.Impact);
+      if (pi < 0) { pi = 2; } if (ii < 0) { ii = 2; }
+      var cur = PROB_VAL[pi] * IMPACT_VAL[ii];
+      sel.setProperty("/ProbIndex", pi);
+      sel.setProperty("/ImpactIndex", ii);
+      sel.setProperty("/CurrentScore", fmtScore(cur));
+      if (d.isNew) { sel.setProperty("/OriginalScore", fmtScore(cur)); }
+      this._refreshWaterfall();
+    },
+    onTaskScoreChange: function () { this._refreshWaterfall(); },
+
+    onAddTask: function () {
+      var sel = this.getView().getModel("sel"), tasks = sel.getProperty("/tasks") || [];
+      tasks.push({ Desc: "", Start: "", End: "", Assigned: "", TargetScore: "0", Status: "New", TargetValue: "0" });
+      sel.setProperty("/tasks", tasks);
+    },
+    onDeleteTask: function (evt) {
+      var sel = this.getView().getModel("sel");
+      var idx = evt.getSource().getBindingContext("sel").getPath().split("/").pop();
+      var tasks = sel.getProperty("/tasks") || [];
+      tasks.splice(parseInt(idx, 10), 1);
+      sel.setProperty("/tasks", tasks);
+      this._refreshWaterfall();
+    },
+
+    onSaveRisk: function () {
+      var sel = this.getView().getModel("sel"), d = sel.getData();
+      if (!d.Title || !d.Description) {
+        MessageToast.show("Enter a short description and a description before saving.");
+        return;
+      }
+      d.LastReviewed = todayStr();
+      var rec = Object.assign({}, d); delete rec.edit; delete rec.isNew; delete rec.tasks;
+      var tasks = (d.tasks || []).map(function (t) { return Object.assign({}, t); });
+
+      var risk = this.getView().getModel("risk");
+      var items = risk.getProperty("/items") || [];
+      var idx = -1;
+      items.forEach(function (x, i) { if (x.ID === rec.ID) { idx = i; } });
+      if (idx >= 0) {
+        items[idx] = rec;
+      } else {
+        items.push(rec);
+        if (rec.Kind === "Opportunity") { risk.setProperty("/oppCount", (risk.getProperty("/oppCount") || 0) + 1); }
+        else { risk.setProperty("/riskCount", (risk.getProperty("/riskCount") || 0) + 1); }
+      }
+      // only keep rows that match the kind currently shown in the register
+      risk.setProperty("/items", items.filter(function (x) { return x.Kind === rec.Kind; }));
+      this._tasks = this._tasks || {};
+      this._tasks[rec.ID] = tasks;
+
+      this._recount();
+      sel.setProperty("/edit", false);
+      sel.setProperty("/isNew", false);
+      this._refreshWaterfall();
+      MessageToast.show((rec.Kind === "Opportunity" ? "Opportunity " : "Risk ") + rec.ID + " saved.");
+    },
+
+    // Rebuild the 5×5 matrix counts from the rows currently in the register.
+    _recount: function () {
+      var kind = this._kind();
+      var items = this.getView().getModel("risk").getProperty("/items") || [];
+      var counts = Array.from({ length: 5 }, function () { return [0, 0, 0, 0, 0]; });
+      items.forEach(function (o) {
+        if (o.Kind !== kind) { return; }
+        var p = o.ProbIndex, i = o.ImpactIndex;
+        if (p >= 0 && p < 5 && i >= 0 && i < 5) { counts[p][i]++; }
+      });
+      this._renderMatrix(counts, kind);
+    },
+
+    _refreshWaterfall: function () {
+      var sel = this.getView().getModel("sel");
+      var wf = this.byId("waterfallHtml");
+      if (wf) { wf.setContent(this._waterfall(sel.getData(), sel.getProperty("/tasks") || [])); }
+    },
+
     onCloseDialog: function () { this.byId("riskDialog").close(); },
 
     onNavBack: function () { HashChanger.getInstance().setHash(""); }

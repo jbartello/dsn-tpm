@@ -28,7 +28,14 @@
         <core:HTML id="matrixHtml" class="sapUiSmallMarginBottom"/>
 
         <Table id="riskTable" items="{risk>/items}" growing="true" growingThreshold="20" class="sapUiMediumMarginTop">
-          <headerToolbar><OverflowToolbar><Title text="{= ${risk>/kind} === 'Risk' ? 'Risks' : 'Opportunities' } Register"/></OverflowToolbar></headerToolbar>
+          <headerToolbar>
+            <OverflowToolbar>
+              <Title text="{= ${risk>/kind} === 'Risk' ? 'Risks' : 'Opportunities' } Register"/>
+              <ToolbarSpacer/>
+              <Button text="{= ${risk>/kind} === 'Risk' ? 'Create New Risk' : 'Create New Opportunity' }"
+                      type="Emphasized" icon="sap-icon://add" press=".onCreateRisk"/>
+            </OverflowToolbar>
+          </headerToolbar>
           <columns>
             <Column><Text text="ID"/></Column>
             <Column><Text text="Title"/></Column>
@@ -54,79 +61,111 @@
         </Table>
       </VBox>
 
-      <Dialog id="riskDialog" title="{sel>/ID} — {sel>/Description}" contentWidth="42rem" stretch="{device>/system/phone}">
+      <Dialog id="riskDialog" contentWidth="44rem" stretch="{device>/system/phone}"
+              title="{= ${sel>/isNew} ? ('New ' + (${sel>/Kind} === 'Opportunity' ? 'Opportunity' : 'Risk')) : (${sel>/ID} + ' — ' + ${sel>/Description}) }">
         <content>
           <IconTabBar expandable="false">
             <items>
               <IconTabFilter text="Risk Details" key="det">
                 <VBox class="sapUiSmallMargin">
-                  <Label text="Type"/><Text text="{sel>/Kind}"/>
-                  <Label text="Category (RBS)" class="sapUiSmallMarginTop"/><Text text="{sel>/Category}"/>
-                  <Label text="Owner" class="sapUiSmallMarginTop"/><Text text="{sel>/Owner}"/>
-                  <Label text="Status" class="sapUiSmallMarginTop"/><Text text="{sel>/Status}"/>
-                  <Label text="Work Package" class="sapUiSmallMarginTop"/><Text text="{sel>/WorkPackage}"/>
-                  <Label text="Cause" class="sapUiSmallMarginTop"/><Text text="{sel>/Cause}"/>
-                  <Label text="Event" class="sapUiSmallMarginTop"/><Text text="{sel>/Event}"/>
-                  <Label text="Effect" class="sapUiSmallMarginTop"/><Text text="{sel>/Effect}"/>
+                  <Label text="Risk ID"/><Input value="{sel>/ID}" editable="false"/>
+                  <Label text="Project ID" class="sapUiTinyMarginTop"/><Input value="{sel>/ProjectID}" editable="false"/>
+                  <Label text="Short Description" class="sapUiTinyMarginTop"/><Input value="{sel>/Title}" editable="{sel>/edit}"/>
+                  <Label text="Description" class="sapUiTinyMarginTop"/><TextArea value="{sel>/Description}" editable="{sel>/edit}" rows="2" width="100%" growing="true"/>
+                  <Label text="Category (RBS)" class="sapUiTinyMarginTop"/><Input value="{sel>/Category}" editable="{sel>/edit}"/>
+                  <Label text="Work Package" class="sapUiTinyMarginTop"/><Input value="{sel>/WorkPackage}" editable="{sel>/edit}"/>
+                  <Label text="Type" class="sapUiTinyMarginTop"/>
+                  <Select selectedKey="{sel>/Kind}" enabled="{sel>/edit}" width="14rem">
+                    <core:Item key="Risk" text="Risk"/><core:Item key="Opportunity" text="Opportunity"/>
+                  </Select>
+                  <Label text="Owner" class="sapUiTinyMarginTop"/><Input value="{sel>/Owner}" editable="{sel>/edit}"/>
+                  <Label text="Status" class="sapUiTinyMarginTop"/>
+                  <Select selectedKey="{sel>/Status}" enabled="{sel>/edit}" items="{cfg>/statuses}" width="14rem"><core:Item key="{cfg>}" text="{cfg>}"/></Select>
+                  <Label text="Date Raised" class="sapUiTinyMarginTop"/><Input value="{sel>/DateRaised}" editable="false" width="14rem"/>
+                  <Label text="Cause" class="sapUiTinyMarginTop"/><TextArea value="{sel>/Cause}" editable="{sel>/edit}" rows="2" width="100%" growing="true"/>
+                  <Label text="Event" class="sapUiTinyMarginTop"/><TextArea value="{sel>/Event}" editable="{sel>/edit}" rows="2" width="100%" growing="true"/>
+                  <Label text="Effect" class="sapUiTinyMarginTop"/><TextArea value="{sel>/Effect}" editable="{sel>/edit}" rows="2" width="100%" growing="true"/>
+
                   <Title text="Risk Values (USD)" level="H5" class="sapUiMediumMarginTop sapUiTinyMarginBottom"/>
-                  <HBox wrap="Wrap">
-                    <VBox class="mcStatBox"><Text text="Risk Value" class="mcStatLbl"/><Title text="{sel>/RiskValue}" level="H5"/></VBox>
-                    <VBox class="mcStatBox"><Text text="Original Value" class="mcStatLbl"/><Title text="{sel>/OriginalValue}" level="H5"/></VBox>
-                    <VBox class="mcStatBox"><Text text="Current Mitigated" class="mcStatLbl"/><Title text="{sel>/CurrentValue}" level="H5"/></VBox>
-                    <VBox class="mcStatBox"><Text text="Target Value" class="mcStatLbl"/><Title text="{sel>/TargetValue}" level="H5"/></VBox>
-                  </HBox>
+                  <Label text="Risk Value"/><Input value="{sel>/RiskValue}" editable="{sel>/edit}" type="Number" width="14rem"/>
+                  <Label text="Original Value" class="sapUiTinyMarginTop"/><Input value="{sel>/OriginalValue}" editable="false" width="14rem"/>
+                  <Label text="Current Mitigated Value" class="sapUiTinyMarginTop"/><Input value="{sel>/CurrentValue}" editable="false" width="14rem"/>
+                  <Label text="Target Value" class="sapUiTinyMarginTop"/><Input value="{sel>/TargetValue}" editable="false" width="14rem"/>
                 </VBox>
               </IconTabFilter>
+
               <IconTabFilter text="Scoring" key="sco">
                 <VBox class="sapUiSmallMargin">
-                  <Label text="Probability"/><Text text="{sel>/Probability}"/>
-                  <Label text="Impact" class="sapUiSmallMarginTop"/><Text text="{sel>/Impact}"/>
-                  <Label text="Original Score" class="sapUiSmallMarginTop"/><Text text="{sel>/OriginalScore}"/>
-                  <Label text="Current Score" class="sapUiSmallMarginTop"/><Text text="{sel>/CurrentScore}"/>
-                  <Label text="Target Score" class="sapUiSmallMarginTop"/><Text text="{sel>/TargetScore}"/>
+                  <Label text="Probability"/>
+                  <Select selectedKey="{sel>/Probability}" enabled="{sel>/edit}" items="{cfg>/prob}" change=".onScoreChange" width="16rem"><core:Item key="{cfg>}" text="{cfg>}"/></Select>
+                  <Label text="Impact" class="sapUiTinyMarginTop"/>
+                  <Select selectedKey="{sel>/Impact}" enabled="{sel>/edit}" items="{cfg>/impact}" change=".onScoreChange" width="16rem"><core:Item key="{cfg>}" text="{cfg>}"/></Select>
+                  <Label text="Original Score" class="sapUiTinyMarginTop"/><Input value="{sel>/OriginalScore}" editable="false" width="10rem"/>
+                  <Label text="Current Score" class="sapUiTinyMarginTop"/><Input value="{sel>/CurrentScore}" editable="false" width="10rem"/>
+                  <Label text="Target Score" class="sapUiTinyMarginTop"/><Input value="{sel>/TargetScore}" editable="false" width="10rem"/>
+                  <Text text="Scores are computed from Probability × Impact; Target Score is driven by the mitigation tasks." class="sapUiTinyMarginTop"/>
                 </VBox>
               </IconTabFilter>
+
               <IconTabFilter text="Mitigation" key="mit">
                 <VBox class="sapUiSmallMargin">
-                  <Label text="Response Strategy"/><Text text="{sel>/ResponseStrategy}"/>
-                  <Label text="Mitigation Plan" class="sapUiSmallMarginTop"/><Text text="{sel>/MitigationPlan}"/>
-                  <Label text="Triggers / Warning Signs" class="sapUiSmallMarginTop"/><Text text="{sel>/Triggers}"/>
-                  <Label text="Target Value (USD)" class="sapUiSmallMarginTop"/><Text text="{sel>/TargetValue}"/>
+                  <Label text="Response Strategy"/>
+                  <Select selectedKey="{sel>/ResponseStrategy}" enabled="{sel>/edit}" items="{cfg>/strategies}" width="16rem"><core:Item key="{cfg>}" text="{cfg>}"/></Select>
+                  <Label text="Mitigation Plan" class="sapUiTinyMarginTop"/><TextArea value="{sel>/MitigationPlan}" editable="{sel>/edit}" rows="3" width="100%" growing="true"/>
+                  <Label text="Triggers / Warning Signs" class="sapUiTinyMarginTop"/><TextArea value="{sel>/Triggers}" editable="{sel>/edit}" rows="2" width="100%" growing="true"/>
+                  <Label text="Last Reviewed Date" class="sapUiTinyMarginTop"/><Input value="{sel>/LastReviewed}" editable="false" width="14rem"/>
                 </VBox>
               </IconTabFilter>
+
               <IconTabFilter text="Tasks" key="tsk">
-                <Table items="{sel>/tasks}" class="sapUiSmallMargin" noDataText="No mitigation tasks.">
-                  <columns>
-                    <Column><Text text="Description"/></Column>
-                    <Column><Text text="Start"/></Column>
-                    <Column><Text text="End"/></Column>
-                    <Column><Text text="Assigned To"/></Column>
-                    <Column hAlign="End"><Text text="Target Score"/></Column>
-                    <Column><Text text="Status"/></Column>
-                    <Column hAlign="End"><Text text="Target Value"/></Column>
-                  </columns>
-                  <items>
-                    <ColumnListItem>
-                      <cells>
-                        <Text text="{sel>Desc}"/>
-                        <Text text="{sel>Start}"/>
-                        <Text text="{sel>End}"/>
-                        <Text text="{sel>Assigned}"/>
-                        <Text text="{sel>TargetScore}"/>
-                        <Text text="{sel>Status}"/>
-                        <Text text="{sel>TargetValue}"/>
-                      </cells>
-                    </ColumnListItem>
-                  </items>
-                </Table>
+                <VBox class="sapUiSmallMargin">
+                  <Table items="{sel>/tasks}" noDataText="No mitigation tasks.">
+                    <headerToolbar>
+                      <OverflowToolbar>
+                        <Title text="Mitigation Tasks"/>
+                        <ToolbarSpacer/>
+                        <Button text="Add Task" icon="sap-icon://add" visible="{sel>/edit}" press=".onAddTask"/>
+                      </OverflowToolbar>
+                    </headerToolbar>
+                    <columns>
+                      <Column><Text text="Description"/></Column>
+                      <Column><Text text="Start"/></Column>
+                      <Column><Text text="End"/></Column>
+                      <Column><Text text="Assigned To"/></Column>
+                      <Column hAlign="End"><Text text="Target Score"/></Column>
+                      <Column><Text text="Status"/></Column>
+                      <Column hAlign="End"><Text text="Target Value"/></Column>
+                      <Column width="3rem"><Text text=""/></Column>
+                    </columns>
+                    <items>
+                      <ColumnListItem>
+                        <cells>
+                          <Input value="{sel>Desc}" editable="{sel>/edit}"/>
+                          <Input value="{sel>Start}" editable="{sel>/edit}"/>
+                          <Input value="{sel>End}" editable="{sel>/edit}"/>
+                          <Input value="{sel>Assigned}" editable="{sel>/edit}"/>
+                          <Input value="{sel>TargetScore}" editable="{sel>/edit}" change=".onTaskScoreChange"/>
+                          <Input value="{sel>Status}" editable="{sel>/edit}"/>
+                          <Input value="{sel>TargetValue}" editable="{sel>/edit}"/>
+                          <Button icon="sap-icon://delete" type="Transparent" visible="{sel>/edit}" press=".onDeleteTask"/>
+                        </cells>
+                      </ColumnListItem>
+                    </items>
+                  </Table>
+                </VBox>
               </IconTabFilter>
+
               <IconTabFilter text="Waterfall" key="wat">
                 <core:HTML id="waterfallHtml" class="sapUiSmallMargin"/>
               </IconTabFilter>
             </items>
           </IconTabBar>
         </content>
-        <beginButton><Button text="Close" press=".onCloseDialog"/></beginButton>
+        <buttons>
+          <Button text="Edit" icon="sap-icon://edit" visible="{= !${sel>/edit} }" press=".onEditRisk"/>
+          <Button text="Save" type="Emphasized" icon="sap-icon://save" visible="{sel>/edit}" press=".onSaveRisk"/>
+          <Button text="Close" press=".onCloseDialog"/>
+        </buttons>
       </Dialog>
     </content>
   </Page>
