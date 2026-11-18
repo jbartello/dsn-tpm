@@ -39,7 +39,9 @@ sap.ui.define([], function () {
       var n = ensure(ca.id);
       n.desc = ca.desc; n.title = ca.id + " · " + ca.desc; n.bac = ca.bac || 0;
       n.ca.flag = true; n.ca.cam = ca.cam;                 // real control accounts, pre-classified
-      n.ca.auth = "CA authorized under CWBS " + ca.id + " (" + ca.desc + ")";
+      // Authorization Information = free-text description of the work authorized
+      // (feeds the WBS Dictionary and the Work Authorization Document).
+      n.ca.auth = "Authorized to plan and execute the " + ca.desc + " control-account scope of work per the contract statement of work.";
       for (var i = 1; i <= 2; i++) {                        // work-package leaves below each CA
         var w = ensure(ca.id + "." + i);
         w.desc = "Work Package " + i; w.title = w.id + " · Work Package " + i;
@@ -48,7 +50,7 @@ sap.ui.define([], function () {
         w.wp.mgr = ca.cam;
         w.wp.rec = i === 1 ? "Recurring" : "Non-Recurring";
         w.wp.eoc = i === 1 ? "Labor" : "Material";
-        w.wp.auth = "WAD-" + w.id + " — authorized by " + ca.cam;
+        w.wp.auth = "Authorized work: " + ca.desc + " — Work Package " + i + " detailed task scope and deliverables per the IMS.";
       }
     });
     Object.keys(map).forEach(function (id) {
