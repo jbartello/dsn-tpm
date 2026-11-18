@@ -93,3 +93,21 @@ table.wbs-tbl .wbs-num { text-align: right; font-variant-numeric: tabular-nums; 
 /* Project Setup: WBS tree + classification detail */
 .ps-tree { flex: 1 1 24rem; min-width: 22rem; max-height: 560px; overflow: auto; border: 1px solid #e5e5e5; border-radius: 6px; }
 .ps-detail { flex: 1 1 24rem; min-width: 22rem; padding: 0 0.5rem; }
+
+/* Responsibility Assignment Matrix (RAM) report */
+table.ram-tbl { border-collapse: collapse; font-size: 0.72rem; white-space: nowrap; width: max-content; }
+table.ram-tbl th, table.ram-tbl td { border: 1px solid #cfcfcf; padding: 3px 7px; text-align: right; }
+table.ram-tbl .ram-title th { background: #c6e0b4; color: #1d1d1d; font-weight: 700; text-align: center; font-size: 0.78rem; padding: 5px; }
+table.ram-tbl .ram-ylw { background: #fff2b2; color: #1d1d1d; font-weight: 700; text-align: center; }
+table.ram-tbl .ram-dept { background: #f4a6a0; color: #5b1a16; font-weight: 700; text-align: center; }
+table.ram-tbl .ram-person { background: #9dc3e6; color: #11365c; font-weight: 700; text-align: center; }
+table.ram-tbl .ram-totcol { background: #9dc3e6; color: #11365c; font-weight: 700; text-align: center; vertical-align: bottom; }
+table.ram-tbl tbody td { background: #fffdf2; }
+table.ram-tbl td.ram-lvl { text-align: center; color: #1d1d1d; }
+table.ram-tbl td.ram-ca { font-weight: 700; color: #11365c; }
+table.ram-tbl td.ram-num { font-variant-numeric: tabular-nums; }
+table.ram-tbl td.ram-tot { font-weight: 600; }
+table.ram-tbl tr.ram-foot td { background: #f8cbad; font-weight: 600; text-align: right; }
+table.ram-tbl tr.ram-foot td[colspan] { text-align: left; }
+table.ram-tbl tr.ram-foot-top td { border-top: 2px solid #9c6b4f; }
+table.ram-tbl tr.ram-foot-bold td { font-weight: 700; }

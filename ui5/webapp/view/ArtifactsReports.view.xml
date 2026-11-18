@@ -2,6 +2,7 @@
   controllerName="dassian.tpm.ui5.controller.ArtifactsReports"
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
+  xmlns:core="sap.ui.core"
   xmlns:table="sap.ui.table"
   displayBlock="true">
   <Page id="artReportsPage" title="Project Artifacts &amp; Reports"
@@ -34,9 +35,12 @@
         </Table>
       </VBox>
 
-      <Dialog id="reportDialog" title="Report" contentWidth="90%" contentHeight="80%" stretch="{device>/system/phone}" resizable="true">
+      <Dialog id="reportDialog" title="Report" contentWidth="92%" contentHeight="82%" stretch="{device>/system/phone}" resizable="true">
         <content>
           <table:Table id="reportGrid" selectionMode="None" visibleRowCountMode="Auto" minAutoRowCount="12" enableColumnReordering="true"/>
+          <ScrollContainer id="reportHtmlScroll" height="100%" width="100%" horizontal="true" vertical="true" visible="false">
+            <core:HTML id="reportHtml"/>
+          </ScrollContainer>
         </content>
         <beginButton><Button text="Close" press=".onCloseReport"/></beginButton>
       </Dialog>
