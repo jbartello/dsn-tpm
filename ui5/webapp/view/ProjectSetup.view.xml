@@ -138,8 +138,8 @@
 
                 <!-- MR / UB mode -->
                 <VBox visible="{= ${ps>/mode} === 'mrub' }">
-                  <CheckBox text="Management Reserve" selected="{ps>/selNode/mrub/mr}" select=".onToggleMR" enabled="{ps>/d/hasSel}"/>
-                  <CheckBox text="Undistributed Budget" selected="{ps>/selNode/mrub/ub}" select=".onToggleUB" enabled="{ps>/d/hasSel}"/>
+                  <CheckBox text="Management Reserve" selected="{ps>/selNode/mrub/mr}" select=".onToggleMR" enabled="{ps>/d/mrEnabled}"/>
+                  <CheckBox text="Undistributed Budget" selected="{ps>/selNode/mrub/ub}" select=".onToggleUB" enabled="{ps>/d/ubEnabled}"/>
                   <MessageStrip type="Warning" showIcon="true" class="sapUiTinyMarginTopBottom"
                                 visible="{= !!${ps>/d/mrubBlock} &amp;&amp; !${ps>/d/mrubFlag} }" text="{= 'Not allowed — ' + ${ps>/d/mrubBlock} }"/>
                   <CheckBox text="Burden Indicator" selected="{ps>/selNode/mrub/burden}" enabled="{ps>/d/mrubFlag}"/>

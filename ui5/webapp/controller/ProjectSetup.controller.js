@@ -162,13 +162,17 @@ sap.ui.define([
       var ps = this.getView().getModel("ps"), node = ps.getProperty("/selNode");
       if (!node) { ps.setProperty("/d", { hasSel: false }); return; }
       var id = node.id;
+      var mrubBlocked = this._canBeMRUB(id);   // structural block (CA/WP, or CA above)
       ps.setProperty("/d", {
         hasSel: true,
         caFlag: node.ca.flag, caBlock: node.ca.flag ? "" : this._canBeCA(id),
         wpFlag: node.wp.flag, wpBlock: node.wp.flag ? "" : this._canBeWP(id),
         mrFlag: node.mrub.mr, ubFlag: node.mrub.ub,
         mrubFlag: node.mrub.mr || node.mrub.ub,
-        mrubBlock: (node.mrub.mr || node.mrub.ub) ? "" : this._canBeMRUB(id),
+        mrubBlock: (node.mrub.mr || node.mrub.ub) ? "" : mrubBlocked,
+        // MR and UB are mutually exclusive: once one is set, the other is disabled
+        mrEnabled: node.mrub.mr || (!node.mrub.ub && !mrubBlocked),
+        ubEnabled: node.mrub.ub || (!node.mrub.mr && !mrubBlocked),
         wpBelow: this._descendants(id).filter(this._isWP.bind(this)).length
       });
     },
@@ -204,6 +208,7 @@ sap.ui.define([
     onToggleMR: function (evt) {
       var node = this._node(), src = evt.getSource(); if (!node) { return; }
       if (evt.getParameter("selected")) {
+        if (node.mrub.ub) { node.mrub.mr = false; src.setSelected(false); MessageToast.show("An object cannot be both MR and UB — clear Undistributed Budget first."); this._refreshDetail(); return; }
         var r = this._canBeMRUB(node.id);
         if (r) { node.mrub.mr = false; src.setSelected(false); MessageToast.show("Cannot set Management Reserve — " + r); this._refreshDetail(); return; }
         node.mrub.mr = true;
@@ -213,6 +218,7 @@ sap.ui.define([
     onToggleUB: function (evt) {
       var node = this._node(), src = evt.getSource(); if (!node) { return; }
       if (evt.getParameter("selected")) {
+        if (node.mrub.mr) { node.mrub.ub = false; src.setSelected(false); MessageToast.show("An object cannot be both MR and UB — clear Management Reserve first."); this._refreshDetail(); return; }
         var r = this._canBeMRUB(node.id);
         if (r) { node.mrub.ub = false; src.setSelected(false); MessageToast.show("Cannot set Undistributed Budget — " + r); this._refreshDetail(); return; }
         node.mrub.ub = true;
