@@ -4,7 +4,7 @@
   xmlns="sap.m"
   xmlns:core="sap.ui.core"
   displayBlock="true">
-  <Page id="varPage" title="Variance Analysis Report — Format 5" showNavButton="true" navButtonPress=".onNavBack"
+  <Page id="varPage" title="Variance Analysis Report — Format 5"
         class="sapUiResponsiveContentPadding">
     <subHeader>
       <OverflowToolbar>

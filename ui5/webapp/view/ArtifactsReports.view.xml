@@ -4,7 +4,7 @@
   xmlns="sap.m"
   xmlns:table="sap.ui.table"
   displayBlock="true">
-  <Page id="artReportsPage" title="Project Artifacts &amp; Reports" showNavButton="true" navButtonPress=".onNavBack"
+  <Page id="artReportsPage" title="Project Artifacts &amp; Reports"
         class="sapUiResponsiveContentPadding">
     <content>
       <VBox class="sapUiMediumMargin">

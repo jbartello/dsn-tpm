@@ -5,7 +5,7 @@
   xmlns:core="sap.ui.core"
   xmlns:f="sap.ui.layout.form"
   displayBlock="true">
-  <Page id="setupPage" title="Project Setup" showNavButton="true" navButtonPress=".onNavBack"
+  <Page id="setupPage" title="Project Setup"
         class="sapUiResponsiveContentPadding">
     <subHeader>
       <OverflowToolbar>

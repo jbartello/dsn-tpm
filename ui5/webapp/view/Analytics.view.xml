@@ -4,7 +4,7 @@
   xmlns="sap.m"
   xmlns:core="sap.ui.core"
   displayBlock="true">
-  <Page id="analyticsPage" title="Project Analytics — EVM" showNavButton="true" navButtonPress=".onNavBack"
+  <Page id="analyticsPage" title="Project Analytics — EVM"
         class="sapUiResponsiveContentPadding">
     <subHeader>
       <OverflowToolbar>

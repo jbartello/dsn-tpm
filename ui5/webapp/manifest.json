@@ -50,7 +50,8 @@
         "sap.ui.layout": {},
         "sap.viz": {},
         "sap.ui.table": {},
-        "sap.suite.ui.microchart": {}
+        "sap.suite.ui.microchart": {},
+        "sap.tnt": {}
       }
     },
     "contentDensities": { "compact": true, "cozy": true },
@@ -58,7 +59,7 @@
       "css": [ { "uri": "css/style.css" } ]
     },
     "rootView": {
-      "viewName": "sap.fe.core.rootView.NavContainer",
+      "viewName": "dassian.tpm.ui5.view.App",
       "type": "XML",
       "id": "appRootView",
       "async": true

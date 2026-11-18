@@ -5,7 +5,7 @@
   xmlns:core="sap.ui.core"
   xmlns:micro="sap.suite.ui.microchart"
   displayBlock="true">
-  <Page id="pvPage" title="Project Values" showNavButton="true" navButtonPress=".onNavBack"
+  <Page id="pvPage" title="Project Values"
         class="sapUiResponsiveContentPadding">
     <content>
       <VBox class="sapUiMediumMargin">
