@@ -88,6 +88,11 @@
                   <MessageStrip type="Warning" showIcon="true" class="sapUiTinyMarginTopBottom"
                                 visible="{= !!${ps>/d/caBlock} }" text="{= 'Not allowed — ' + ${ps>/d/caBlock} }"/>
                   <CheckBox text="Summary Level Planning Package (SLPP)" selected="{ps>/selNode/ca/slpp}" enabled="{ps>/d/caFlag}" select=".onTypeChange"/>
+                  <HBox alignItems="Center" wrap="Wrap" visible="{= ${ps>/d/wpBelow} > 0 }" class="sapUiSmallMarginTop">
+                    <Button icon="sap-icon://clear-all" type="Transparent" press=".onClearWPsBelow"
+                            text="{= 'Clear ' + ${ps>/d/wpBelow} + ' work-package flag' + (${ps>/d/wpBelow} === 1 ? '' : 's') + ' below' }"/>
+                    <Text text="Work packages exist below this element — clear them to unmark the control account or re-level the structure." class="sapUiTinyMarginBegin"/>
+                  </HBox>
                   <VBox visible="{ps>/d/caFlag}" class="sapUiSmallMarginTop">
                     <Label text="Control Account Manager"/>
                     <Select selectedKey="{ps>/selNode/ca/cam}" items="{ps>/opts/cams}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>

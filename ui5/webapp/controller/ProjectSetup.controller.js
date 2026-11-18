@@ -167,7 +167,8 @@ sap.ui.define([
         wpFlag: node.wp.flag, wpBlock: node.wp.flag ? "" : this._canBeWP(id),
         mrFlag: node.mrub.mr, ubFlag: node.mrub.ub,
         mrubFlag: node.mrub.mr || node.mrub.ub,
-        mrubBlock: (node.mrub.mr || node.mrub.ub) ? "" : this._canBeMRUB(id)
+        mrubBlock: (node.mrub.mr || node.mrub.ub) ? "" : this._canBeMRUB(id),
+        wpBelow: this._descendants(id).filter(this._isWP.bind(this)).length
       });
     },
     _afterChange: function (node) {
@@ -219,6 +220,19 @@ sap.ui.define([
     },
     // type / sub-flag changes just refresh badges (no structural impact)
     onTypeChange: function () { var n = this._node(); if (n) { this._afterChange(n); } },
+
+    // Clear every work-package flag beneath the selected control account — lets the
+    // user unmark the CA (blocked while WPs sit below) or re-level the structure.
+    onClearWPsBelow: function () {
+      var node = this._node(); if (!node) { return; }
+      var that = this, n = 0;
+      this._descendants(node.id).forEach(function (id) {
+        var x = that._map[id];
+        if (x && x.wp.flag) { x.wp.flag = false; x.wp.pp = false; x.wp.mfg = false; that._badges(x); n++; }
+      });
+      MessageToast.show(n ? ("Cleared " + n + " work-package flag" + (n === 1 ? "" : "s") + " below " + node.id) : "No work packages below to clear");
+      this._afterChange(node);
+    },
 
     onCopyThresholds: function () {
       MessageToast.show("Copy thresholds from another maintained project (prototype — connect to project list)");
