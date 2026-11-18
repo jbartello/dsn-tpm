@@ -105,7 +105,6 @@
                     <Label text="Authorization Information" class="sapUiTinyMarginTop"/>
                     <TextArea value="{ps>/selNode/ca/auth}" rows="2" width="100%" growing="true"
                               placeholder="Describe the work authorized for this control account"/>
-                    <Text text="Free-text description of the authorized work — feeds the WBS Dictionary and the Work Authorization Document (WAD)." class="sapUiTinyText"/>
                     <Label text="General Notes" class="sapUiTinyMarginTop"/>
                     <TextArea value="{ps>/selNode/ca/notes}" rows="2" width="100%" growing="true"/>
                   </VBox>
@@ -136,7 +135,6 @@
                     <Label text="Authorization Information" class="sapUiTinyMarginTop"/>
                     <TextArea value="{ps>/selNode/wp/auth}" rows="2" width="100%" growing="true"
                               placeholder="Describe the work authorized in this work package"/>
-                    <Text text="Free-text description of the authorized work — feeds the WBS Dictionary and the Work Authorization Document (WAD)." class="sapUiTinyText"/>
                   </VBox>
                 </VBox>
 
