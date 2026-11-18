@@ -97,6 +97,8 @@
                     <Input value="{ps>/selNode/ca/target}" type="Number" width="18rem"/>
                     <Label text="Scope of Work (SOW)" class="sapUiTinyMarginTop"/>
                     <TextArea value="{ps>/selNode/ca/sow}" rows="2" width="100%" growing="true"/>
+                    <Label text="Authorization Information" class="sapUiTinyMarginTop"/>
+                    <TextArea value="{ps>/selNode/ca/auth}" rows="2" width="100%" growing="true"/>
                     <Label text="General Notes" class="sapUiTinyMarginTop"/>
                     <TextArea value="{ps>/selNode/ca/notes}" rows="2" width="100%" growing="true"/>
                   </VBox>
@@ -124,6 +126,8 @@
                     <Input value="{ps>/selNode/wp/imsF}" placeholder="MM/DD/YYYY" width="12rem"/>
                     <Label text="Scope of Work (SOW)" class="sapUiTinyMarginTop"/>
                     <TextArea value="{ps>/selNode/wp/sow}" rows="2" width="100%" growing="true"/>
+                    <Label text="Authorization Information" class="sapUiTinyMarginTop"/>
+                    <TextArea value="{ps>/selNode/wp/auth}" rows="2" width="100%" growing="true"/>
                   </VBox>
                 </VBox>
 

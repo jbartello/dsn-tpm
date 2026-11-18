@@ -68,10 +68,11 @@ sap.ui.define([
       if (!grid) { return; }
       grid.removeAllColumns();
       cols.forEach(function (c, i) {
+        var wide = c === "Authorization Information" || c === "Scope of Work (SOW)";
         grid.addColumn(new Column({
           label: new Text({ text: String(c), wrapping: false }),
-          template: new Text({ text: "{reports>" + i + "}", wrapping: false }),
-          width: i < 4 ? "12rem" : "8rem"
+          template: new Text({ text: "{reports>" + i + "}", wrapping: wide }),
+          width: wide ? "24rem" : (c === "Description" ? "14rem" : (i < 4 ? "12rem" : "8rem"))
         }));
       });
       grid.bindRows(rowsPath);
