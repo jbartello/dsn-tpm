@@ -142,7 +142,6 @@
                   <CheckBox text="Undistributed Budget" selected="{ps>/selNode/mrub/ub}" select=".onToggleUB" enabled="{ps>/d/ubEnabled}"/>
                   <MessageStrip type="Warning" showIcon="true" class="sapUiTinyMarginTopBottom"
                                 visible="{= !!${ps>/d/mrubBlock} &amp;&amp; !${ps>/d/mrubFlag} }" text="{= 'Not allowed — ' + ${ps>/d/mrubBlock} }"/>
-                  <CheckBox text="Burden Indicator" selected="{ps>/selNode/mrub/burden}" enabled="{ps>/d/mrubFlag}"/>
                   <VBox visible="{ps>/d/mrubFlag}" class="sapUiSmallMarginTop">
                     <Label text="Account Manager"/>
                     <Select selectedKey="{ps>/selNode/mrub/mgr}" items="{ps>/opts/cams}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
