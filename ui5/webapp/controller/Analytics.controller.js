@@ -62,7 +62,7 @@ sap.ui.define([
       var ry = yPx(r.y);
       s += '<line x1="' + mL + '" y1="' + ry + '" x2="' + (mL + pw) + '" y2="' + ry + '" stroke="' + r.color + '" stroke-width="1.5" ' + (r.dash ? 'stroke-dasharray="' + r.dash + '"' : "") + "/>";
     });
-    cfg.series.forEach(function (se) {
+    cfg.series.filter(function (se) { return !(cfg.hidden && cfg.hidden[se.name]); }).forEach(function (se) {
       var vis = se.pts.filter(function (p) { return p.y != null; });
       var poly = vis.map(function (p) { return xPx(p.x).toFixed(1) + "," + yPx(p.y).toFixed(1); }).join(" ");
       s += '<polyline points="' + poly + '" fill="none" stroke="' + se.color + '" stroke-width="2.5" ' + (se.dash ? 'stroke-dasharray="' + se.dash + '"' : "") + "/>";
@@ -85,7 +85,8 @@ sap.ui.define([
     var yMax = cfg.yMax || niceMax(Math.max.apply(null, cfg.groups.reduce(function (acc, g) {
       return acc.concat(g.bars.map(function (b) { return b.v; })); }, [cfg.refLine ? cfg.refLine.y : 0, 1])));
     var yPx = function (v) { return mT + ph - ((v - yMin) / ((yMax - yMin) || 1)) * ph; };
-    var gw = pw / cfg.groups.length, nb = (cfg.groups[0] ? cfg.groups[0].bars.length : 1) || 1;
+    var vis = function (b) { return !(cfg.hidden && cfg.hidden[b.name]); };
+    var gw = pw / cfg.groups.length, nb = (cfg.groups[0] ? cfg.groups[0].bars.filter(vis).length : 1) || 1;
     var bw = Math.min(40, (gw * 0.62) / nb), y0 = yPx(0);
     var s = "";
     for (var g = 0; g <= 4; g++) {
@@ -94,7 +95,7 @@ sap.ui.define([
     }
     cfg.groups.forEach(function (grp, gi) {
       var cx = mL + gw * gi + gw / 2;
-      grp.bars.forEach(function (b, bi) {
+      grp.bars.filter(vis).forEach(function (b, bi) {
         var x = cx - (nb * bw) / 2 + bi * bw, by = yPx(b.v);
         var tip = grp.label + (b.name ? " · " + b.name : "") + ": " + yFmt(b.v);
         s += '<rect x="' + x + '" y="' + Math.min(by, y0) + '" width="' + (bw - 4) + '" height="' + Math.abs(y0 - by) + '" fill="' + b.color + '" rx="2" data-tip="' + tip + '"/>';
@@ -105,7 +106,7 @@ sap.ui.define([
         ? '<text x="' + cx + '" y="' + ly + '" text-anchor="end" transform="rotate(-55 ' + cx + " " + ly + ')">' + grp.label + "</text>"
         : '<text x="' + cx + '" y="' + ly + '" text-anchor="middle">' + grp.label + "</text>";
     });
-    if (cfg.refLine) {
+    if (cfg.refLine && !(cfg.hidden && cfg.refLine.name && cfg.hidden[cfg.refLine.name])) {
       var ry = yPx(cfg.refLine.y);
       s += '<line x1="' + mL + '" y1="' + ry + '" x2="' + (mL + pw) + '" y2="' + ry + '" stroke="' + cfg.refLine.color + '" stroke-width="2" stroke-dasharray="5 4" data-tip="' + cfg.refLine.label + '"/>';
       s += '<text x="' + (mL + pw) + '" y="' + (ry - 5) + '" text-anchor="end" fill="' + cfg.refLine.color + '">' + cfg.refLine.label + "</text>";
@@ -140,9 +141,16 @@ sap.ui.define([
     return '<svg class="chart" viewBox="0 0 ' + w + " " + h + '">' + s + "</svg>";
   }
 
-  // legend builders
+  // legend builders — static entries (annotations) and clickable toggles (series)
   function lgLine(c, t, dash) { return '<span class="lg"><span class="ln" style="border-top-color:' + c + ";" + (dash ? "border-top-style:dashed;" : "") + '"></span>' + t + "</span>"; }
   function lgSw(c, t) { return '<span class="lg"><span class="sw" style="background:' + c + '"></span>' + t + "</span>"; }
+  function swLine(c, dash) { return '<span class="ln" style="border-top-color:' + c + ";" + (dash ? "border-top-style:dashed;" : "") + '"></span>'; }
+  function swBox(c) { return '<span class="sw" style="background:' + c + '"></span>'; }
+  // Clickable legend entry that toggles a series on/off. `hid` is the chart's hidden map.
+  function tg(key, name, swatch, label, hid) {
+    var off = hid && hid[name] ? " off" : "";
+    return '<span class="lg toggle' + off + '" data-chart="' + key + '" data-series="' + name + '">' + swatch + label + "</span>";
+  }
   function rcCard(title, sub, body, legend) {
     return '<div class="rc-card"><div class="rc-head"><span>' + title + '</span><span class="rc-sub">' + sub + "</span></div>" +
       '<div class="rc-body">' + body + (legend ? '<div class="rc-legend">' + legend + "</div>" : "") + "</div></div>";
@@ -183,13 +191,15 @@ sap.ui.define([
       labels: PERIODS.map(function (p) { return p.label.replace(" 20", "’"); }).concat(["F+1", "F+2"]) };
   }
 
-  function buildCharts(m) {
+  function buildCharts(m, hid) {
+    hid = hid || {};
+    var H = function (k) { return hid[k] || (hid[k] = {}); };
     var X = m.total, L = m.labels, sx = m.sIdx;
     var pts = function (arr, lim) { return arr.slice(0, lim == null ? arr.length : lim).map(function (y, i) { return { x: i, y: y }; }); };
 
     // 1 · S-Curve
     var sCurve = lineSVG({
-      h: 270, xN: X, xLabels: L, yMax: niceMax(Math.max(m.bac, m.eacWt)), yFmt: mfmt,
+      h: 270, xN: X, xLabels: L, yMax: niceMax(Math.max(m.bac, m.eacWt)), yFmt: mfmt, hidden: H("scurve"),
       statusX: sx, refLines: [{ y: m.bac, color: "#6a6d70", dash: "4 4" }],
       series: [
         { pts: pts(m.pv, m.n), color: "#0a6ed1", name: "PV/BCWS" },
@@ -198,8 +208,11 @@ sap.ui.define([
         { pts: m.etcLine.map(function (y, i) { return { x: i, y: y }; }), color: "#e9730c", dash: "5 4", name: "EAC/ETC" }
       ]
     });
-    var sLeg = lgLine("#0a6ed1", "PV / BCWS") + lgLine("#107e3e", "EV / BCWP") + lgLine("#bb0000", "AC / ACWP") +
-      lgLine("#e9730c", "EAC / ETC", true) + lgLine("#6a6d70", "BAC", true);
+    var sLeg = tg("scurve", "PV/BCWS", swLine("#0a6ed1"), "PV / BCWS", H("scurve")) +
+      tg("scurve", "EV/BCWP", swLine("#107e3e"), "EV / BCWP", H("scurve")) +
+      tg("scurve", "AC/ACWP", swLine("#bb0000"), "AC / ACWP", H("scurve")) +
+      tg("scurve", "EAC/ETC", swLine("#e9730c", true), "EAC / ETC", H("scurve")) +
+      lgLine("#6a6d70", "BAC", true);
 
     // 2 · Variance trend
     var cvCum = [], svCum = [], cvInc = [], svInc = [], i;
@@ -212,15 +225,17 @@ sap.ui.define([
     }
     var vmax = niceMax(Math.max.apply(null, cvCum.concat(svCum, cvInc, svInc).map(function (p) { return Math.abs(p.y); }).concat(1)));
     var varChart = lineSVG({
-      h: 240, xN: X, xLabels: L, yMin: -vmax, yMax: vmax, yFmt: mfmt, statusX: sx,
+      h: 240, xN: X, xLabels: L, yMin: -vmax, yMax: vmax, yFmt: mfmt, statusX: sx, hidden: H("variance"),
       refLines: [{ y: 0, color: "#bbb" }],
       series: [
         { pts: cvCum, color: "#bb0000", name: "CV cum" }, { pts: svCum, color: "#0a6ed1", name: "SV cum" },
         { pts: cvInc, color: "#e9730c", dash: "4 3", name: "CV current" }, { pts: svInc, color: "#6b4ba8", dash: "4 3", name: "SV current" }
       ]
     });
-    var vLeg = lgLine("#bb0000", "CV cumulative") + lgLine("#0a6ed1", "SV cumulative") +
-      lgLine("#e9730c", "CV current period", true) + lgLine("#6b4ba8", "SV current period", true);
+    var vLeg = tg("variance", "CV cum", swLine("#bb0000"), "CV cumulative", H("variance")) +
+      tg("variance", "SV cum", swLine("#0a6ed1"), "SV cumulative", H("variance")) +
+      tg("variance", "CV current", swLine("#e9730c", true), "CV current period", H("variance")) +
+      tg("variance", "SV current", swLine("#6b4ba8", true), "SV current period", H("variance"));
 
     // 3 · CPI / SPI / TCPI trend
     var cpiPts = [], spiPts = [], tcpiPts = [];
@@ -230,7 +245,7 @@ sap.ui.define([
       tcpiPts.push({ x: i, y: (m.bac - m.ac[i]) ? (m.bac - m.ev[i]) / (m.bac - m.ac[i]) : 1 });
     }
     var idxChart = lineSVG({
-      h: 240, xN: X, xLabels: L, yMin: 0.7, yMax: 1.3, yFmt: function (v) { return v.toFixed(2); }, statusX: sx,
+      h: 240, xN: X, xLabels: L, yMin: 0.7, yMax: 1.3, yFmt: function (v) { return v.toFixed(2); }, statusX: sx, hidden: H("index"),
       bands: [{ y1: 0.95, y2: 1.05, color: "#eef7f0" }],
       refLines: [{ y: 1.0, color: "#999", dash: "4 4" }],
       series: [
@@ -238,7 +253,10 @@ sap.ui.define([
         { pts: tcpiPts, color: "#e9730c", dash: "4 3", name: "TCPI" }
       ]
     });
-    var iLeg = lgLine("#107e3e", "CPI") + lgLine("#0a6ed1", "SPI") + lgLine("#e9730c", "TCPI (to-complete)", true) + lgSw("#eef7f0", "±0.05 control band");
+    var iLeg = tg("index", "CPI", swLine("#107e3e"), "CPI", H("index")) +
+      tg("index", "SPI", swLine("#0a6ed1"), "SPI", H("index")) +
+      tg("index", "TCPI", swLine("#e9730c", true), "TCPI (to-complete)", H("index")) +
+      lgSw("#eef7f0", "±0.05 control band");
 
     // 4 · Bullseye
     var bull = scatterSVG(m.scatter);
@@ -262,13 +280,14 @@ sap.ui.define([
 
     // 6 · Resource / spend histogram
     var hist = barsSVG({
-      h: 240, yFmt: mfmt,
+      h: 240, yFmt: mfmt, hidden: H("hist"),
       groups: PERIODS.map(function (p, idx) {
         return { label: p.label.split(" ")[0], bars: [
           { v: m.incPV[idx], color: "#a9c5ec", name: "Planned" }, { v: m.incAC[idx], color: "#0a6ed1", name: "Actual" }] };
       })
     });
-    var hLeg = lgSw("#a9c5ec", "Planned spend (BCWS)") + lgSw("#0a6ed1", "Actual spend (ACWP)");
+    var hLeg = tg("hist", "Planned", swBox("#a9c5ec"), "Planned spend (BCWS)", H("hist")) +
+      tg("hist", "Actual", swBox("#0a6ed1"), "Actual spend (ACWP)", H("hist"));
 
     // 7 · Internal Cost (IEAC)
     var ev = m.ev[m.sIdx], ac = m.ac[m.sIdx], rem = m.bac - ev, cpi = m.cpiNow, spi = m.spiNow;
@@ -282,10 +301,11 @@ sap.ui.define([
     ];
     var ieacGroups = ieacMethods.map(function (mm) { return { label: mm.label, bars: [{ name: "iEAC", v: mm.v, color: "#efb000" }] }; });
     var ieacChart = barsSVG({
-      h: 320, rotateLabels: true, yFmt: mfmt, groups: ieacGroups,
-      refLine: { y: eacOfficial, color: "#107e3e", label: "EAC " + mfmt(eacOfficial) }
+      h: 320, rotateLabels: true, yFmt: mfmt, groups: ieacGroups, hidden: H("ieac"),
+      refLine: { y: eacOfficial, color: "#107e3e", label: "EAC " + mfmt(eacOfficial), name: "EAC" }
     });
-    var ieacLeg = lgSw("#efb000", "iEAC (independent calculations)") + lgLine("#107e3e", "EAC (official forecast — reference)");
+    var ieacLeg = tg("ieac", "iEAC", swBox("#efb000"), "iEAC (independent calculations)", H("ieac")) +
+      tg("ieac", "EAC", swLine("#107e3e"), "EAC (official forecast — reference)", H("ieac"));
 
     return '<div class="report-charts">' +
       rcCard("1 · S-Curve — Cumulative Performance", "BCWS / BCWP / ACWP with BAC reference &amp; EAC projection", sCurve, sLeg) +
@@ -302,6 +322,8 @@ sap.ui.define([
     onInit: function () {
       this.getView().setModel(new JSONModel({ period: "2026-05", periods: PERIODS }), "flt");
       this._html = "";
+      this._hidden = {};      // per-chart hidden-series state, persists across re-renders
+      this._lastModel = null;
       var that = this;
       var node = this.byId("chartsHtml");
       if (node) {
@@ -337,6 +359,28 @@ sap.ui.define([
         });
         el.addEventListener("mouseleave", function () { tip.style.display = "none"; });
       });
+      // Clickable legend entries toggle their series on/off. Bind exactly one
+      // document-level delegated listener per controller (guarded) so repeated
+      // re-renders can never stack duplicate handlers (which would cancel out).
+      if (!this._clickBound) {
+        this._clickBound = true;
+        var that = this;
+        this._legendClick = function (e) {
+          var el = e.target && e.target.closest ? e.target.closest("[data-chart]") : null;
+          if (!el) { return; }
+          var viewDom = that.getView() && that.getView().getDomRef();
+          if (!viewDom || !viewDom.contains(el)) { return; }
+          var k = el.getAttribute("data-chart"), n = el.getAttribute("data-series");
+          var set = that._hidden[k] || (that._hidden[k] = {});
+          if (set[n]) { delete set[n]; } else { set[n] = true; }
+          if (that._lastModel) { that._html = buildCharts(that._lastModel, that._hidden); that._paint(); }
+        };
+        document.addEventListener("click", this._legendClick);
+      }
+    },
+
+    onExit: function () {
+      if (this._legendClick) { document.removeEventListener("click", this._legendClick); }
     },
 
     _load: function () {
@@ -358,7 +402,8 @@ sap.ui.define([
         });
         var cpi = actual ? earned / actual : 0.95, spi = plan ? earned / plan : 0.95;
         var m = reportModel({ bac: bac, eac: eac, cpi: cpi, spi: spi, cas: cas }, sIdx);
-        that._html = buildCharts(m);
+        that._lastModel = m;
+        that._html = buildCharts(m, that._hidden);
         that._paint();
       });
     },

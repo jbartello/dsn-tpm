@@ -60,6 +60,9 @@ svg.chart [data-tip] { cursor: pointer; }
 .rc-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
 .rc-legend .ln { width: 18px; border-top: 3px solid; display: inline-block; }
 .rc-legend .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+.rc-legend .lg.toggle { cursor: pointer; user-select: none; }
+.rc-legend .lg.toggle:hover { color: #32363a; }
+.rc-legend .lg.off { opacity: 0.4; text-decoration: line-through; }
 
 /* Project Setup: variance threshold matrix (/DSN/PPCN) */
 .ps-th-wrap { overflow-x: auto; }
