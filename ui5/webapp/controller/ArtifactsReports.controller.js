@@ -24,7 +24,16 @@ sap.ui.define([
   };
 
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
-  function money(v) { return (v == null || v === "") ? "" : Math.round(v).toLocaleString("en-US"); }
+
+  // Month-end periods with plan factors (May = full), to time-phase the RAM budgets.
+  var PERIODS = [
+    { key: "2025-12", text: "Dec 2025", f: 0.20 },
+    { key: "2026-01", text: "Jan 2026", f: 0.36 },
+    { key: "2026-02", text: "Feb 2026", f: 0.54 },
+    { key: "2026-03", text: "Mar 2026", f: 0.70 },
+    { key: "2026-04", text: "Apr 2026", f: 0.86 },
+    { key: "2026-05", text: "May 2026", f: 1.00 }
+  ];
 
   return Controller.extend("dassian.tpm.ui5.controller.ArtifactsReports", {
     onInit: function () {
@@ -34,6 +43,10 @@ sap.ui.define([
       var ram = new JSONModel();
       this.getView().setModel(ram, "ram");
       ram.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/ram.json"));
+      ram.attachRequestCompleted(function () {
+        ram.setProperty("/periods", PERIODS);
+        ram.setProperty("/period", "2026-05");
+      });
     },
 
     onOpenArtifact: function (evt) {
@@ -51,7 +64,24 @@ sap.ui.define([
     _openRam: function () {
       var d = this.getView().getModel("ram").getData();
       if (!d || !d.rows) { MessageToast.show("RAM data not loaded yet — try again."); return; }
+      this.byId("reportGrid").setVisible(false);
+      this.byId("ramBox").setVisible(true);
+      this._renderRam();
+      var dlg = this.byId("reportDialog");
+      dlg.setTitle("Responsibility Assignment Matrix (RAM)");
+      dlg.open();
+    },
+    onRamPeriodChange: function () { this._renderRam(); },
+
+    _renderRam: function () {
+      var d = this.getView().getModel("ram").getData();
+      if (!d || !d.rows) { return; }
       var np = d.people.length, c = d.constants || { mr: 0, fee: 0, gaRate: 0 };
+      // time-phase every budget figure through the selected month-end
+      var periodKey = this.getView().getModel("ram").getProperty("/period") || "2026-05";
+      var per = PERIODS.filter(function (p) { return p.key === periodKey; })[0] || PERIODS[PERIODS.length - 1];
+      var f = per.f;
+      var money = function (v) { return (v == null || v === "") ? "" : Math.round(v * f).toLocaleString("en-US"); };
 
       // column sums + grand total across the detail rows
       var colSums = new Array(np).fill(0), grand = 0;
@@ -104,12 +134,7 @@ sap.ui.define([
         perRow("CONTRACT PRICE", null, price, "ram-foot-bold");
 
       var html = '<table class="ram-tbl">' + thead + "<tbody>" + body + foot + "</tbody></table>";
-      this.byId("reportGrid").setVisible(false);
-      this.byId("reportHtmlScroll").setVisible(true);
       this.byId("reportHtml").setContent("<div>" + html + "</div>");
-      var dlg = this.byId("reportDialog");
-      dlg.setTitle("Responsibility Assignment Matrix (RAM)");
-      dlg.open();
     },
 
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
@@ -139,7 +164,7 @@ sap.ui.define([
     _renderGrid: function (cols, rowsPath, title) {
       var grid = this.byId("reportGrid");
       if (!grid) { return; }
-      this.byId("reportHtmlScroll").setVisible(false);
+      this.byId("ramBox").setVisible(false);
       grid.setVisible(true);
       grid.removeAllColumns();
       cols.forEach(function (c, i) {
