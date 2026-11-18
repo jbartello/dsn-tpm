@@ -4,13 +4,13 @@ sap.ui.define([
   "sap/ui/model/json/JSONModel",
   "sap/ui/table/Column",
   "sap/m/Text",
-  "sap/m/MessageToast"
-], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast) {
+  "sap/m/MessageToast",
+  "dassian/tpm/ui5/model/WbsStore"
+], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast, WbsStore) {
   "use strict";
 
-  // artifact name -> embedded report grid
+  // artifact name -> embedded report grid (static sample reports)
   var REPORT_KEY = {
-    "WBS Dictionary": "wbs",
     "Responsibility Assignment Matrix (RAM)": "ram",
     "Control Account Plans (CAP)": "cap",
     "Tripwire Report": "tripwire",
@@ -33,27 +33,57 @@ sap.ui.define([
     onOpenArtifact: function (evt) {
       var ctx = evt.getSource().getBindingContext();
       var name = ctx.getProperty("Name");
-      if (REPORT_KEY[name]) { this._openReport(REPORT_KEY[name], name); }
+      if (name === "WBS Dictionary") { this._openWbsDictionary(); }
+      else if (REPORT_KEY[name]) { this._openReport(REPORT_KEY[name], name); }
       else if (NAV[name]) { HashChanger.getInstance().setHash(NAV[name]); }
       else { MessageToast.show("No embedded viewer for “" + name + "” — document reference only."); }
     },
 
-    _openReport: function (key, title) {
+    _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
+
+    // The WBS Dictionary is generated live from the control-account and work-package
+    // structure maintained in Project Setup (shared WbsStore), not from static data.
+    _openWbsDictionary: function () {
+      var prog = this._prog(), that = this;
+      var render = function (tree) {
+        var dict = WbsStore.dictionary(tree);
+        that.getView().getModel("reports").setProperty("/wbs", dict);
+        that._renderGrid(dict.cols, "reports>/wbs/rows", "WBS Dictionary — " + (prog === "MFG" ? "MFG Program" : "Demo") + " (from Control Accounts & Work Packages)");
+      };
+      if (WbsStore.get(prog)) { render(WbsStore.get(prog)); return; }
+      var model = this.getOwnerComponent().getModel();
+      model.bindList("/ControlAccounts").requestContexts(0, 500).then(function (ctxs) {
+        var cas = [];
+        ctxs.forEach(function (c) {
+          var o = c.getObject();
+          if (o.ProgramID !== prog) { return; }
+          cas.push({ id: o.ID, desc: o.Description, cam: o.Manager, bac: parseFloat(o.BAC) || 0 });
+        });
+        render(WbsStore.ensure(prog, cas));
+      });
+    },
+
+    _renderGrid: function (cols, rowsPath, title) {
       var grid = this.byId("reportGrid");
-      var d = this.getView().getModel("reports").getProperty("/" + key);
-      if (!grid || !d) { return; }
+      if (!grid) { return; }
       grid.removeAllColumns();
-      d.cols.forEach(function (c, i) {
+      cols.forEach(function (c, i) {
         grid.addColumn(new Column({
           label: new Text({ text: String(c), wrapping: false }),
           template: new Text({ text: "{reports>" + i + "}", wrapping: false }),
           width: i < 4 ? "12rem" : "8rem"
         }));
       });
-      grid.bindRows("reports>/" + key + "/rows");
+      grid.bindRows(rowsPath);
       var dlg = this.byId("reportDialog");
       dlg.setTitle(title);
       dlg.open();
+    },
+
+    _openReport: function (key, title) {
+      var d = this.getView().getModel("reports").getProperty("/" + key);
+      if (!d) { return; }
+      this._renderGrid(d.cols, "reports>/" + key + "/rows", title);
     },
 
     onCloseReport: function () { this.byId("reportDialog").close(); },

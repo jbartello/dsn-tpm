@@ -2,8 +2,9 @@ sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/core/routing/HashChanger",
   "sap/ui/model/json/JSONModel",
-  "sap/m/MessageToast"
-], function (Controller, HashChanger, JSONModel, MessageToast) {
+  "sap/m/MessageToast",
+  "dassian/tpm/ui5/model/WbsStore"
+], function (Controller, HashChanger, JSONModel, MessageToast, WbsStore) {
   "use strict";
 
   var OPTS = {
@@ -79,75 +80,33 @@ sap.ui.define([
     // ---------- WBS tree build ----------
     _load: function () {
       var prog = this._prog(), model = this.getOwnerComponent().getModel(), that = this;
+      var apply = function (tree) {
+        that._map = tree.map;
+        var ps = that.getView().getModel("ps");
+        ps.setProperty("/tree", tree.roots);
+        var first = (tree.roots[0] && that._firstCA(tree)) || (tree.roots[0] && tree.roots[0].id);
+        ps.setProperty("/sel", first);
+        ps.setProperty("/selNode", that._map[first] || null);
+        that._refreshDetail();
+        var t = that.byId("wbsTree");
+        if (t) { setTimeout(function () { t.expandToLevel(4); }, 0); }
+      };
+      if (WbsStore.get(prog)) { apply(WbsStore.get(prog)); return; }
       model.bindList("/ControlAccounts").requestContexts(0, 500).then(function (ctxs) {
         var cas = [];
         ctxs.forEach(function (c) {
           var o = c.getObject();
           if (o.ProgramID !== prog) { return; }
-          cas.push({ id: o.ID, desc: o.Description, cam: o.Manager });
+          cas.push({ id: o.ID, desc: o.Description, cam: o.Manager, bac: parseFloat(o.BAC) || 0 });
         });
-        var roots = that._buildTree(cas);
-        var ps = that.getView().getModel("ps");
-        ps.setProperty("/tree", roots);
-        var first = cas.length ? cas[0].id : (roots[0] && roots[0].id);
-        ps.setProperty("/sel", first);
-        ps.setProperty("/selNode", that._map[first] || null);
-        that._refreshDetail();
-        var tree = that.byId("wbsTree");
-        if (tree) { setTimeout(function () { tree.expandToLevel(4); }, 0); }
+        apply(WbsStore.ensure(prog, cas));
       });
     },
-
-    _newNode: function (id) {
-      return {
-        id: id, desc: "", title: id, level: id.split(".").length, children: [],
-        ca: { flag: false, slpp: false, cam: "", analyst: "", target: "", sow: "", notes: "" },
-        wp: { flag: false, pp: false, mfg: false, ev: "", mgr: "", eoc: "", rec: "Recurring", imsS: "", imsF: "", sow: "", assign: "", notes: "" },
-        mrub: { mr: false, ub: false, burden: false, mgr: "", vendor: "" },
-        badges: []
-      };
+    _firstCA: function (tree) {
+      var ids = Object.keys(tree.map).filter(function (id) { return tree.map[id].ca.flag; });
+      return ids.length ? ids[0] : null;
     },
-    _buildTree: function (cas) {
-      var map = {}, that = this;
-      function ensure(id) {
-        if (map[id]) { return map[id]; }
-        var n = that._newNode(id);
-        map[id] = n;
-        var parts = id.split(".");
-        if (parts.length > 1) { ensure(parts.slice(0, -1).join(".")).children.push(n); }
-        return n;
-      }
-      cas.forEach(function (ca) {
-        var n = ensure(ca.id);
-        n.desc = ca.desc; n.title = ca.id + " · " + ca.desc;
-        n.ca.flag = true; n.ca.cam = ca.cam;           // real control accounts are pre-classified
-        for (var i = 1; i <= 2; i++) {                 // synthesize work-package leaves below each CA
-          var w = ensure(ca.id + "." + i);
-          w.desc = "Work Package " + i; w.title = w.id + " · Work Package " + i;
-        }
-      });
-      Object.keys(map).forEach(function (id) {
-        var n = map[id];
-        if (!n.desc) { n.title = id + " · (summary element)"; }
-        that._badges(n);
-      });
-      this._map = map;
-      var roots = [];
-      Object.keys(map).forEach(function (id) {
-        var parts = id.split("."), pid = parts.slice(0, -1).join(".");
-        if (parts.length === 1 || !map[pid]) { roots.push(map[id]); }
-      });
-      return roots;
-    },
-
-    _badges: function (n) {
-      var b = [];
-      if (n.ca.flag) { b.push({ text: n.ca.slpp ? "SLPP" : "CA", state: "Information" }); }
-      if (n.wp.flag) { b.push({ text: n.wp.pp ? "PP" : "WP", state: "Success" }); if (n.wp.mfg) { b.push({ text: "MFG", state: "Information" }); } }
-      if (n.mrub.mr) { b.push({ text: "MR", state: "Warning" }); }
-      if (n.mrub.ub) { b.push({ text: "UB", state: "Warning" }); }
-      n.badges = b;
-    },
+    _badges: function (n) { WbsStore.badges(n); },
 
     // ---------- EIA-748 structural validation ----------
     _ancestors: function (id) { var p = id.split("."), out = []; for (var i = p.length - 1; i > 0; i--) { out.push(p.slice(0, i).join(".")); } return out; },
