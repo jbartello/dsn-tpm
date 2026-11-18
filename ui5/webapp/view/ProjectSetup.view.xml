@@ -19,7 +19,7 @@
     <content>
       <VBox class="sapUiMediumMargin">
 
-        <Panel headerText="Project Header" class="sapUiSmallMarginBottom" expandable="true" expanded="true">
+        <Panel headerText="Project Header" class="sapUiSmallMarginBottom" expandable="true" expanded="false">
           <f:SimpleForm layout="ResponsiveGridLayout" editable="true"
                         labelSpanXL="5" labelSpanL="5" labelSpanM="5" columnsXL="2" columnsL="2" columnsM="2">
             <Label text="Reporting Level"/>
@@ -37,7 +37,7 @@
           </f:SimpleForm>
         </Panel>
 
-        <Panel headerText="Variance Thresholds — /DSN/PPCN" class="sapUiSmallMarginBottom" expandable="true" expanded="true">
+        <Panel headerText="Variance Thresholds — /DSN/PPCN" class="sapUiSmallMarginBottom" expandable="true" expanded="false">
           <headerToolbar>
             <OverflowToolbar>
               <Title text="Variance Thresholds — /DSN/PPCN"/>
@@ -53,8 +53,96 @@
 
         <Panel headerText="WBS Structure &amp; Classification (EIA-748)" expandable="true" expanded="true">
           <VBox>
-            <Text text="Each WBS element is classified as a Control Account (CA), Work Package (WP), or Management Reserve / Undistributed Budget (MR/UB). A work package must sit below a control account; MR/UB cannot live inside the control-account hierarchy." class="sapUiTinyMarginBottom"/>
-            <core:HTML id="wbsHtml"/>
+            <Text text="Select a WBS element, then classify it as a Control Account, Work Package, or Management Reserve / Undistributed Budget and maintain its attributes. The structure rules are enforced: a work package must sit below a control account; control accounts cannot nest; MR/UB cannot live inside the control-account hierarchy." class="sapUiSmallMarginBottom"/>
+            <SegmentedButton selectedKey="{ps>/mode}" selectionChange=".onModeChange" class="sapUiSmallMarginBottom">
+              <items>
+                <SegmentedButtonItem key="ca" text="Control Accounts"/>
+                <SegmentedButtonItem key="wp" text="Work Packages"/>
+                <SegmentedButtonItem key="mrub" text="MR / UB"/>
+              </items>
+            </SegmentedButton>
+
+            <HBox wrap="Wrap" alignItems="Start">
+              <!-- WBS tree -->
+              <VBox class="ps-tree sapUiSmallMarginEnd">
+                <Tree id="wbsTree" items="{path: 'ps>/tree', parameters: {arrayNames: ['children']}}"
+                      mode="SingleSelectMaster" selectionChange=".onNodeSelect" width="100%">
+                  <CustomTreeItem>
+                    <HBox alignItems="Center" class="sapUiTinyMarginBeginEnd">
+                      <Text text="{ps>title}" wrapping="false"/>
+                      <HBox items="{ps>badges}">
+                        <ObjectStatus text="{ps>text}" state="{ps>state}" inverted="true" class="sapUiTinyMarginBegin"/>
+                      </HBox>
+                    </HBox>
+                  </CustomTreeItem>
+                </Tree>
+              </VBox>
+
+              <!-- Detail / classification panel -->
+              <VBox class="ps-detail">
+                <Title text="{= ${ps>/d/hasSel} ? ${ps>/selNode/id} + ' · ' + ${ps>/selNode/desc} : 'Select a WBS element' }" level="H4" class="sapUiSmallMarginBottom"/>
+
+                <!-- Control Account mode -->
+                <VBox visible="{= ${ps>/mode} === 'ca' }">
+                  <CheckBox text="Control Account" selected="{ps>/selNode/ca/flag}" select=".onToggleCA" enabled="{ps>/d/hasSel}"/>
+                  <MessageStrip type="Warning" showIcon="true" class="sapUiTinyMarginTopBottom"
+                                visible="{= !!${ps>/d/caBlock} }" text="{= 'Not allowed — ' + ${ps>/d/caBlock} }"/>
+                  <CheckBox text="Summary Level Planning Package (SLPP)" selected="{ps>/selNode/ca/slpp}" enabled="{ps>/d/caFlag}" select=".onTypeChange"/>
+                  <VBox visible="{ps>/d/caFlag}" class="sapUiSmallMarginTop">
+                    <Label text="Control Account Manager"/>
+                    <Select selectedKey="{ps>/selNode/ca/cam}" items="{ps>/opts/cams}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="Analyst" class="sapUiTinyMarginTop"/>
+                    <Select selectedKey="{ps>/selNode/ca/analyst}" items="{ps>/opts/analysts}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="Target Value (Project Currency)" class="sapUiTinyMarginTop"/>
+                    <Input value="{ps>/selNode/ca/target}" type="Number" width="18rem"/>
+                    <Label text="Scope of Work (SOW)" class="sapUiTinyMarginTop"/>
+                    <TextArea value="{ps>/selNode/ca/sow}" rows="2" width="100%" growing="true"/>
+                    <Label text="General Notes" class="sapUiTinyMarginTop"/>
+                    <TextArea value="{ps>/selNode/ca/notes}" rows="2" width="100%" growing="true"/>
+                  </VBox>
+                </VBox>
+
+                <!-- Work Package mode -->
+                <VBox visible="{= ${ps>/mode} === 'wp' }">
+                  <CheckBox text="Work Package" selected="{ps>/selNode/wp/flag}" select=".onToggleWP" enabled="{ps>/d/hasSel}"/>
+                  <MessageStrip type="Warning" showIcon="true" class="sapUiTinyMarginTopBottom"
+                                visible="{= !!${ps>/d/wpBlock} }" text="{= 'Not allowed — ' + ${ps>/d/wpBlock} }"/>
+                  <CheckBox text="Planning Package (PP)" selected="{ps>/selNode/wp/pp}" enabled="{ps>/d/wpFlag}" select=".onTypeChange"/>
+                  <CheckBox text="Manufacturing Work Package" selected="{ps>/selNode/wp/mfg}" enabled="{ps>/d/wpFlag}" select=".onTypeChange"/>
+                  <VBox visible="{ps>/d/wpFlag}" class="sapUiSmallMarginTop">
+                    <Label text="Default EV Method"/>
+                    <Select selectedKey="{ps>/selNode/wp/ev}" items="{ps>/opts/ev}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="WP Manager" class="sapUiTinyMarginTop"/>
+                    <Select selectedKey="{ps>/selNode/wp/mgr}" items="{ps>/opts/cams}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="Cost Type (EOC)" class="sapUiTinyMarginTop"/>
+                    <Select selectedKey="{ps>/selNode/wp/eoc}" items="{ps>/opts/eoc}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="Recurring / Non-Recurring" class="sapUiTinyMarginTop"/>
+                    <Select selectedKey="{ps>/selNode/wp/rec}" items="{ps>/opts/rec}" width="18rem"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="IMS Start Date" class="sapUiTinyMarginTop"/>
+                    <Input value="{ps>/selNode/wp/imsS}" placeholder="MM/DD/YYYY" width="12rem"/>
+                    <Label text="IMS Finish Date" class="sapUiTinyMarginTop"/>
+                    <Input value="{ps>/selNode/wp/imsF}" placeholder="MM/DD/YYYY" width="12rem"/>
+                    <Label text="Scope of Work (SOW)" class="sapUiTinyMarginTop"/>
+                    <TextArea value="{ps>/selNode/wp/sow}" rows="2" width="100%" growing="true"/>
+                  </VBox>
+                </VBox>
+
+                <!-- MR / UB mode -->
+                <VBox visible="{= ${ps>/mode} === 'mrub' }">
+                  <CheckBox text="Management Reserve" selected="{ps>/selNode/mrub/mr}" select=".onToggleMR" enabled="{ps>/d/hasSel}"/>
+                  <CheckBox text="Undistributed Budget" selected="{ps>/selNode/mrub/ub}" select=".onToggleUB" enabled="{ps>/d/hasSel}"/>
+                  <MessageStrip type="Warning" showIcon="true" class="sapUiTinyMarginTopBottom"
+                                visible="{= !!${ps>/d/mrubBlock} &amp;&amp; !${ps>/d/mrubFlag} }" text="{= 'Not allowed — ' + ${ps>/d/mrubBlock} }"/>
+                  <CheckBox text="Burden Indicator" selected="{ps>/selNode/mrub/burden}" enabled="{ps>/d/mrubFlag}"/>
+                  <VBox visible="{ps>/d/mrubFlag}" class="sapUiSmallMarginTop">
+                    <Label text="Account Manager"/>
+                    <Select selectedKey="{ps>/selNode/mrub/mgr}" items="{ps>/opts/cams}" width="18rem" forceSelection="false"><core:Item key="{ps>}" text="{ps>}"/></Select>
+                    <Label text="Vendor" class="sapUiTinyMarginTop"/>
+                    <Input value="{ps>/selNode/mrub/vendor}" width="18rem"/>
+                  </VBox>
+                </VBox>
+              </VBox>
+            </HBox>
           </VBox>
         </Panel>
 

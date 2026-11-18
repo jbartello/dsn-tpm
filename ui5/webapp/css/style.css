@@ -89,3 +89,7 @@ table.wbs-tbl .wbs-num { text-align: right; font-variant-numeric: tabular-nums; 
 .wbs-ca { background: #e8f0fb; color: #0a4a8f; }
 .wbs-wp { background: #eaf4ec; color: #19632c; }
 .wbs-mrub { background: #f4eef9; color: #5b3a8a; }
+
+/* Project Setup: WBS tree + classification detail */
+.ps-tree { flex: 1 1 24rem; min-width: 22rem; max-height: 560px; overflow: auto; border: 1px solid #e5e5e5; border-radius: 6px; }
+.ps-detail { flex: 1 1 24rem; min-width: 22rem; padding: 0 0.5rem; }
