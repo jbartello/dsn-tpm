@@ -37,6 +37,16 @@
 /* Project Values KPI values (match the title-size figures) */
 .pvKpiVal .sapMObjStatusText { font-size: 1.25rem; font-weight: 700; }
 
+/* Project Values: pinned filter bar (always visible, wraps instead of overflowing) */
+.pvFilterBar {
+  background: #f7f7f7;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem 0.2rem;
+}
+.pvFilterField { margin: 0 1.1rem 0.5rem 0; }
+.pvFilterField > .sapMLabel { margin-bottom: 0.2rem; }
+
 /* Project Analytics: stacked EVM charts (ported from the prototype) */
 .report-charts { display: flex; flex-direction: column; gap: 18px; }
 .rc-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; }

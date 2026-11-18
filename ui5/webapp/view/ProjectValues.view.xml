@@ -7,30 +7,32 @@
   displayBlock="true">
   <Page id="pvPage" title="Project Values" showNavButton="true" navButtonPress=".onNavBack"
         class="sapUiResponsiveContentPadding">
-    <subHeader>
-      <OverflowToolbar>
-        <Label text="Program"/>
-        <Select selectedKey="{ui>/program}" change=".onProgramChange">
-          <core:Item key="DEMO" text="Demo"/>
-          <core:Item key="MFG" text="MFG Program"/>
-        </Select>
-        <ToolbarSpacer/>
-        <Label text="Project"/>
-        <Select selectedKey="{flt>/project}" change=".onFilterChange" items="{flt>/projects}" autoAdjustWidth="true">
-          <core:Item key="{flt>key}" text="{flt>text}"/>
-        </Select>
-        <Label text="CAM"/>
-        <Select selectedKey="{flt>/cam}" change=".onFilterChange" items="{flt>/cams}" autoAdjustWidth="true">
-          <core:Item key="{flt>key}" text="{flt>text}"/>
-        </Select>
-        <Label text="Month End"/>
-        <Select selectedKey="{flt>/period}" change=".onFilterChange" items="{flt>/periods}" autoAdjustWidth="true">
-          <core:Item key="{flt>key}" text="{flt>text}"/>
-        </Select>
-      </OverflowToolbar>
-    </subHeader>
     <content>
       <VBox class="sapUiMediumMargin">
+        <HBox wrap="Wrap" alignItems="End" class="pvFilterBar sapUiSmallMarginBottom">
+          <VBox class="pvFilterField"><Label text="Program" class="mcStatLbl"/>
+            <Select selectedKey="{ui>/program}" change=".onProgramChange" width="11rem">
+              <core:Item key="DEMO" text="Demo"/>
+              <core:Item key="MFG" text="MFG Program"/>
+            </Select>
+          </VBox>
+          <VBox class="pvFilterField"><Label text="Project" class="mcStatLbl"/>
+            <Select selectedKey="{flt>/project}" change=".onFilterChange" items="{flt>/projects}" width="11rem">
+              <core:Item key="{flt>key}" text="{flt>text}"/>
+            </Select>
+          </VBox>
+          <VBox class="pvFilterField"><Label text="CAM" class="mcStatLbl"/>
+            <Select selectedKey="{flt>/cam}" change=".onFilterChange" items="{flt>/cams}" width="11rem">
+              <core:Item key="{flt>key}" text="{flt>text}"/>
+            </Select>
+          </VBox>
+          <VBox class="pvFilterField"><Label text="Month End" class="mcStatLbl"/>
+            <Select selectedKey="{flt>/period}" change=".onFilterChange" items="{flt>/periods}" width="11rem">
+              <core:Item key="{flt>key}" text="{flt>text}"/>
+            </Select>
+          </VBox>
+        </HBox>
+
         <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
           <VBox class="mcStatBox"><Text text="BAC" class="mcStatLbl"/><Title text="{pv>/kpi/bacT}" level="H4"/></VBox>
           <VBox class="mcStatBox"><Text text="EAC" class="mcStatLbl"/><Title text="{pv>/kpi/eacT}" level="H4"/></VBox>
