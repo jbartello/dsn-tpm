@@ -122,3 +122,37 @@ table.cap-tbl td.cap-type { color: #6a6d70; }
 table.cap-tbl td.cap-neg { color: #bb0000; }
 table.cap-tbl tr.cap-wptop td { border-top: 2px solid #b5c6da; }
 table.cap-tbl tbody tr:hover td { background: #f3f7fb; }
+
+/* Shared report sub-title line */
+.rep-sub { font-size: 0.78rem; color: #6a6d70; margin: 0 0 0.6rem 2px; }
+
+/* Tripwire report */
+table.tw-tbl { border-collapse: collapse; font-size: 0.7rem; white-space: nowrap; width: max-content; }
+table.tw-tbl th, table.tw-tbl td { border: 1px solid #d7d7d7; padding: 3px 7px; text-align: left; }
+table.tw-tbl thead th { background: #eef3f8; font-weight: 700; position: sticky; top: 0; }
+table.tw-tbl th.tw-num, table.tw-tbl td.tw-num { text-align: right; font-variant-numeric: tabular-nums; }
+table.tw-tbl th.tw-chk { writing-mode: vertical-rl; text-orientation: mixed; background: #f3efe6; color: #6a6d70; font-weight: 600; }
+table.tw-tbl td.tw-chk { text-align: center; font-weight: 700; font-size: 0.62rem; }
+table.tw-tbl td.tw-ok { color: #107e3e; }
+table.tw-tbl td.tw-issue { color: #bb0000; background: #fdecec; }
+table.tw-tbl td.tw-na { color: #b9bcbf; }
+
+/* Program Control Log */
+.cl-metabar { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.74rem; color: #46484a; margin: 0 0 0.6rem 2px; }
+table.cl-tbl { border-collapse: collapse; font-size: 0.72rem; white-space: nowrap; width: max-content; }
+table.cl-tbl th, table.cl-tbl td { border: 1px solid #d7d7d7; padding: 3px 8px; text-align: left; }
+table.cl-tbl thead th { background: #eef3f8; font-weight: 700; }
+table.cl-tbl th.cl-cbb { background: #e2ecf6; text-align: center; }
+table.cl-tbl th.cl-num, table.cl-tbl td.cl-num { text-align: right; font-variant-numeric: tabular-nums; }
+table.cl-tbl tr.cl-sum td { background: #f6f8fb; font-weight: 700; }
+
+/* Schedule 14-Point Assessment */
+table.s14-tbl { border-collapse: collapse; font-size: 0.78rem; width: max-content; min-width: 56rem; }
+table.s14-tbl th, table.s14-tbl td { border-bottom: 1px solid #ededed; padding: 6px 10px; text-align: left; vertical-align: top; }
+table.s14-tbl thead th { background: #fafafa; color: #6a6d70; font-weight: 600; }
+table.s14-tbl th.s14-num, table.s14-tbl td.s14-num { text-align: right; font-variant-numeric: tabular-nums; }
+table.s14-tbl td.s14-note { color: #6a6d70; white-space: normal; max-width: 24rem; }
+.s14-pill { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
+.s14-pass { background: #e8f5ec; color: #107e3e; }
+.s14-fail { background: #fdecec; color: #bb0000; }
+.s14-na { background: #f0f1f2; color: #6a6d70; }

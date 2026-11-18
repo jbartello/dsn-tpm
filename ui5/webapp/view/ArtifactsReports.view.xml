@@ -64,6 +64,9 @@
               <core:HTML id="capHtml"/>
             </ScrollContainer>
           </VBox>
+          <ScrollContainer id="genScroll" height="100%" width="100%" horizontal="true" vertical="true" visible="false">
+            <core:HTML id="genHtml"/>
+          </ScrollContainer>
         </content>
         <beginButton><Button text="Close" press=".onCloseReport"/></beginButton>
       </Dialog>

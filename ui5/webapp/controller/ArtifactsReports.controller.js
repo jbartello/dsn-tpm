@@ -9,17 +9,13 @@ sap.ui.define([
 ], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast, WbsStore) {
   "use strict";
 
-  // artifact name -> embedded report grid (static sample reports)
-  var REPORT_KEY = {
-    "Tripwire Report": "tripwire",
-    "Program Control Log": "controllog"
-  };
   // Summary columns shown from CAP_SUMMARY (indexes into cols), as in the prototype
   var CAP_SUM_SHOW = [3, 4, 12, 13, 14, 16, 17, 20, 21, 22, 23, 24, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37];
+  // Tripwire column groups: text, numeric, and the check columns (21+) rendered OK/ISSUE/N/A
+  var TW_TEXT = [0, 1, 3, 5], TW_NUM = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
   // artifact name -> navigate to another module
   var NAV = {
     "Integrated Master Schedule (IMS)": "MasterSchedule",
-    "Schedule 14-Point Assessment": "MasterSchedule",
     "Variance Analysis Report (VAR)": "VAR"
   };
 
@@ -51,6 +47,15 @@ sap.ui.define([
       this.getView().setModel(cap, "cap");
       cap.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/cap.json"));
       this.getView().setModel(new JSONModel({ view: "tp" }), "capui");
+      var tw = new JSONModel();
+      this.getView().setModel(tw, "tw");
+      tw.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/tripwire.json"));
+      var cl = new JSONModel();
+      this.getView().setModel(cl, "cl");
+      cl.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/controllog.json"));
+      var s14 = new JSONModel();
+      this.getView().setModel(s14, "s14");
+      s14.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/schedule14.json"));
     },
 
     onOpenArtifact: function (evt) {
@@ -59,7 +64,9 @@ sap.ui.define([
       if (name === "WBS Dictionary") { this._openWbsDictionary(); }
       else if (name === "Responsibility Assignment Matrix (RAM)") { this._openRam(); }
       else if (name === "Control Account Plans (CAP)") { this._openCap(); }
-      else if (REPORT_KEY[name]) { this._openReport(REPORT_KEY[name], name); }
+      else if (name === "Tripwire Report") { this._openTripwire(); }
+      else if (name === "Program Control Log") { this._openControlLog(); }
+      else if (name === "Schedule 14-Point Assessment") { this._openSchedule14(); }
       else if (NAV[name]) { HashChanger.getInstance().setHash(NAV[name]); }
       else { MessageToast.show("No embedded viewer for “" + name + "” — document reference only."); }
     },
@@ -200,6 +207,74 @@ sap.ui.define([
       return '<table class="cap-tbl cap-sum"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table>";
     },
 
+    // Generic HTML-report display (Tripwire, Control Log, Schedule 14-Point).
+    _showGen: function (title, html) {
+      this.byId("reportGrid").setVisible(false);
+      this.byId("ramBox").setVisible(false);
+      this.byId("capBox").setVisible(false);
+      this.byId("genScroll").setVisible(true);
+      this.byId("genHtml").setContent("<div>" + html + "</div>");
+      var dlg = this.byId("reportDialog");
+      dlg.setTitle(title);
+      dlg.open();
+    },
+
+    _openTripwire: function () {
+      var t = this.getView().getModel("tw").getData();
+      if (!t || !t.rows) { MessageToast.show("Tripwire data not loaded yet — try again."); return; }
+      var CHK = []; for (var i = 21; i < t.cols.length; i++) { CHK.push(i); }
+      var twMoney = function (v) { return (typeof v === "number") ? Math.round(v).toLocaleString("en-US") : esc(v); };
+      var twRatio = function (v) { return (typeof v === "number") ? v.toFixed(2) : esc(v); };
+      var th = "";
+      TW_TEXT.forEach(function (i) { th += "<th>" + esc(t.cols[i]) + "</th>"; });
+      TW_NUM.forEach(function (i) { th += '<th class="tw-num">' + esc(t.cols[i]) + "</th>"; });
+      CHK.forEach(function (i) { var full = String(t.cols[i]); th += '<th class="tw-chk" title="' + esc(full) + '">' + esc(full.split(" ")[0]) + "</th>"; });
+      var body = t.rows.map(function (r) {
+        var cells = "";
+        TW_TEXT.forEach(function (i) { cells += "<td>" + esc(r[i]) + "</td>"; });
+        TW_NUM.forEach(function (i) { cells += '<td class="tw-num">' + (i >= 18 ? twRatio(r[i]) : twMoney(r[i])) + "</td>"; });
+        CHK.forEach(function (i) { var v = r[i], cls = v === "ISSUE" ? "tw-issue" : (v === "OK" ? "tw-ok" : "tw-na"); cells += '<td class="tw-chk ' + cls + '">' + esc(v) + "</td>"; });
+        return "<tr>" + cells + "</tr>";
+      }).join("");
+      var m = t.meta || {};
+      var issues = t.rows.reduce(function (a, r) { return a + r.filter(function (cc) { return cc === "ISSUE"; }).length; }, 0);
+      var sub = esc([m.snapshot, m.baseline].filter(Boolean).join(" · ")) + (issues ? " · " + issues + " issues flagged" : "");
+      var html = '<div class="rep-sub">' + sub + '</div><table class="tw-tbl"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table>";
+      this._showGen(m.title || "Tripwire Report", html);
+    },
+
+    _openControlLog: function () {
+      var c = this.getView().getModel("cl").getData();
+      if (!c || !c.rows) { MessageToast.show("Program Control Log not loaded yet — try again."); return; }
+      var cmoney = function (v) { return (typeof v === "number") ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : esc(v); };
+      var metaHtml = (c.meta || []).map(function (x) { return x.label ? '<span class="cl-m"><b>' + esc(x.label) + ":</b> " + esc(x.value) + "</span>" : '<span class="cl-m">' + esc(x.value) + "</span>"; }).join("");
+      var left = c.cols.slice(0, 9), cbb = c.cols.slice(9);
+      var thead = "<thead><tr>" + left.map(function (h) { return '<th rowspan="2">' + esc(h) + "</th>"; }).join("") +
+        '<th class="cl-cbb" colspan="5">Contract Budget Baseline</th></tr><tr>' + cbb.map(function (h) { return '<th class="cl-num">' + esc(h) + "</th>"; }).join("") + "</tr></thead>";
+      var body = (c.rows || []).map(function (r) {
+        var summary = !String(r[8]).trim(), cells = "", i;
+        for (i = 0; i < 9; i++) { cells += "<td>" + esc(r[i]) + "</td>"; }
+        for (i = 9; i < 14; i++) { cells += '<td class="cl-num">' + cmoney(r[i]) + "</td>"; }
+        return '<tr class="' + (summary ? "cl-sum" : "") + '">' + cells + "</tr>";
+      }).join("");
+      var html = '<div class="cl-metabar">' + metaHtml + '</div><table class="cl-tbl">' + thead + "<tbody>" + body + "</tbody></table>";
+      this._showGen(c.title || "Program Control Log", html);
+    },
+
+    _openSchedule14: function () {
+      var s = this.getView().getModel("s14").getData();
+      if (!s || !s.metrics) { MessageToast.show("Schedule assessment not loaded yet — try again."); return; }
+      var pill = function (st) { return st === "Pass" ? '<span class="s14-pill s14-pass">Pass</span>' : (st === "Fail" ? '<span class="s14-pill s14-fail">Fail</span>' : '<span class="s14-pill s14-na">N/A</span>'); };
+      var pass = 0, fail = 0, na = 0;
+      var rows = s.metrics.map(function (r) {
+        if (r.status === "Pass") { pass++; } else if (r.status === "Fail") { fail++; } else { na++; }
+        return '<tr><td class="s14-num">' + r.num + "</td><td>" + esc(r.name) + '</td><td class="s14-num">' + esc(r.val) + "</td><td>" + esc(r.thresh) + "</td><td>" + pill(r.status) + '</td><td class="s14-note">' + esc(r.detail) + "</td></tr>";
+      }).join("");
+      var html = '<div class="rep-sub">DCMA schedule-health metrics · ' + pass + " pass · " + fail + " fail · " + na + " N/A · illustrative for the Demo IMS (project JTB001)</div>" +
+        '<table class="s14-tbl"><thead><tr><th>#</th><th>Metric</th><th class="s14-num">Measured</th><th>DCMA Threshold</th><th>Result</th><th>Notes</th></tr></thead><tbody>' + rows + "</tbody></table>";
+      this._showGen("Schedule 14-Point Assessment", html);
+    },
+
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
 
     // The WBS Dictionary is generated live from the control-account and work-package
@@ -229,6 +304,7 @@ sap.ui.define([
       if (!grid) { return; }
       this.byId("ramBox").setVisible(false);
       this.byId("capBox").setVisible(false);
+      this.byId("genScroll").setVisible(false);
       grid.setVisible(true);
       grid.removeAllColumns();
       cols.forEach(function (c, i) {

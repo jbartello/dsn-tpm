@@ -1,0 +1,18 @@
+{
+  "metrics": [
+    { "num": 1, "name": "Logic", "val": "3 / 81 (4%)", "thresh": "≤ 5% missing a predecessor/successor", "status": "Pass", "detail": "Activities lacking a predecessor and/or successor link." },
+    { "num": 2, "name": "Leads", "val": "0 relationships", "thresh": "0 leads (negative lag)", "status": "Pass", "detail": "Leads (negative lag) distort the critical path." },
+    { "num": 3, "name": "Lags", "val": "4 / 142 (3%)", "thresh": "≤ 5% of relationships", "status": "Pass", "detail": "Relationships that use a positive lag." },
+    { "num": 4, "name": "Relationship Types", "val": "93% FS", "thresh": "≥ 90% Finish-to-Start", "status": "Pass", "detail": "Share of Finish-to-Start relationships." },
+    { "num": 5, "name": "Hard Constraints", "val": "0 / 81 (0%)", "thresh": "≤ 5% of tasks", "status": "Pass", "detail": "No hard date constraints are used in this model." },
+    { "num": 6, "name": "High Float", "val": "3 / 81 (4%)", "thresh": "≤ 5% with total float > 44 days", "status": "Pass", "detail": "High float often signals missing successor logic." },
+    { "num": 7, "name": "Negative Float", "val": "0 tasks", "thresh": "0 tasks with total float < 0", "status": "Pass", "detail": "Negative float means the plan is behind its logic-driven need dates." },
+    { "num": 8, "name": "High Duration", "val": "4 / 81 (5%)", "thresh": "≤ 5% with duration > 44 days", "status": "Pass", "detail": "Long activities should be broken into shorter tasks." },
+    { "num": 9, "name": "Invalid Dates", "val": "0 tasks", "thresh": "0 invalid (finish before start)", "status": "Pass", "detail": "Checks finish ≥ start." },
+    { "num": 10, "name": "Resources", "val": "0 / 81 unloaded (0%)", "thresh": "0% of tasks without cost/resources", "status": "Pass", "detail": "Cost-loaded activities are required for EVM." },
+    { "num": 11, "name": "Missed Tasks", "val": "N/A", "thresh": "≤ 5% slipped from baseline", "status": "N/A", "detail": "Requires actual progress vs baseline (execution data)." },
+    { "num": 12, "name": "Critical Path Test", "val": "Valid", "thresh": "Continuous critical path to finish", "status": "Pass", "detail": "The finish-driving activity lies on a zero-float logic chain." },
+    { "num": 13, "name": "Critical Path Length Index (CPLI)", "val": "1.00", "thresh": "≥ 0.95", "status": "Pass", "detail": "CPLI = (CP length + total float) ÷ CP length." },
+    { "num": 14, "name": "Baseline Execution Index (BEI)", "val": "N/A", "thresh": "≥ 0.95", "status": "N/A", "detail": "Requires completed-vs-baseline task counts (execution data)." }
+  ]
+}
