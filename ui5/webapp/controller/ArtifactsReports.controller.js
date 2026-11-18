@@ -11,11 +11,11 @@ sap.ui.define([
 
   // artifact name -> embedded report grid (static sample reports)
   var REPORT_KEY = {
-    "Responsibility Assignment Matrix (RAM)": "ram",
-    "Control Account Plans (CAP)": "cap",
     "Tripwire Report": "tripwire",
     "Program Control Log": "controllog"
   };
+  // Summary columns shown from CAP_SUMMARY (indexes into cols), as in the prototype
+  var CAP_SUM_SHOW = [3, 4, 12, 13, 14, 16, 17, 20, 21, 22, 23, 24, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37];
   // artifact name -> navigate to another module
   var NAV = {
     "Integrated Master Schedule (IMS)": "MasterSchedule",
@@ -47,6 +47,10 @@ sap.ui.define([
         ram.setProperty("/periods", PERIODS);
         ram.setProperty("/period", "2026-05");
       });
+      var cap = new JSONModel();
+      this.getView().setModel(cap, "cap");
+      cap.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/cap.json"));
+      this.getView().setModel(new JSONModel({ view: "tp" }), "capui");
     },
 
     onOpenArtifact: function (evt) {
@@ -54,6 +58,7 @@ sap.ui.define([
       var name = ctx.getProperty("Name");
       if (name === "WBS Dictionary") { this._openWbsDictionary(); }
       else if (name === "Responsibility Assignment Matrix (RAM)") { this._openRam(); }
+      else if (name === "Control Account Plans (CAP)") { this._openCap(); }
       else if (REPORT_KEY[name]) { this._openReport(REPORT_KEY[name], name); }
       else if (NAV[name]) { HashChanger.getInstance().setHash(NAV[name]); }
       else { MessageToast.show("No embedded viewer for “" + name + "” — document reference only."); }
@@ -137,6 +142,64 @@ sap.ui.define([
       this.byId("reportHtml").setContent("<div>" + html + "</div>");
     },
 
+    // CAP: Time-Phased / Summary toggle, matching the prototype.
+    _openCap: function () {
+      var d = this.getView().getModel("cap").getData();
+      if (!d || !d.tp) { MessageToast.show("CAP data not loaded yet — try again."); return; }
+      this.byId("reportGrid").setVisible(false);
+      this.byId("ramBox").setVisible(false);
+      this.byId("capBox").setVisible(true);
+      this._renderCap();
+      var dlg = this.byId("reportDialog");
+      dlg.setTitle("Control Account Plans (CAP)");
+      dlg.open();
+    },
+    onCapViewChange: function () { this._renderCap(); },
+
+    _renderCap: function () {
+      var d = this.getView().getModel("cap").getData();
+      if (!d || !d.tp) { return; }
+      var view = this.getView().getModel("capui").getProperty("/view");
+      this.byId("capHtml").setContent("<div>" + (view === "summary" ? this._capSummaryHtml(d.summary) : this._capTpHtml(d.tp)) + "</div>");
+    },
+
+    _capTpHtml: function (t) {
+      var money = function (v) { return (typeof v === "number" && v !== 0) ? v.toLocaleString("en-US", { maximumFractionDigits: 0 }) : ""; };
+      var monthTh = (t.months || []).map(function (m) { return '<th class="cap-num">' + esc(m) + "</th>"; }).join("");
+      var rows = t.rows || [], body = "", i = 0;
+      while (i < rows.length) {
+        var wp = rows[i].wp, grp = [];
+        while (i < rows.length && rows[i].wp === wp) { grp.push(rows[i]); i++; }
+        grp.forEach(function (r, gi) {
+          var lead = gi === 0
+            ? '<td rowspan="' + grp.length + '">' + esc(r.ca) + '</td><td rowspan="' + grp.length + '">' + esc(r.wp) + '</td><td rowspan="' + grp.length + '">' + esc(r.wpDesc) + "</td>"
+            : "";
+          var mvals = (r.vals || []).map(function (v) { return '<td class="cap-num">' + money(v) + "</td>"; }).join("");
+          body += "<tr" + (gi === 0 ? ' class="cap-wptop"' : "") + ">" + lead + '<td class="cap-type">' + esc(r.type) + '</td><td class="cap-num cap-tot">' + money(r.totals) + "</td>" + mvals + "</tr>";
+        });
+      }
+      return '<table class="cap-tbl cap-tp"><thead><tr><th>Control Account</th><th>Work Package</th><th>Description</th><th>Type</th><th class="cap-num">TOTALS</th>' + monthTh + "</tr></thead><tbody>" + body + "</tbody></table>";
+    },
+
+    _capSummaryHtml: function (s) {
+      var cols = s.cols || [], rows = s.rows || [];
+      var fmt = function (name, v) {
+        if (typeof v !== "number") { return esc(String(v).replace("WBS ", "")); }
+        if (/SPI|CPI|TCPI/.test(name)) { return v.toFixed(2); }
+        if (/%/.test(name)) { return v.toFixed(1) + "%"; }
+        return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      };
+      var th = CAP_SUM_SHOW.map(function (idx, k) { return "<th" + (k > 1 ? ' class="cap-num"' : "") + ">" + esc(cols[idx]) + "</th>"; }).join("");
+      var body = rows.map(function (r) {
+        return "<tr>" + CAP_SUM_SHOW.map(function (idx, k) {
+          var name = cols[idx], v = r[idx];
+          var cls = (k <= 1) ? "" : ("cap-num" + ((typeof v === "number" && v < 0) ? " cap-neg" : ""));
+          return '<td class="' + cls + '">' + fmt(name, v) + "</td>";
+        }).join("") + "</tr>";
+      }).join("");
+      return '<table class="cap-tbl cap-sum"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table>";
+    },
+
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
 
     // The WBS Dictionary is generated live from the control-account and work-package
@@ -165,6 +228,7 @@ sap.ui.define([
       var grid = this.byId("reportGrid");
       if (!grid) { return; }
       this.byId("ramBox").setVisible(false);
+      this.byId("capBox").setVisible(false);
       grid.setVisible(true);
       grid.removeAllColumns();
       cols.forEach(function (c, i) {

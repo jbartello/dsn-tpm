@@ -51,6 +51,19 @@
               <core:HTML id="reportHtml"/>
             </ScrollContainer>
           </VBox>
+          <VBox id="capBox" height="100%" visible="false">
+            <OverflowToolbar>
+              <SegmentedButton selectedKey="{capui>/view}" selectionChange=".onCapViewChange">
+                <items>
+                  <SegmentedButtonItem key="tp" text="Time-Phased"/>
+                  <SegmentedButtonItem key="summary" text="Summary"/>
+                </items>
+              </SegmentedButton>
+            </OverflowToolbar>
+            <ScrollContainer id="capScroll" height="100%" width="100%" horizontal="true" vertical="true">
+              <core:HTML id="capHtml"/>
+            </ScrollContainer>
+          </VBox>
         </content>
         <beginButton><Button text="Close" press=".onCloseReport"/></beginButton>
       </Dialog>

@@ -111,3 +111,14 @@ table.ram-tbl tr.ram-foot td { background: #f8cbad; font-weight: 600; text-align
 table.ram-tbl tr.ram-foot td[colspan] { text-align: left; }
 table.ram-tbl tr.ram-foot-top td { border-top: 2px solid #9c6b4f; }
 table.ram-tbl tr.ram-foot-bold td { font-weight: 700; }
+
+/* Control Account Plans (CAP) report */
+table.cap-tbl { border-collapse: collapse; font-size: 0.72rem; white-space: nowrap; width: max-content; }
+table.cap-tbl th, table.cap-tbl td { border: 1px solid #d7d7d7; padding: 3px 8px; text-align: left; }
+table.cap-tbl thead th { background: #eef3f8; color: #1d1d1d; font-weight: 700; position: sticky; top: 0; }
+table.cap-tbl td.cap-num, table.cap-tbl th.cap-num { text-align: right; font-variant-numeric: tabular-nums; }
+table.cap-tbl td.cap-tot { font-weight: 700; background: #f6f8fb; }
+table.cap-tbl td.cap-type { color: #6a6d70; }
+table.cap-tbl td.cap-neg { color: #bb0000; }
+table.cap-tbl tr.cap-wptop td { border-top: 2px solid #b5c6da; }
+table.cap-tbl tbody tr:hover td { background: #f3f7fb; }
