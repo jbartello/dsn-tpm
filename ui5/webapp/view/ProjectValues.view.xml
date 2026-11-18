@@ -14,6 +14,19 @@
           <core:Item key="DEMO" text="Demo"/>
           <core:Item key="MFG" text="MFG Program"/>
         </Select>
+        <ToolbarSpacer/>
+        <Label text="Project"/>
+        <Select selectedKey="{flt>/project}" change=".onFilterChange" items="{flt>/projects}" autoAdjustWidth="true">
+          <core:Item key="{flt>key}" text="{flt>text}"/>
+        </Select>
+        <Label text="CAM"/>
+        <Select selectedKey="{flt>/cam}" change=".onFilterChange" items="{flt>/cams}" autoAdjustWidth="true">
+          <core:Item key="{flt>key}" text="{flt>text}"/>
+        </Select>
+        <Label text="Month End"/>
+        <Select selectedKey="{flt>/period}" change=".onFilterChange" items="{flt>/periods}" autoAdjustWidth="true">
+          <core:Item key="{flt>key}" text="{flt>text}"/>
+        </Select>
       </OverflowToolbar>
     </subHeader>
     <content>
