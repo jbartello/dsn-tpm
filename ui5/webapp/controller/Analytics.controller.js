@@ -62,6 +62,7 @@ sap.ui.define([
       var ry = yPx(r.y);
       s += '<line x1="' + mL + '" y1="' + ry + '" x2="' + (mL + pw) + '" y2="' + ry + '" stroke="' + r.color + '" stroke-width="1.5" ' + (r.dash ? 'stroke-dasharray="' + r.dash + '"' : "") + "/>";
     });
+    var hits = "";
     cfg.series.filter(function (se) { return !(cfg.hidden && cfg.hidden[se.name]); }).forEach(function (se) {
       var vis = se.pts.filter(function (p) { return p.y != null; });
       var poly = vis.map(function (p) { return xPx(p.x).toFixed(1) + "," + yPx(p.y).toFixed(1); }).join(" ");
@@ -69,11 +70,13 @@ sap.ui.define([
       vis.forEach(function (p) {
         var cx = xPx(p.x).toFixed(1), cy = yPx(p.y).toFixed(1);
         var tip = (se.name ? se.name + " · " : "") + (cfg.xLabels[p.x] || "") + ": " + yFmt(p.y);
-        s += '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="' + se.color + '"/>';
-        s += '<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="transparent" data-tip="' + tip + '"/>';
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="' + se.color + '"/>';
+        // larger transparent hit target, collected to draw on top of everything
+        hits += '<circle cx="' + cx + '" cy="' + cy + '" r="12" fill="transparent" style="cursor:pointer" data-tip="' + tip + '"/>';
       });
     });
     s += '<line x1="' + mL + '" y1="' + (mT + ph) + '" x2="' + (mL + pw) + '" y2="' + (mT + ph) + '" stroke="#bbb"/><line x1="' + mL + '" y1="' + mT + '" x2="' + mL + '" y2="' + (mT + ph) + '" stroke="#bbb"/>';
+    s += hits;
     return '<svg class="chart" viewBox="0 0 ' + w + " " + h + '">' + s + "</svg>";
   }
 
@@ -342,7 +345,8 @@ sap.ui.define([
       var node = this.byId("chartsHtml");
       if (node && this._html) { node.setContent(this._html); }
     },
-    _attachTips: function (root) {
+    _attachTips: function () {
+      var that = this;
       var tip = document.getElementById("tpmChartTip");
       if (!tip) {
         tip = document.createElement("div");
@@ -350,21 +354,24 @@ sap.ui.define([
         tip.style.cssText = "position:fixed;display:none;z-index:2000;pointer-events:none;background:#32363a;color:#fff;font-size:12px;padding:6px 9px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.28)";
         document.body.appendChild(tip);
       }
-      root.querySelectorAll("[data-tip]").forEach(function (el) {
-        el.addEventListener("mousemove", function (e) {
+      // Hover tooltips via one guarded document-level delegated listener, so
+      // chart re-renders (legend toggles, period changes) never drop the handler.
+      if (!this._tipsBound) {
+        this._tipsBound = true;
+        this._tipMove = function (e) {
+          var viewDom = that.getView() && that.getView().getDomRef();
+          var el = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+          if (!el || !viewDom || !viewDom.contains(el)) { tip.style.display = "none"; return; }
           tip.textContent = el.getAttribute("data-tip");
           tip.style.display = "block";
-          tip.style.left = (e.clientX + 12) + "px";
-          tip.style.top = (e.clientY + 12) + "px";
-        });
-        el.addEventListener("mouseleave", function () { tip.style.display = "none"; });
-      });
-      // Clickable legend entries toggle their series on/off. Bind exactly one
-      // document-level delegated listener per controller (guarded) so repeated
-      // re-renders can never stack duplicate handlers (which would cancel out).
+          tip.style.left = (e.clientX + 14) + "px";
+          tip.style.top = (e.clientY + 14) + "px";
+        };
+        document.addEventListener("mousemove", this._tipMove, true);
+      }
+      // Clickable legend entries toggle their series on/off (one guarded listener).
       if (!this._clickBound) {
         this._clickBound = true;
-        var that = this;
         this._legendClick = function (e) {
           var el = e.target && e.target.closest ? e.target.closest("[data-chart]") : null;
           if (!el) { return; }
@@ -381,6 +388,7 @@ sap.ui.define([
 
     onExit: function () {
       if (this._legendClick) { document.removeEventListener("click", this._legendClick); }
+      if (this._tipMove) { document.removeEventListener("mousemove", this._tipMove, true); }
     },
 
     _load: function () {
