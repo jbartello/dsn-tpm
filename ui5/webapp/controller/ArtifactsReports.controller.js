@@ -4,8 +4,9 @@ sap.ui.define([
   "sap/ui/model/json/JSONModel",
   "sap/ui/table/Column",
   "sap/m/Text",
-  "sap/m/MessageToast"
-], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast) {
+  "sap/m/MessageToast",
+  "dassian/tpm/ui5/ext/ReportExport"
+], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast, ReportExport) {
   "use strict";
 
   // Summary columns shown from CAP_SUMMARY (indexes into cols), as in the prototype
@@ -79,7 +80,7 @@ sap.ui.define([
       this.byId("reportGrid").setVisible(false);
       this.byId("ramBox").setVisible(false);
       this.byId("capBox").setVisible(false);
-      this.byId("genScroll").setVisible(false);
+      this.byId("genBox").setVisible(false);
     },
 
     // RAM: grouped OBS department headers over the manager columns, WBS level/CA
@@ -217,14 +218,41 @@ sap.ui.define([
       return '<table class="cap-tbl cap-sum"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table>";
     },
 
-    // Generic HTML-report display (Tripwire, Control Log, Schedule 14-Point).
-    _showGen: function (title, html) {
+    // Generic HTML-report display (Tripwire, Control Log, Schedule 14-Point, WBS
+    // Dictionary). Pass an export spec { kind, payload } to show the Excel/PDF
+    // buttons; omit it for reports without an exporter (Schedule 14-Point).
+    _showGen: function (title, html, exportSpec) {
       this._hideAllReportViews();
-      this.byId("genScroll").setVisible(true);
+      this.byId("genBox").setVisible(true);
+      this.byId("genToolbar").setVisible(!!exportSpec);
+      this._genExport = exportSpec || null;
       this.byId("genHtml").setContent("<div>" + html + "</div>");
       var dlg = this.byId("reportDialog");
       dlg.setTitle(title);
       dlg.open();
+    },
+
+    onGenExcel: function () { if (this._genExport) { ReportExport.excel(this._genExport.kind, this._genExport.payload); } },
+    onGenPdf: function () { if (this._genExport) { ReportExport.pdf(this._genExport.kind, this._genExport.payload); } },
+
+    // RAM / CAP live in their own panels; build the export payload from the
+    // currently-shown period (RAM) or view (CAP).
+    onRamExcel: function () { ReportExport.excel("ram", this._ramPayload()); },
+    onRamPdf: function () { ReportExport.pdf("ram", this._ramPayload()); },
+    _ramPayload: function () {
+      var d = this.getView().getModel("ram").getData() || {};
+      var key = this.getView().getModel("ram").getProperty("/period") || "2026-05";
+      var per = PERIODS.filter(function (p) { return p.key === key; })[0] || PERIODS[PERIODS.length - 1];
+      return { meta: d.meta, depts: d.depts, people: d.people, rows: d.rows, constants: d.constants, factor: per.f, periodLabel: per.text };
+    },
+    onCapExcel: function () { ReportExport.excel("cap", this._capPayload()); },
+    onCapPdf: function () { ReportExport.pdf("cap", this._capPayload()); },
+    _capPayload: function () {
+      var d = this.getView().getModel("cap").getData() || {};
+      var view = this.getView().getModel("capui").getProperty("/view");
+      var r0 = (d.summary && d.summary.rows && d.summary.rows[0]) || [];
+      var sub = [r0[6], r0[7]].filter(Boolean).join(" · ");
+      return { view: view, tp: d.tp, summary: d.summary, sub: sub };
     },
 
     _openTripwire: function () {
@@ -248,7 +276,7 @@ sap.ui.define([
       var issues = t.rows.reduce(function (a, r) { return a + r.filter(function (cc) { return cc === "ISSUE"; }).length; }, 0);
       var sub = esc([m.snapshot, m.baseline].filter(Boolean).join(" · ")) + (issues ? " · " + issues + " issues flagged" : "");
       var html = '<div class="rep-sub">' + sub + '</div><table class="tw-tbl"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table>";
-      this._showGen(m.title || "Tripwire Report", html);
+      this._showGen(m.title || "Tripwire Report", html, { kind: "tripwire", payload: { meta: m, cols: t.cols, rows: t.rows } });
     },
 
     _openControlLog: function () {
@@ -266,7 +294,7 @@ sap.ui.define([
         return '<tr class="' + (summary ? "cl-sum" : "") + '">' + cells + "</tr>";
       }).join("");
       var html = '<div class="cl-metabar">' + metaHtml + '</div><table class="cl-tbl">' + thead + "<tbody>" + body + "</tbody></table>";
-      this._showGen(c.title || "Program Control Log", html);
+      this._showGen(c.title || "Program Control Log", html, { kind: "controllog", payload: { title: c.title, meta: c.meta, cols: c.cols, rows: c.rows } });
     },
 
     _openSchedule14: function () {
@@ -322,7 +350,7 @@ sap.ui.define([
       }).join("");
       var sub = [m.project, m.contract, m.printDate].filter(Boolean).join(" · ");
       var html = '<div class="rep-sub">' + esc(sub) + '</div><table class="wbsd-tbl"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>";
-      this._showGen(m.title || "Contract Work Breakdown Structure Dictionary", html);
+      this._showGen(m.title || "Contract Work Breakdown Structure Dictionary", html, { kind: "wbs", payload: { meta: m, rows: data.rows } });
     },
 
     _renderGrid: function (cols, rowsPath, title) {

@@ -46,6 +46,8 @@
               </Select>
               <ToolbarSpacer/>
               <Text text="Budgets shown through the selected month-end (illustrative; May = full)."/>
+              <Button text="Export to Excel" icon="sap-icon://excel-attachment" press=".onRamExcel"/>
+              <Button text="Export to PDF" icon="sap-icon://pdf-attachment" press=".onRamPdf"/>
             </OverflowToolbar>
             <ScrollContainer id="reportHtmlScroll" height="100%" width="100%" horizontal="true" vertical="true">
               <core:HTML id="reportHtml"/>
@@ -59,14 +61,24 @@
                   <SegmentedButtonItem key="summary" text="Summary"/>
                 </items>
               </SegmentedButton>
+              <ToolbarSpacer/>
+              <Button text="Export to Excel" icon="sap-icon://excel-attachment" press=".onCapExcel"/>
+              <Button text="Export to PDF" icon="sap-icon://pdf-attachment" press=".onCapPdf"/>
             </OverflowToolbar>
             <ScrollContainer id="capScroll" height="100%" width="100%" horizontal="true" vertical="true">
               <core:HTML id="capHtml"/>
             </ScrollContainer>
           </VBox>
-          <ScrollContainer id="genScroll" height="100%" width="100%" horizontal="true" vertical="true" visible="false">
-            <core:HTML id="genHtml"/>
-          </ScrollContainer>
+          <VBox id="genBox" height="100%" visible="false">
+            <OverflowToolbar id="genToolbar" visible="false">
+              <ToolbarSpacer/>
+              <Button id="wbsExcelBtn" text="Export to Excel" icon="sap-icon://excel-attachment" press=".onGenExcel"/>
+              <Button id="wbsPdfBtn" text="Export to PDF" icon="sap-icon://pdf-attachment" press=".onGenPdf"/>
+            </OverflowToolbar>
+            <ScrollContainer id="genScroll" height="100%" width="100%" horizontal="true" vertical="true">
+              <core:HTML id="genHtml"/>
+            </ScrollContainer>
+          </VBox>
         </content>
         <beginButton><Button text="Close" press=".onCloseReport"/></beginButton>
       </Dialog>
