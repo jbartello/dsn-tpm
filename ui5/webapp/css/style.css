@@ -146,6 +146,67 @@ table.cl-tbl th.cl-cbb { background: #e2ecf6; text-align: center; }
 table.cl-tbl th.cl-num, table.cl-tbl td.cl-num { text-align: right; font-variant-numeric: tabular-nums; }
 table.cl-tbl tr.cl-sum td { background: #f6f8fb; font-weight: 700; }
 
+/* Baseline Change Request detail (9-section slide-out) */
+.bcrd-wrap { padding: 4px 8px 16px; font-size: 0.8rem; color: #32363a; }
+.bcrd-sec { margin: 0 0 16px; border: 1px solid #d9d9d9; border-radius: 8px; overflow: hidden; background: #fff; }
+.bcrd-sec > h3 { margin: 0; font-size: 0.8rem; font-weight: 700; background: #eef3f8; padding: 8px 14px; border-bottom: 1px solid #d9d9d9; color: #32363a; }
+.bcrd-in { padding: 12px 14px; }
+.bcrd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 18px; }
+.bcrd-stack { display: flex; flex-direction: column; gap: 12px; }
+.bcrd-fld { display: flex; flex-direction: column; gap: 3px; }
+.bcrd-lbl { font-size: 0.66rem; color: #6a6d70; text-transform: uppercase; letter-spacing: .4px; }
+.bcrd-val { font-size: 0.8rem; color: #32363a; white-space: pre-line; }
+table.bcrd-tbl { border-collapse: collapse; width: 100%; font-size: 0.74rem; }
+table.bcrd-tbl th { text-align: left; font-weight: 700; color: #6a6d70; background: #fafafa; padding: 6px 9px; border-bottom: 1px solid #e0e0e0; }
+table.bcrd-tbl td { padding: 6px 9px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+table.bcrd-tbl th.bcrd-num, table.bcrd-tbl td.bcrd-num { text-align: right; font-variant-numeric: tabular-nums; }
+table.bcrd-tbl td.bcrd-after { font-weight: 700; }
+table.bcrd-tbl td.bcrd-neg { color: #bb0000; }
+table.bcrd-tbl td.bcrd-empty { color: #6a6d70; text-align: center; font-style: italic; }
+.bcrd-balance { margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 0.74rem; font-weight: 600; }
+.bcrd-balance.ok { background: #e8f5ec; color: #107e3e; }
+.bcrd-balance.bad { background: #fdecec; color: #bb0000; }
+.bcrd-dec { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 0.68rem; font-weight: 700; }
+.bcrd-dec.ok { background: #e8f5ec; color: #107e3e; }
+.bcrd-dec.bad { background: #fdecec; color: #bb0000; }
+.bcrd-dec.warn { background: #fef3e0; color: #a85b00; }
+.bcrd-dec.na { background: #f0f1f2; color: #6a6d70; }
+
+/* Baseline Change Request: editable create form */
+.be-form { padding: 4px 8px 16px; font-size: 0.8rem; color: #32363a; }
+.be-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 18px; }
+.be-stack { display: flex; flex-direction: column; gap: 12px; }
+.be-fld { display: flex; flex-direction: column; gap: 4px; }
+.be-fld.be-wide { grid-column: 1 / -1; }
+.be-fld > label { font-size: 0.66rem; color: #6a6d70; text-transform: uppercase; letter-spacing: .4px; }
+.be-form input, .be-form select, .be-form textarea { font-family: inherit; font-size: 0.78rem; color: #32363a; border: 1px solid #c4c4c4; border-radius: 4px; padding: 6px 8px; background: #fff; }
+.be-form input:focus, .be-form select:focus, .be-form textarea:focus { outline: none; border-color: #0a6ed1; box-shadow: 0 0 0 2px #d6e6f8; }
+.be-form textarea { min-height: 54px; resize: vertical; }
+.be-form input.be-num { text-align: right; font-variant-numeric: tabular-nums; }
+.be-checks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 4px; }
+.be-chk { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; color: #32363a; text-transform: none; letter-spacing: 0; }
+.be-chk input { padding: 0; }
+table.be-tbl { border-collapse: collapse; width: 100%; font-size: 0.74rem; }
+table.be-tbl th { text-align: left; font-weight: 700; color: #6a6d70; background: #fafafa; padding: 6px 8px; border-bottom: 1px solid #e0e0e0; }
+table.be-tbl th.bcrd-num { text-align: right; }
+table.be-tbl td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; }
+table.be-tbl input, table.be-tbl select { width: 100%; box-sizing: border-box; }
+table.be-tbl td .be-after, table.be-tbl td.be-after { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; padding-right: 8px; }
+.be-addrow { margin-top: 8px; }
+.be-addrow button { font-family: inherit; font-size: 0.74rem; color: #0a6ed1; background: #fff; border: 1px solid #0a6ed1; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
+.be-addrow button:hover { background: #eaf2fb; }
+
+/* Contract WBS Dictionary (full 18-column report) */
+table.wbsd-tbl { border-collapse: collapse; white-space: nowrap; font-size: 0.72rem; width: max-content; }
+table.wbsd-tbl th { position: sticky; top: 0; background: #fafafa; text-align: left; font-weight: 700; padding: 7px 9px; border-bottom: 1px solid #d9d9d9; border-right: 1px solid #ededed; z-index: 1; }
+table.wbsd-tbl td { padding: 6px 9px; border-bottom: 1px solid #f0f0f0; border-right: 1px solid #f3f3f3; vertical-align: top; }
+table.wbsd-tbl td.wbsd-lvl { color: #6a6d70; white-space: nowrap; }
+table.wbsd-tbl td.wbsd-wrap { white-space: normal; min-width: 240px; max-width: 340px; }
+table.wbsd-tbl td.wbsd-sow { white-space: pre-line; min-width: 120px; max-width: 180px; }
+table.wbsd-tbl td.wbsd-num { text-align: right; font-variant-numeric: tabular-nums; }
+table.wbsd-tbl tr.wbsd-ca td { background: #eaf2fb; font-weight: 600; }
+table.wbsd-tbl tbody tr:hover td { background: #f7faff; }
+
 /* Schedule 14-Point Assessment */
 table.s14-tbl { border-collapse: collapse; font-size: 0.78rem; width: max-content; min-width: 56rem; }
 table.s14-tbl th, table.s14-tbl td { border-bottom: 1px solid #ededed; padding: 6px 10px; text-align: left; vertical-align: top; }

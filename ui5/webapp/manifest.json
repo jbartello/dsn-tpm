@@ -40,6 +40,15 @@
   },
   "sap.ui5": {
     "flexEnabled": true,
+    "extends": {
+      "extensions": {
+        "sap.ui.controllerExtensions": {
+          "sap.fe.templates.ListReport.ListReportController": {
+            "controllerName": "dassian.tpm.ui5.ext.ListReportExt"
+          }
+        }
+      }
+    },
     "dependencies": {
       "minUI5Version": "1.120.0",
       "libs": {
@@ -237,7 +246,19 @@
               "contextPath": "/BaselineChanges",
               "variantManagement": "Page",
               "initialLoad": "Enabled",
-              "navigation": { "BaselineChanges": { "detail": { "route": "BaselineChangesObjectPage" } } }
+              "navigation": { "BaselineChanges": { "detail": { "route": "BaselineChangesObjectPage" } } },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "actions": {
+                    "createBcr": {
+                      "text": "Create New Change Request",
+                      "press": "dassian.tpm.ui5.ext.BcrActions.onCreateBcr",
+                      "enabled": true,
+                      "position": { "placement": "After" }
+                    }
+                  }
+                }
+              }
             }
           }
         },

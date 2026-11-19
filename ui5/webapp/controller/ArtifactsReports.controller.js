@@ -4,9 +4,8 @@ sap.ui.define([
   "sap/ui/model/json/JSONModel",
   "sap/ui/table/Column",
   "sap/m/Text",
-  "sap/m/MessageToast",
-  "dassian/tpm/ui5/model/WbsStore"
-], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast, WbsStore) {
+  "sap/m/MessageToast"
+], function (Controller, HashChanger, JSONModel, Column, Text, MessageToast) {
   "use strict";
 
   // Summary columns shown from CAP_SUMMARY (indexes into cols), as in the prototype
@@ -56,6 +55,9 @@ sap.ui.define([
       var s14 = new JSONModel();
       this.getView().setModel(s14, "s14");
       s14.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/schedule14.json"));
+      var wbsd = new JSONModel();
+      this.getView().setModel(wbsd, "wbsd");
+      wbsd.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/wbsdict.json"));
     },
 
     onOpenArtifact: function (evt) {
@@ -283,26 +285,44 @@ sap.ui.define([
 
     _prog: function () { return this.getOwnerComponent().getModel("ui").getProperty("/program"); },
 
-    // The WBS Dictionary is generated live from the control-account and work-package
-    // structure maintained in Project Setup (shared WbsStore), not from static data.
+    // Contract WBS Dictionary — the full 18-column report from the program's WBS
+    // data (Demo / MFG), rendered to match the prototype: indented WBS element,
+    // CA-row highlight, wrapped authorization + SOW, right-aligned hrs/cost.
     _openWbsDictionary: function () {
-      var prog = this._prog(), that = this;
-      var render = function (tree) {
-        var dict = WbsStore.dictionary(tree);
-        that.getView().getModel("reports").setProperty("/wbs", dict);
-        that._renderGrid(dict.cols, "reports>/wbs/rows", "WBS Dictionary — " + (prog === "MFG" ? "MFG Program" : "Demo") + " (from Control Accounts & Work Packages)");
+      var all = this.getView().getModel("wbsd").getData();
+      if (!all || !all.demo) { MessageToast.show("WBS Dictionary not loaded yet — try again."); return; }
+      var data = (this._prog() === "MFG") ? all.mfg : all.demo;
+      var m = data.meta || {};
+      var cols = ["Level", "WBS Element", "Description", "Authorization Description", "SOW Ref",
+        "CAM", "Rec/NRE", "BAC Hrs", "BAC Cost (USD)", "EV", "IMS Base Start", "IMS Base Finish",
+        "PMB Start", "PMB Finish", "IMS Fcst Start", "IMS Fcst Finish", "EAC Start", "EAC Finish"];
+      var num = function (v, dec) {
+        if (typeof v !== "number") { return ""; }
+        if (v === 0) { return "0"; }
+        return v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
       };
-      if (WbsStore.get(prog)) { render(WbsStore.get(prog)); return; }
-      var model = this.getOwnerComponent().getModel();
-      model.bindList("/ControlAccounts").requestContexts(0, 500).then(function (ctxs) {
-        var cas = [];
-        ctxs.forEach(function (c) {
-          var o = c.getObject();
-          if (o.ProgramID !== prog) { return; }
-          cas.push({ id: o.ID, desc: o.Description, cam: o.Manager, bac: parseFloat(o.BAC) || 0 });
-        });
-        render(WbsStore.ensure(prog, cas));
-      });
+      var lvlNum = function (lvl) { var x = String(lvl || "").match(/\d+/); return x ? parseInt(x[0], 10) : 1; };
+      var head = "<tr>" + cols.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("") + "</tr>";
+      var body = (data.rows || []).map(function (r) {
+        var ca = /CA/.test(r.level);
+        var indent = 10 + (lvlNum(r.level) - 1) * 12;
+        return '<tr class="' + (ca ? "wbsd-ca" : "") + '">' +
+          '<td class="wbsd-lvl">' + esc(r.level) + "</td>" +
+          '<td style="padding-left:' + indent + 'px">' + esc(r.wbs) + "</td>" +
+          "<td>" + esc(r.desc) + "</td>" +
+          '<td class="wbsd-wrap">' + esc(r.auth) + "</td>" +
+          '<td class="wbsd-sow">' + esc(r.sow) + "</td>" +
+          "<td>" + esc(r.cam) + "</td><td>" + esc(r.rec) + "</td>" +
+          '<td class="wbsd-num">' + num(r.hrs, 3) + '</td><td class="wbsd-num">' + num(r.cost, 2) + "</td>" +
+          "<td>" + esc(r.ev) + "</td>" +
+          "<td>" + esc(r.imsBS) + "</td><td>" + esc(r.imsBF) + "</td>" +
+          "<td>" + esc(r.pmbS) + "</td><td>" + esc(r.pmbF) + "</td>" +
+          "<td>" + esc(r.fcstS) + "</td><td>" + esc(r.fcstF) + "</td>" +
+          "<td>" + esc(r.eacS) + "</td><td>" + esc(r.eacF) + "</td></tr>";
+      }).join("");
+      var sub = [m.project, m.contract, m.printDate].filter(Boolean).join(" · ");
+      var html = '<div class="rep-sub">' + esc(sub) + '</div><table class="wbsd-tbl"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>";
+      this._showGen(m.title || "Contract Work Breakdown Structure Dictionary", html);
     },
 
     _renderGrid: function (cols, rowsPath, title) {
