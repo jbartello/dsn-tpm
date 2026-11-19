@@ -1,0 +1,103 @@
+<mvc:View
+  controllerName="dassian.tpm.ui5.controller.ProgramInfo"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:f="sap.ui.layout.form"
+  displayBlock="true">
+  <Page id="programInfoPage" title="Program Information" class="sapUiResponsiveContentPadding">
+    <subHeader>
+      <OverflowToolbar>
+        <Label text="Program"/>
+        <Select selectedKey="{ui>/program}" change=".onProgramChange">
+          <core:Item key="DEMO" text="Demo"/>
+          <core:Item key="MFG" text="MFG Program"/>
+        </Select>
+        <ToolbarSeparator/>
+        <Label text="Month End"/>
+        <Select selectedKey="{pi>/period}" items="{pi>/periods}" change=".onPeriodChange" autoAdjustWidth="true">
+          <core:Item key="{pi>key}" text="{pi>text}"/>
+        </Select>
+        <ToolbarSpacer/>
+        <Button text="Edit" icon="sap-icon://edit" visible="{= !${pi>/edit} }" press=".onEdit"/>
+        <Button text="Save" type="Emphasized" icon="sap-icon://save" visible="{pi>/edit}" press=".onSave"/>
+        <Button text="Cancel" visible="{pi>/edit}" press=".onCancelEdit"/>
+      </OverflowToolbar>
+    </subHeader>
+    <content>
+      <VBox class="sapUiMediumMargin">
+        <Text text="{= 'Contract and program header with performance rolled up for the current month-end (' + ${pi>/evms/period} + ').' }" class="sapUiSmallMarginBottom"/>
+
+        <!-- Rolled-up EVM KPIs -->
+        <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+          <VBox class="mcStatBox"><Text text="BAC" class="mcStatLbl"/><ObjectStatus text="{pi>/kpi/bacT}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="EAC" class="mcStatLbl"/><ObjectStatus text="{pi>/kpi/eacT}" state="{pi>/kpi/eacState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="VAC" class="mcStatLbl"/><ObjectStatus text="{pi>/kpi/vacT}" state="{pi>/kpi/vacState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="CPI" class="mcStatLbl"/><ObjectStatus text="{pi>/kpi/cpiT}" state="{pi>/kpi/cpiState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="SPI" class="mcStatLbl"/><ObjectStatus text="{pi>/kpi/spiT}" state="{pi>/kpi/spiState}" class="pvKpiVal"/></VBox>
+          <VBox class="mcStatBox"><Text text="% Complete" class="mcStatLbl"/><ObjectStatus text="{pi>/kpi/pctT}" class="pvKpiVal"/></VBox>
+        </HBox>
+
+        <!-- Program Identification (editable) -->
+        <Panel headerText="Program Identification" class="sapUiSmallMarginBottom">
+          <f:SimpleForm editable="true" layout="ResponsiveGridLayout" labelSpanL="5" labelSpanM="5" columnsL="2" columnsM="2" singleContainerFullSize="false">
+            <Label text="Program Name"/><Input value="{pi>/info/progName}" editable="{pi>/edit}"/>
+            <Label text="Program Number"/><Input value="{pi>/info/progNo}" editable="{pi>/edit}"/>
+            <Label text="Contract Number"/><Input value="{pi>/info/contractNo}" editable="{pi>/edit}"/>
+            <Label text="Contract Type"/><Input value="{pi>/info/contractType}" editable="{pi>/edit}"/>
+            <Label text="Customer / Agency"/><Input value="{pi>/info/customer}" editable="{pi>/edit}"/>
+            <Label text="Prime Contractor"/><Input value="{pi>/info/prime}" editable="{pi>/edit}"/>
+            <Label text="Program Manager"/><Input value="{pi>/info/pm}" editable="{pi>/edit}"/>
+            <Label text="Period of Performance"/><Input value="{pi>/info/pop}" editable="{pi>/edit}"/>
+            <Label text="Center of Excellence (COE)"/><Input value="{pi>/info/coe}" editable="{pi>/edit}"/>
+            <Label text="Small Business Unit (SBU)"/><Input value="{pi>/info/sbu}" editable="{pi>/edit}"/>
+            <Label text="Customer Business Team (CBT)"/><Input value="{pi>/info/cbt}" editable="{pi>/edit}"/>
+            <Label text="Product Family"/><Input value="{pi>/info/productFamily}" editable="{pi>/edit}"/>
+            <Label text="PM Focal"/><Input value="{pi>/info/pmFocal}" editable="{pi>/edit}"/>
+            <Label text="PP&amp;C Focal"/><Input value="{pi>/info/ppcFocal}" editable="{pi>/edit}"/>
+            <Label text="Engineering Tech Lead"/><Input value="{pi>/info/engLead}" editable="{pi>/edit}"/>
+            <Label text="IPDS Phase"/><Input value="{pi>/info/ipdsPhase}" editable="{pi>/edit}"/>
+          </f:SimpleForm>
+        </Panel>
+
+        <!-- Contract Value & Budget: contract figures are editable, budget rollup is derived -->
+        <Panel headerText="Contract Value &amp; Budget" class="sapUiSmallMarginBottom">
+          <f:SimpleForm editable="true" layout="ResponsiveGridLayout" labelSpanL="6" labelSpanM="6" columnsL="2" columnsM="2" singleContainerFullSize="false">
+            <Label text="Contract Value (TC + Fee)"/>
+            <Input value="{pi>/info/cv}" editable="{pi>/edit}" visible="{pi>/edit}"/>
+            <Text text="{pi>/budget/cvT}" visible="{= !${pi>/edit} }"/>
+            <Label text="Target Cost"/>
+            <Input value="{pi>/info/tc}" editable="{pi>/edit}" visible="{pi>/edit}"/>
+            <Text text="{pi>/budget/tcT}" visible="{= !${pi>/edit} }"/>
+            <Label text="Target Fee"/>
+            <Input value="{pi>/info/fee}" editable="{pi>/edit}" visible="{pi>/edit}"/>
+            <Text text="{pi>/budget/feeT}" visible="{= !${pi>/edit} }"/>
+            <Label text="Contract Ceiling"/>
+            <Input value="{pi>/info/ceiling}" editable="{pi>/edit}" visible="{pi>/edit}"/>
+            <Text text="{pi>/budget/ceilingT}" visible="{= !${pi>/edit} }"/>
+            <Label text="Contract Budget Base (CBB)"/><Text text="{pi>/budget/cbbT}"/>
+            <Label text="Total Allocated Budget (TAB)"/><Text text="{pi>/budget/tabT}"/>
+            <Label text="Perf. Measurement Baseline (BAC)"/><Text text="{pi>/budget/bacT}"/>
+            <Label text="Management Reserve (MR)"/><Text text="{pi>/budget/mrT}"/>
+            <Label text="Undistributed Budget (UB)"/><Text text="{pi>/budget/ubT}"/>
+          </f:SimpleForm>
+        </Panel>
+
+        <!-- EVMS & Reporting -->
+        <Panel headerText="EVMS &amp; Reporting" class="sapUiSmallMarginBottom">
+          <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanL="6" labelSpanM="6" columnsL="2" columnsM="2" singleContainerFullSize="false">
+            <Label text="EVMS Status"/><Text text="{pi>/evms/evms}"/>
+            <Label text="Reporting Format"/><Text text="{pi>/evms/reporting}"/>
+            <Label text="Government Oversight"/><Text text="{pi>/evms/oversight}"/>
+            <Label text="Current Reporting Period"/><Text text="{pi>/evms/period}"/>
+          </f:SimpleForm>
+        </Panel>
+
+        <HBox wrap="Wrap">
+          <Button text="Open Risk Register" icon="sap-icon://alert" press=".onOpenRisk" class="sapUiTinyMarginEnd"/>
+          <Button text="Open Master Schedule" icon="sap-icon://gantt-bars" press=".onOpenSchedule"/>
+        </HBox>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

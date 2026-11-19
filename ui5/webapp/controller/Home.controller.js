@@ -10,6 +10,9 @@ sap.ui.define([
     _go: function (hash) {
       HashChanger.getInstance().setHash(hash);
     },
+    onOpenProgramInfo: function () {
+      this._go("ProgramInfo");
+    },
     onOpenControlAccounts: function () {
       this._go("ProjectValues");
     },

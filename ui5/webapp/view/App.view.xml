@@ -20,6 +20,7 @@
       <tnt:SideNavigation id="sideNav" expanded="true" itemSelect=".onNavSelect">
         <tnt:NavigationList>
           <tnt:NavigationListItem text="Overview" icon="sap-icon://home" key="Home"/>
+          <tnt:NavigationListItem text="Program Information" icon="sap-icon://official-service" key="ProgramInfo"/>
           <tnt:NavigationListItem text="Project Setup" icon="sap-icon://action-settings" key="ProjectSetup"/>
           <tnt:NavigationListItem text="Project Values" icon="sap-icon://table-view" key="ProjectValues"/>
           <tnt:NavigationListItem text="Project Analytics" icon="sap-icon://line-chart" key="Analytics"/>

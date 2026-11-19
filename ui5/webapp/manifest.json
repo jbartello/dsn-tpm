@@ -173,6 +173,11 @@
           "pattern": "Artifacts",
           "name": "Artifacts",
           "target": "TargetArtifacts"
+        },
+        {
+          "pattern": "ProgramInfo",
+          "name": "ProgramInfo",
+          "target": "TargetProgramInfo"
         }
       ],
       "targets": {
@@ -272,6 +277,13 @@
           "type": "View",
           "id": "Artifacts",
           "name": "dassian.tpm.ui5.view.ArtifactsReports",
+          "viewType": "XML",
+          "controlAggregation": "pages"
+        },
+        "TargetProgramInfo": {
+          "type": "View",
+          "id": "ProgramInfo",
+          "name": "dassian.tpm.ui5.view.ProgramInfo",
           "viewType": "XML",
           "controlAggregation": "pages"
         },
