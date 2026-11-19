@@ -13,6 +13,19 @@
           <core:Item key="DEMO" text="Demo"/>
           <core:Item key="MFG" text="MFG Program"/>
         </Select>
+        <ToolbarSeparator/>
+        <Label text="Project"/>
+        <Select selectedKey="{flt>/project}" items="{flt>/projects}" change=".onFilterChange" autoAdjustWidth="true">
+          <core:Item key="{flt>key}" text="{flt>text}"/>
+        </Select>
+        <Label text="CAM"/>
+        <Select selectedKey="{flt>/cam}" items="{flt>/cams}" change=".onFilterChange" autoAdjustWidth="true">
+          <core:Item key="{flt>key}" text="{flt>text}"/>
+        </Select>
+        <Label text="Month End"/>
+        <Select selectedKey="{flt>/period}" items="{flt>/periods}" change=".onFilterChange" autoAdjustWidth="true">
+          <core:Item key="{flt>key}" text="{flt>text}"/>
+        </Select>
       </OverflowToolbar>
     </subHeader>
     <content>
@@ -65,7 +78,10 @@
                   type="Information" showIcon="true"
                   text="AI-drafted — unverified. The model describes what the data shows; it cannot know the cause. Confirm root cause with the CAM before approving."/>
 
-                <Button text="AI draft narrative" icon="sap-icon://discussion-2" press=".onAiDraft" class="sapUiSmallMarginTop" width="12rem"/>
+                <HBox wrap="Wrap" class="sapUiSmallMarginTop">
+                  <Button text="AI draft narrative" icon="sap-icon://discussion-2" press=".onAiDraft" width="12rem"/>
+                  <Button text="Import previous period" icon="sap-icon://past" press=".onImportPrev" width="14rem" class="sapUiTinyMarginBegin"/>
+                </HBox>
 
                 <Label text="Root cause" class="sapUiSmallMarginTop"/>
                 <TextArea value="{narr>rc}" rows="3" width="100%" growing="true"/>

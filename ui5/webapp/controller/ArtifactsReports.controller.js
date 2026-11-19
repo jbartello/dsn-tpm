@@ -50,6 +50,10 @@ sap.ui.define([
       var tw = new JSONModel();
       this.getView().setModel(tw, "tw");
       tw.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/tripwire.json"));
+      tw.attachRequestCompleted(function () {
+        tw.setProperty("/periods", PERIODS);
+        tw.setProperty("/period", "2026-05");
+      });
       var cl = new JSONModel();
       this.getView().setModel(cl, "cl");
       cl.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/controllog.json"));
@@ -80,6 +84,7 @@ sap.ui.define([
       this.byId("reportGrid").setVisible(false);
       this.byId("ramBox").setVisible(false);
       this.byId("capBox").setVisible(false);
+      this.byId("twBox").setVisible(false);
       this.byId("genBox").setVisible(false);
     },
 
@@ -255,11 +260,29 @@ sap.ui.define([
       return { view: view, tp: d.tp, summary: d.summary, sub: sub };
     },
 
+    // Tripwire: dedicated panel with a Month End selector (like RAM). The factor
+    // time-phases the dollar columns (Period/Cum BCWS/BCWP/ACWP, BAC, EAC);
+    // ratios (CPI/SPI/TCPI) and the OK/ISSUE/N/A checks are unchanged.
     _openTripwire: function () {
       var t = this.getView().getModel("tw").getData();
       if (!t || !t.rows) { MessageToast.show("Tripwire data not loaded yet — try again."); return; }
+      this._hideAllReportViews();
+      this.byId("twBox").setVisible(true);
+      this._renderTripwire();
+      var dlg = this.byId("reportDialog");
+      dlg.setTitle((t.meta && t.meta.title) || "Tripwire Report");
+      dlg.open();
+    },
+    onTwPeriodChange: function () { this._renderTripwire(); },
+
+    _renderTripwire: function () {
+      var t = this.getView().getModel("tw").getData();
+      if (!t || !t.rows) { return; }
+      var key = this.getView().getModel("tw").getProperty("/period") || "2026-05";
+      var per = PERIODS.filter(function (p) { return p.key === key; })[0] || PERIODS[PERIODS.length - 1];
+      var f = per.f;
       var CHK = []; for (var i = 21; i < t.cols.length; i++) { CHK.push(i); }
-      var twMoney = function (v) { return (typeof v === "number") ? Math.round(v).toLocaleString("en-US") : esc(v); };
+      var twMoney = function (v) { return (typeof v === "number") ? Math.round(v * f).toLocaleString("en-US") : esc(v); };
       var twRatio = function (v) { return (typeof v === "number") ? v.toFixed(2) : esc(v); };
       var th = "";
       TW_TEXT.forEach(function (i) { th += "<th>" + esc(t.cols[i]) + "</th>"; });
@@ -276,7 +299,16 @@ sap.ui.define([
       var issues = t.rows.reduce(function (a, r) { return a + r.filter(function (cc) { return cc === "ISSUE"; }).length; }, 0);
       var sub = esc([m.snapshot, m.baseline].filter(Boolean).join(" · ")) + (issues ? " · " + issues + " issues flagged" : "");
       var html = '<div class="rep-sub">' + sub + '</div><table class="tw-tbl"><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table>";
-      this._showGen(m.title || "Tripwire Report", html, { kind: "tripwire", payload: { meta: m, cols: t.cols, rows: t.rows } });
+      this.byId("twHtml").setContent("<div>" + html + "</div>");
+    },
+
+    onTwExcel: function () { ReportExport.excel("tripwire", this._twPayload()); },
+    onTwPdf: function () { ReportExport.pdf("tripwire", this._twPayload()); },
+    _twPayload: function () {
+      var t = this.getView().getModel("tw").getData() || {};
+      var key = this.getView().getModel("tw").getProperty("/period") || "2026-05";
+      var per = PERIODS.filter(function (p) { return p.key === key; })[0] || PERIODS[PERIODS.length - 1];
+      return { meta: t.meta, cols: t.cols, rows: t.rows, factor: per.f };
     },
 
     _openControlLog: function () {

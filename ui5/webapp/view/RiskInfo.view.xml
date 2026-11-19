@@ -25,6 +25,7 @@
     <content>
       <VBox class="sapUiMediumMargin">
         <Title text="Probability × Impact" level="H3" class="sapUiTinyMarginBottom"/>
+        <Text text="Click a cell to filter the register below to that probability × impact; click it again or use the clear-filter button to reset." class="sapUiTinyMarginBottom"/>
         <core:HTML id="matrixHtml" class="sapUiSmallMarginBottom"/>
 
         <Table id="riskTable" items="{risk>/items}" growing="true" growingThreshold="20" class="sapUiMediumMarginTop">
@@ -32,6 +33,10 @@
             <OverflowToolbar>
               <Title text="{= ${risk>/kind} === 'Risk' ? 'Risks' : 'Opportunities' } Register"/>
               <ToolbarSpacer/>
+              <ObjectStatus text="{risk>/filterText}" state="Information" icon="sap-icon://filter"
+                            visible="{= !!${risk>/filter} }" class="sapUiTinyMarginEnd"/>
+              <Button icon="sap-icon://clear-filter" tooltip="Clear matrix filter"
+                      visible="{= !!${risk>/filter} }" press=".onClearRiskFilter"/>
               <Button text="{= ${risk>/kind} === 'Risk' ? 'Create New Risk' : 'Create New Opportunity' }"
                       type="Emphasized" icon="sap-icon://add" press=".onCreateRisk"/>
             </OverflowToolbar>

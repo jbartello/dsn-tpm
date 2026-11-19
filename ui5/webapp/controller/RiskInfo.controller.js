@@ -35,13 +35,35 @@ sap.ui.define([
 
   return Controller.extend("dassian.tpm.ui5.controller.RiskInfo", {
     onInit: function () {
-      this.getView().setModel(new JSONModel({ kind: "Risk", items: [], riskCount: 0, oppCount: 0 }), "risk");
+      this.getView().setModel(new JSONModel({ kind: "Risk", items: [], riskCount: 0, oppCount: 0, filter: null, filterText: "" }), "risk");
       this.getView().setModel(new JSONModel({ edit: false, isNew: false, tasks: [] }), "sel");
       this.getView().setModel(new JSONModel({ prob: PROB, impact: IMPACT, statuses: STATUSES, strategies: STRATEGIES }), "cfg");
+      this._allItems = [];        // full kind list; risk>/items is the (optionally cell-filtered) view
       var tm = new JSONModel();
       tm.loadData(sap.ui.require.toUrl("dassian/tpm/ui5/model/risktasks.json"));
       tm.attachRequestCompleted(function () { this._tasks = tm.getData() || {}; }.bind(this));
+      this._bindMatrixClick();
       this._load();
+    },
+
+    // One guarded, delegated click listener handles the heat-map cell presses
+    // (core:HTML content can't bind to controller methods directly).
+    _bindMatrixClick: function () {
+      if (this._matrixClickBound) { return; }
+      var that = this;
+      this._matrixClickHandler = function (e) {
+        var el = e.target && e.target.closest ? e.target.closest("[data-rip]") : null;
+        if (!el) { return; }
+        var host = that.byId("matrixHtml"), dom = host && host.getDomRef();
+        if (!dom || !dom.contains(el)) { return; }
+        var parts = el.getAttribute("data-rip").split("-");
+        that._applyFilter(parseInt(parts[0], 10), parseInt(parts[1], 10));
+      };
+      document.addEventListener("click", this._matrixClickHandler, false);
+      this._matrixClickBound = true;
+    },
+    onExit: function () {
+      if (this._matrixClickHandler) { document.removeEventListener("click", this._matrixClickHandler, false); this._matrixClickHandler = null; }
     },
 
     // True stepped waterfall, replicating the register prototype's SVG: score
@@ -89,27 +111,58 @@ sap.ui.define([
       var prog = this._prog(), kind = this._kind();
       var model = this.getOwnerComponent().getModel();
       model.bindList("/Risks").requestContexts(0, 300).then(function (ctxs) {
-        var items = [], counts = Array.from({ length: 5 }, function () { return [0, 0, 0, 0, 0]; });
-        var nRisk = 0, nOpp = 0;
+        var items = [], nRisk = 0, nOpp = 0;
         ctxs.forEach(function (c) {
           var o = c.getObject();
           if (o.ProgramID !== prog) { return; }
           if (o.Kind === "Risk") { nRisk++; } else { nOpp++; }
           if (o.Kind !== kind) { return; }
           items.push(o);
-          var p = o.ProbIndex, i = o.ImpactIndex;
-          if (p >= 0 && p < 5 && i >= 0 && i < 5) { counts[p][i]++; }
         });
         var m = this.getView().getModel("risk");
-        m.setProperty("/items", items);
         m.setProperty("/riskCount", nRisk);
         m.setProperty("/oppCount", nOpp);
-        this._renderMatrix(counts, kind);
+        m.setProperty("/filter", null);          // program / kind change clears the cell filter
+        this._allItems = items;
+        this._reapplyFilter();
         this._colourScores(kind);
       }.bind(this));
     },
 
-    _renderMatrix: function (counts, kind) {
+    _countsOf: function (items) {
+      var counts = Array.from({ length: 5 }, function () { return [0, 0, 0, 0, 0]; });
+      items.forEach(function (o) {
+        var p = o.ProbIndex, i = o.ImpactIndex;
+        if (p >= 0 && p < 5 && i >= 0 && i < 5) { counts[p][i]++; }
+      });
+      return counts;
+    },
+
+    // Re-derive the displayed register from the master list + the active cell
+    // filter, and repaint the matrix (counts come from the full list; the chosen
+    // cell is highlighted).
+    _reapplyFilter: function () {
+      var m = this.getView().getModel("risk"), kind = this._kind();
+      var all = this._allItems || [], f = m.getProperty("/filter");
+      var shown = f ? all.filter(function (o) { return o.ProbIndex === f.p && o.ImpactIndex === f.i; }) : all;
+      m.setProperty("/items", shown);
+      m.setProperty("/filterText", f ? (PROB[f.p] + " × " + IMPACT[f.i] + " · " + shown.length + " shown") : "");
+      this._renderMatrix(this._countsOf(all), kind, f);
+    },
+
+    // Toggle the cell filter: clicking the selected cell clears it.
+    _applyFilter: function (p, i) {
+      var m = this.getView().getModel("risk"), f = m.getProperty("/filter");
+      if (f && f.p === p && f.i === i) { m.setProperty("/filter", null); }
+      else { m.setProperty("/filter", { p: p, i: i }); }
+      this._reapplyFilter();
+    },
+    onClearRiskFilter: function () {
+      this.getView().getModel("risk").setProperty("/filter", null);
+      this._reapplyFilter();
+    },
+
+    _renderMatrix: function (counts, kind, filter) {
       var pal = kind === "Opportunity" ? OPP_PALETTE : RISK_PALETTE;
       var h = '<div style="display:inline-block">';
       for (var p = 0; p < 5; p++) {
@@ -119,8 +172,12 @@ sap.ui.define([
           var tier = TIER[p][i], bg = pal[tier];
           var white = kind === "Opportunity" && tier >= 4;
           var n = counts[p][i];
-          h += '<div style="width:4.6rem;height:3.2rem;margin:2px;border-radius:4px;display:flex;align-items:center;'
-            + 'justify-content:center;font-weight:700;background:' + bg + ';color:' + (white ? "#fff" : "#1d1d1d") + '">'
+          var on = filter && filter.p === p && filter.i === i;
+          var sel = on ? "box-shadow:0 0 0 3px #0a6ed1;outline:1px solid #0a6ed1;" : "";
+          var title = PROB[p] + " × " + IMPACT[i] + (n ? " — " + n + " item" + (n === 1 ? "" : "s") + " (click to filter)" : " — no items");
+          h += '<div data-rip="' + p + "-" + i + '" title="' + title + '" style="width:4.6rem;height:3.2rem;margin:2px;border-radius:4px;'
+            + 'display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;' + sel
+            + 'background:' + bg + ';color:' + (white ? "#fff" : "#1d1d1d") + '">'
             + (n ? n : "") + "</div>";
         }
         h += "</div>";
@@ -220,7 +277,7 @@ sap.ui.define([
       var tasks = (d.tasks || []).map(function (t) { return Object.assign({}, t); });
 
       var risk = this.getView().getModel("risk");
-      var items = risk.getProperty("/items") || [];
+      var items = (this._allItems || []).slice();
       var idx = -1;
       items.forEach(function (x, i) { if (x.ID === rec.ID) { idx = i; } });
       if (idx >= 0) {
@@ -230,29 +287,16 @@ sap.ui.define([
         if (rec.Kind === "Opportunity") { risk.setProperty("/oppCount", (risk.getProperty("/oppCount") || 0) + 1); }
         else { risk.setProperty("/riskCount", (risk.getProperty("/riskCount") || 0) + 1); }
       }
-      // only keep rows that match the kind currently shown in the register
-      risk.setProperty("/items", items.filter(function (x) { return x.Kind === rec.Kind; }));
+      // master list keeps only rows of the kind currently shown in the register
+      this._allItems = items.filter(function (x) { return x.Kind === rec.Kind; });
       this._tasks = this._tasks || {};
       this._tasks[rec.ID] = tasks;
 
-      this._recount();
+      this._reapplyFilter();
       sel.setProperty("/edit", false);
       sel.setProperty("/isNew", false);
       this._refreshWaterfall();
       MessageToast.show((rec.Kind === "Opportunity" ? "Opportunity " : "Risk ") + rec.ID + " saved.");
-    },
-
-    // Rebuild the 5×5 matrix counts from the rows currently in the register.
-    _recount: function () {
-      var kind = this._kind();
-      var items = this.getView().getModel("risk").getProperty("/items") || [];
-      var counts = Array.from({ length: 5 }, function () { return [0, 0, 0, 0, 0]; });
-      items.forEach(function (o) {
-        if (o.Kind !== kind) { return; }
-        var p = o.ProbIndex, i = o.ImpactIndex;
-        if (p >= 0 && p < 5 && i >= 0 && i < 5) { counts[p][i]++; }
-      });
-      this._renderMatrix(counts, kind);
     },
 
     _refreshWaterfall: function () {

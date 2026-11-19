@@ -246,12 +246,16 @@ sap.ui.define([
   function twMoney(v) { return (typeof v === "number") ? Math.round(v).toLocaleString("en-US") : xesc(v); }
   function twRatio(v) { return (typeof v === "number") ? v.toFixed(2) : xesc(v); }
   function twSheet(p) {
-    var cols = p.cols || [], rows = p.rows || [], CHK = twChk(cols), order = TW_TEXT.concat(TW_NUM).concat(CHK);
+    var cols = p.cols || [], rows = p.rows || [], f = p.factor || 1, CHK = twChk(cols), order = TW_TEXT.concat(TW_NUM).concat(CHK);
     var rn = 1, out = [];
     out.push('<row r="' + rn + '">' + order.map(function (idx, k) { return tcell(k, rn, cols[idx], 1); }).join("") + "</row>"); rn++;
     rows.forEach(function (r) {
       var cells = "";
-      order.forEach(function (idx, k) { var v = r[idx]; cells += (TW_NUM.indexOf(idx) >= 0 && typeof v === "number") ? ncell(k, rn, v, 3) : tcell(k, rn, v, 0); });
+      order.forEach(function (idx, k) {
+        var v = r[idx];
+        if (TW_NUM.indexOf(idx) >= 0 && typeof v === "number") { cells += ncell(k, rn, (idx >= 18) ? v : v * f, 3); }   // scale dollars, keep ratios
+        else { cells += tcell(k, rn, v, 0); }
+      });
       out.push('<row r="' + rn + '">' + cells + "</row>"); rn++;
     });
     var c1 = colL(TW_TEXT.length + TW_NUM.length), c2 = colL(order.length - 1), lastRow = 1 + rows.length;
@@ -263,7 +267,8 @@ sap.ui.define([
     return sheet(out.join(""), cf);
   }
   function twPdf(p) {
-    var meta = p.meta || {}, cols = p.cols || [], rows = p.rows || [], CHK = twChk(cols);
+    var meta = p.meta || {}, cols = p.cols || [], rows = p.rows || [], f = p.factor || 1, CHK = twChk(cols);
+    var money = function (v) { return (typeof v === "number") ? Math.round(v * f).toLocaleString("en-US") : xesc(v); };
     var th = "";
     TW_TEXT.forEach(function (i) { th += '<th class="d">' + xesc(cols[i]) + "</th>"; });
     TW_NUM.forEach(function (i) { th += "<th>" + xesc(cols[i]) + "</th>"; });
@@ -271,7 +276,7 @@ sap.ui.define([
     var body = rows.map(function (r) {
       var cells = "";
       TW_TEXT.forEach(function (i) { cells += '<td class="d">' + xesc(r[i]) + "</td>"; });
-      TW_NUM.forEach(function (i) { cells += '<td class="num">' + (i >= 18 ? twRatio(r[i]) : twMoney(r[i])) + "</td>"; });
+      TW_NUM.forEach(function (i) { cells += '<td class="num">' + (i >= 18 ? twRatio(r[i]) : money(r[i])) + "</td>"; });
       CHK.forEach(function (i) { var v = r[i]; cells += '<td class="' + (v === "ISSUE" ? "iss" : "") + '">' + xesc(v) + "</td>"; });
       return "<tr>" + cells + "</tr>";
     }).join("");
