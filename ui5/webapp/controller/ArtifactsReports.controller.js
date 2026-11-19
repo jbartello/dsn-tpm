@@ -71,12 +71,21 @@ sap.ui.define([
       else { MessageToast.show("No embedded viewer for “" + name + "” — document reference only."); }
     },
 
+    // One report view is visible at a time; hide them all before showing one so
+    // a prior report's content can't bleed through below the current one.
+    _hideAllReportViews: function () {
+      this.byId("reportGrid").setVisible(false);
+      this.byId("ramBox").setVisible(false);
+      this.byId("capBox").setVisible(false);
+      this.byId("genScroll").setVisible(false);
+    },
+
     // RAM: grouped OBS department headers over the manager columns, WBS level/CA
     // marks, and the budget rollup footer (Total, G&A, PMB, MR, CBB, Fee, Price).
     _openRam: function () {
       var d = this.getView().getModel("ram").getData();
       if (!d || !d.rows) { MessageToast.show("RAM data not loaded yet — try again."); return; }
-      this.byId("reportGrid").setVisible(false);
+      this._hideAllReportViews();
       this.byId("ramBox").setVisible(true);
       this._renderRam();
       var dlg = this.byId("reportDialog");
@@ -153,8 +162,7 @@ sap.ui.define([
     _openCap: function () {
       var d = this.getView().getModel("cap").getData();
       if (!d || !d.tp) { MessageToast.show("CAP data not loaded yet — try again."); return; }
-      this.byId("reportGrid").setVisible(false);
-      this.byId("ramBox").setVisible(false);
+      this._hideAllReportViews();
       this.byId("capBox").setVisible(true);
       this._renderCap();
       var dlg = this.byId("reportDialog");
@@ -209,9 +217,7 @@ sap.ui.define([
 
     // Generic HTML-report display (Tripwire, Control Log, Schedule 14-Point).
     _showGen: function (title, html) {
-      this.byId("reportGrid").setVisible(false);
-      this.byId("ramBox").setVisible(false);
-      this.byId("capBox").setVisible(false);
+      this._hideAllReportViews();
       this.byId("genScroll").setVisible(true);
       this.byId("genHtml").setContent("<div>" + html + "</div>");
       var dlg = this.byId("reportDialog");
@@ -228,7 +234,7 @@ sap.ui.define([
       var th = "";
       TW_TEXT.forEach(function (i) { th += "<th>" + esc(t.cols[i]) + "</th>"; });
       TW_NUM.forEach(function (i) { th += '<th class="tw-num">' + esc(t.cols[i]) + "</th>"; });
-      CHK.forEach(function (i) { var full = String(t.cols[i]); th += '<th class="tw-chk" title="' + esc(full) + '">' + esc(full.split(" ")[0]) + "</th>"; });
+      CHK.forEach(function (i) { var full = String(t.cols[i]); th += '<th class="tw-chk" title="' + esc(full) + '">' + esc(full) + "</th>"; });
       var body = t.rows.map(function (r) {
         var cells = "";
         TW_TEXT.forEach(function (i) { cells += "<td>" + esc(r[i]) + "</td>"; });
@@ -302,9 +308,7 @@ sap.ui.define([
     _renderGrid: function (cols, rowsPath, title) {
       var grid = this.byId("reportGrid");
       if (!grid) { return; }
-      this.byId("ramBox").setVisible(false);
-      this.byId("capBox").setVisible(false);
-      this.byId("genScroll").setVisible(false);
+      this._hideAllReportViews();
       grid.setVisible(true);
       grid.removeAllColumns();
       cols.forEach(function (c, i) {
